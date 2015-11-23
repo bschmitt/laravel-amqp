@@ -27,11 +27,11 @@ class LumenServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->singleton('Bschmitt\Amqp\Publisher', function ($app) {
+        $this->app->bind('Bschmitt\Amqp\Publisher', function ($app) {
             return new Publisher($app->config);
         });
 
-        $this->app->singleton('Bschmitt\Amqp\Consumer', function ($app) {
+        $this->app->bind('Bschmitt\Amqp\Consumer', function ($app) {
             return new Consumer($app->config);
         });
 
