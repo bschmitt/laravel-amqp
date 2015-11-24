@@ -68,7 +68,7 @@ class Consumer extends Request
                 return true;
             }
 
-            return false;
+            throw new \Exception($e);
         }
 
         return true;
