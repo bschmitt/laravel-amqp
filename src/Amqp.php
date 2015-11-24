@@ -12,12 +12,14 @@ class Amqp
 {
 
     /**
-     * @param string $binding
+     * @param string $routing
      * @param mixed  $message
      * @param array  $properties
      */
-    public function publish($binding, $message, array $properties = [])
+    public function publish($routing, $message, array $properties = [])
     {
+        $properties['routing'] = $routing;
+
         /* @var Publisher $publisher */
         $publisher = App::make('Bschmitt\Amqp\Publisher');
         $publisher
@@ -28,7 +30,7 @@ class Amqp
             $message = new Message($message, ['content_type' => 'text/plain', 'delivery_mode' => 2]);
         }
 
-        $publisher->publish($binding, $message);
+        $publisher->publish($routing, $message);
     }
 
     /**
@@ -48,6 +50,16 @@ class Amqp
             ->setup();
 
         $consumer->consume($queue, $callback);
+    }
+
+    /**
+     * @param string $body
+     * @param array  $properties
+     * @return \Bschmitt\Amqp\Message
+     */
+    public function message($body, $properties = [])
+    {
+        return new Message($body, $properties);
     }
 
 }

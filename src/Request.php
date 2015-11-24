@@ -97,7 +97,7 @@ class Request extends Context
                 $this->getProperty('queue_properties')
             );
 
-            $this->channel->queue_bind($queue, $exchange, $this->getProperty('binding'));
+            $this->channel->queue_bind($queue, $exchange, $this->getProperty('routing'));
 
         }
 
@@ -143,4 +143,3 @@ class Request extends Context
     }
 
 }
- 
