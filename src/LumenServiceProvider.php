@@ -37,7 +37,7 @@ class LumenServiceProvider extends ServiceProvider
 
         $this->app->bind('Amqp', 'Bschmitt\Amqp\Amqp');
 
-        if (!class_exists('MailService')) {
+        if (!class_exists('Amqp')) {
             class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
         }
     }
