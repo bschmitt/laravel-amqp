@@ -9,4 +9,3 @@ class Message extends AMQPMessage
 {
 
 }
- 

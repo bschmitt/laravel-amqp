@@ -18,6 +18,7 @@ class Consumer extends Request
      * @param string  $queue
      * @param Closure $closure
      * @return bool
+     * @throws \Exception
      */
     public function consume($queue, Closure $closure)
     {
@@ -75,6 +76,8 @@ class Consumer extends Request
     }
 
     /**
+     * Acknowledges a message
+     *
      * @param Message $message
      */
     public function acknowledge($message)
@@ -87,6 +90,19 @@ class Consumer extends Request
     }
 
     /**
+     * Rejects a message and requeues it if wanted (default: false)
+     *
+     * @param Message $message
+     * @param bool    $requeue
+     */
+    public function reject($message, $requeue = false)
+    {
+        $message->delivery_info['channel']->basic_reject($message->delivery_info['delivery_tag'], $requeue);
+    }
+
+    /**
+     * Stops consumer when no message is left
+     *
      * @throws Exception\Stop
      */
     public function stopWhenProcessed()
