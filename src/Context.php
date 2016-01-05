@@ -9,6 +9,8 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
 abstract class Context
 {
 
+    const REPOSITORY_KEY = 'amqp';
+
     /**
      * @var array
      */
@@ -29,7 +31,10 @@ abstract class Context
      */
     protected function extractProperties(Repository $config)
     {
-        $this->properties = $config['amqp']['properties'][$config['amqp']['use']];
+        if ($config->has(self::REPOSITORY_KEY)) {
+            $data = $config->get(self::REPOSITORY_KEY);
+            $this->properties = $data['properties'][$data['use']];
+        }
     }
 
     /**
@@ -65,4 +70,3 @@ abstract class Context
     abstract function setup();
 
 }
- 
