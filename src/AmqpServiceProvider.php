@@ -11,8 +11,20 @@ class AmqpServiceProvider extends ServiceProvider
      *
      * @var bool
      */
-    protected $defer = false;
+    protected $defer = true;
 
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        $this->app->bind('Amqp', 'Bschmitt\Amqp\Amqp');
+        if (!class_exists('Amqp')) {
+            class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
+        }
+    }
     /**
      * Register the application services.
      *
@@ -26,10 +38,7 @@ class AmqpServiceProvider extends ServiceProvider
         $this->app->singleton('Bschmitt\Amqp\Consumer', function ($app) {
             return new Consumer(config());
         });
-        $this->app->bind('Amqp', 'Bschmitt\Amqp\Amqp');
-        if (!class_exists('Amqp')) {
-            class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
-        }
+        
     }
 
     /**
@@ -39,6 +48,6 @@ class AmqpServiceProvider extends ServiceProvider
      */
     public function provides()
     {
-        return ['Bschmitt\Amqp\Publisher' , 'Bschmitt\Amqp\Consumer'];
+        return ['Amqp','Bschmitt\Amqp\Publisher' , 'Bschmitt\Amqp\Consumer'];
     }
 }
