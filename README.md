@@ -87,7 +87,7 @@ $app->register(Bschmitt\Amqp\LumenServiceProvider::class);
 Open **config/app.php** and add the service provider and alias:
 
 ```php
-'Bschmitt\Amqp\ServiceProvider',
+'Bschmitt\Amqp\AmqpServiceProvider',
 ```
 
 ```php
