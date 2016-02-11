@@ -2,6 +2,7 @@
 
 use Illuminate\Config\Repository;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Connection\AMQPSSLConnection;
 use PhpAmqpLib\Channel\AMQPChannel;
 
 /**
@@ -30,12 +31,14 @@ class Request extends Context
      */
     public function connect()
     {
-        $this->connection = new AMQPStreamConnection(
+        $this->connection = new AMQPSSLConnection(
             $this->getProperty('host'),
             $this->getProperty('port'),
             $this->getProperty('username'),
             $this->getProperty('password'),
-            $this->getProperty('vhost')
+            $this->getProperty('vhost'),
+            $this->getProperty('ssl_options'),
+            $this->getProperty('connect_options')
         );
 
         $this->channel = $this->connection->channel();
