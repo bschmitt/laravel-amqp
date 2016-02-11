@@ -29,6 +29,8 @@ return [
             'consumer_tag'        => 'consumer',
             'queue_properties'    => ['x-ha-policy' => ['S', 'all']],
             'exchange_properties' => [],
+            'connect_options'     => [],
+            'ssl_options'         => [],
             'timeout'             => 0
         ],
 
