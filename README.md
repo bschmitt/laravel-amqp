@@ -161,6 +161,32 @@ Amqp::consume('queue-name', function ($message, $resolver) {
 ]);
 ```
 
+## Fanout example
+
+### Publishing a message
+
+```php
+\Amqp::publish('', 'message' , [
+    'exchange_type' => 'fanout',
+    'exchange' => 'amq.fanout',
+]);
+```
+
+### Consuming messages
+
+```php
+\Amqp::consume('', function ($message, $resolver) {
+    var_dump($message->body);
+    $resolver->acknowledge($message);
+}, [
+    'exchange' => 'amq.fanout',
+    'exchange_type' => 'fanout',
+    'queue_force_declare' => true,
+    'queue_exclusive' => true,
+    'persistent' => true// required if you want to listen forever
+]);
+```
+
 ## Credits
 
 * Some concepts were used from https://github.com/mookofe/tail

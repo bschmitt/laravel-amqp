@@ -68,39 +68,40 @@ class Request extends Context
         $this->channel->exchange_declare(
             $exchange,
             $this->getProperty('exchange_type'),
-            false,
-            true,
-            false,
-            false,
-            false,
+            $this->getProperty('exchange_passive'),
+            $this->getProperty('exchange_durable'),
+            $this->getProperty('exchange_auto_delete'),
+            $this->getProperty('exchange_internal'),
+            $this->getProperty('exchange_nowait'),
             $this->getProperty('exchange_properties')
         );
 
         $queue = $this->getProperty('queue');
 
-        if (!empty($queue)) {
+        if (!empty($queue) || $this->getProperty('queue_force_declare')) {
 
             /*
                 name: $queue
                 passive: false
                 durable: true // the queue will survive server restarts
-                exclusive: false // the queue can be accessed in other channels
+                exclusive: false // queue is deleted when connection closes
                 auto_delete: false //the queue won't be deleted once the channel is closed.
                 nowait: false // Doesn't wait on replies for certain things.
                 parameters: array // Extra data, like high availability params
             */
 
+            /** @var ['queue name', 'message count',] queueInfo */
             $this->queueInfo = $this->channel->queue_declare(
                 $queue,
-                false,
-                true,
-                false,
-                false,
-                false,
+                $this->getProperty('queue_passive'),
+                $this->getProperty('queue_durable'),
+                $this->getProperty('queue_exclusive'),
+                $this->getProperty('queue_auto_delete'),
+                $this->getProperty('queue_nowait'),
                 $this->getProperty('queue_properties')
             );
 
-            $this->channel->queue_bind($queue, $exchange, $this->getProperty('routing'));
+            $this->channel->queue_bind($queue ?: $this->queueInfo[0], $exchange, $this->getProperty('routing'));
 
         }
 
