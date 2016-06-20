@@ -2,6 +2,7 @@
 
 use Illuminate\Config\Repository;
 use Closure;
+use PhpAmqpLib\Exception\AMQPTimeoutException;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -45,10 +46,10 @@ class Consumer extends Request
             $this->getChannel()->basic_consume(
                 $queue,
                 $this->getProperty('consumer_tag'),
-                false,
-                false,
-                false,
-                false,
+                $this->getProperty('consumer_no_local'),
+                $this->getProperty('consumer_no_ack'),
+                $this->getProperty('consumer_exclusive'),
+                $this->getProperty('consumer_nowait'),
                 function ($message) use ($closure, $object) {
                     $closure($message, $object);
                 }
