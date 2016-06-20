@@ -14,41 +14,7 @@ abstract class Context
     /**
      * @var array
      */
-    protected $properties = [
-        'host' => 'localhost',
-        'port' => 5672,
-        'username' => 'guest',
-        'password' => 'guest',
-        'vhost' => '/',
-        'persistent' => false,
-        
-        'exchange' => 'amq.topic',
-        'exchange_type' => 'topic',
-        'exchange_passive' => false,
-        'exchange_durable' => true,
-        'exchange_auto_delete' => false,
-        'exchange_internal' => false,
-        'exchange_nowait' => false,
-        'exchange_properties' => [],
-        
-        'consumer_tag' => '',
-        'consumer_no_local' => false,
-        'consumer_no_ack' => false,
-        'consumer_exclusive' => false,
-        'consumer_nowait' => false,
-        
-        'queue_force_declare' => false,
-        'queue_passive' => false,
-        'queue_durable' => true,
-        'queue_exclusive' => false,
-        'queue_auto_delete' => false,
-        'queue_nowait' => false,
-        
-        'queue_properties' => [],
-        'connect_options' => [],
-        'ssl_options' => [],
-        'timeout' => 0,
-    ];
+    protected $properties = [];
 
     /**
      * Context constructor.
@@ -67,7 +33,7 @@ abstract class Context
     {
         if ($config->has(self::REPOSITORY_KEY)) {
             $data = $config->get(self::REPOSITORY_KEY);
-            $this->mergeProperties($data['properties'][$data['use']]);
+            $this->properties = $data['properties'][$data['use']];
         }
     }
 
