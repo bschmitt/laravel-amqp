@@ -14,7 +14,6 @@
     "bschmitt"
   ],
   "license": "MIT",
-  "version": "v1.0.1",
   "support": {
       "issues": "https://github.com/bschmitt/laravel-amqp/issues",
       "source": "https://github.com/bschmitt/laravel-amqp"
