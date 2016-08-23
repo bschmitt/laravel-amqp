@@ -31,6 +31,7 @@ class Amqp
         }
 
         $publisher->publish($routing, $message);
+        Request::shutdown($publisher->getChannel(), $publisher->getConnection());
     }
 
     /**
@@ -50,6 +51,7 @@ class Amqp
             ->setup();
 
         $consumer->consume($queue, $callback);
+        Request::shutdown($consumer->getChannel(), $consumer->getConnection());
     }
 
     /**
