@@ -82,15 +82,17 @@ $app->configure('amqp');
 $app->register(Bschmitt\Amqp\LumenServiceProvider::class);
 
 //...
+```
 
 Add Facade Support for Lumen 5.2+
 
+```php
 //...
 $app->withFacades();
 class_alias(\Illuminate\Support\Facades\App::class, 'App');
 //...
-
 ```
+
 
 ### Laravel
 
