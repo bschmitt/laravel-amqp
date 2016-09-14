@@ -84,6 +84,16 @@ $app->register(Bschmitt\Amqp\LumenServiceProvider::class);
 //...
 ```
 
+Add Facade Support for Lumen 5.2+
+
+```php
+//...
+$app->withFacades();
+class_alias(\Illuminate\Support\Facades\App::class, 'App');
+//...
+```
+
+
 ### Laravel
 
 Open **config/app.php** and add the service provider and alias:
