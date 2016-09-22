@@ -27,7 +27,7 @@ $ php composer update
 or
 
 ```
-$ php composer require bschmitt/laravel-amqp dev-master
+$ php composer require bschmitt/laravel-amqp
 ```
 
 ## Integration
