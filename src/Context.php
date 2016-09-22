@@ -32,7 +32,7 @@ abstract class Context
     protected function extractProperties(Repository $config)
     {
         if ($config->has(self::REPOSITORY_KEY)) {
-            $data = $config->get(self::REPOSITORY_KEY);
+            $data             = $config->get(self::REPOSITORY_KEY);
             $this->properties = $data['properties'][$data['use']];
         }
     }

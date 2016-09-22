@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 
 class AmqpServiceProvider extends ServiceProvider
 {
+    
     /**
      * Indicates if loading of the provider is deferred.
      *
@@ -25,6 +26,7 @@ class AmqpServiceProvider extends ServiceProvider
             class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
         }
     }
+
     /**
      * Register the application services.
      *
@@ -38,7 +40,7 @@ class AmqpServiceProvider extends ServiceProvider
         $this->app->singleton('Bschmitt\Amqp\Consumer', function ($app) {
             return new Consumer(config());
         });
-        
+
     }
 
     /**
@@ -48,6 +50,7 @@ class AmqpServiceProvider extends ServiceProvider
      */
     public function provides()
     {
-        return ['Amqp','Bschmitt\Amqp\Publisher' , 'Bschmitt\Amqp\Consumer'];
+        return ['Amqp', 'Bschmitt\Amqp\Publisher', 'Bschmitt\Amqp\Consumer'];
     }
+
 }
