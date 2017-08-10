@@ -1,5 +1,5 @@
 {
-  "name": "bschmitt/laravel-amqp",
+  "name": "smartyaunt/laravel-amqp",
   "description": "AMQP wrapper for Laravel and Lumen to publish and consume messages",
   "keywords": [
     "laravel",
@@ -20,8 +20,8 @@
   },
   "authors": [
     {
-      "name": "Björn Schmitt",
-      "email": "code@bjoern.io"
+      "name": "chen bing",
+      "email": "401434286@qq.com"
     }
   ],
   "require": {
