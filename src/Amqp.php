@@ -21,7 +21,7 @@ class Amqp
         $properties['routing'] = $routing;
 
         /* @var Publisher $publisher */
-        $publisher = App::make('Bschmitt\Amqp\Publisher');
+        $publisher = app()->make('Bschmitt\Amqp\Publisher');
         $publisher
             ->mergeProperties($properties)
             ->setup();
@@ -45,7 +45,7 @@ class Amqp
         $properties['queue'] = $queue;
 
         /* @var Consumer $consumer */
-        $consumer = App::make('Bschmitt\Amqp\Consumer');
+        $consumer = app()->make('Bschmitt\Amqp\Consumer');
         $consumer
             ->mergeProperties($properties)
             ->setup();
