@@ -1,6 +1,5 @@
 <?php namespace Bschmitt\Amqp;
 
-use App;
 use Closure;
 use Bschmitt\Amqp\Request;
 use Bschmitt\Amqp\Message;
