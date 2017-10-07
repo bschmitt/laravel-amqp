@@ -1,4 +1,6 @@
-<?php namespace Bschmitt\Amqp;
+<?php
+
+namespace Bschmitt\Amqp;
 
 use Illuminate\Config\Repository;
 use Closure;
@@ -24,7 +26,6 @@ class Consumer extends Request
     public function consume($queue, Closure $closure)
     {
         try {
-
             $this->messageCount = $this->getQueueMessageCount();
 
             if (!$this->getProperty('persistent') && $this->messageCount == 0) {
@@ -57,11 +58,13 @@ class Consumer extends Request
 
             // consume
             while (count($this->getChannel()->callbacks)) {
-                $this->getChannel()->wait(NULL, !$this->getProperty('blocking'), $this->getProperty('timeout') ? $this->getProperty('timeout') : 0);
+                $this->getChannel()->wait(
+                    null,
+                    !$this->getProperty('blocking'),
+                    $this->getProperty('timeout') ? $this->getProperty('timeout') : 0
+                );
             }
-
         } catch (\Exception $e) {
-
             if ($e instanceof Exception\Stop) {
                 return true;
             }
@@ -112,5 +115,4 @@ class Consumer extends Request
             throw new Exception\Stop();
         }
     }
-
 }

@@ -1,6 +1,8 @@
-<?php namespace Bschmitt\Amqp;
+<?php
 
-use \PhpAmqpLib\Message\AMQPMessage;
+namespace Bschmitt\Amqp;
+
+use PhpAmqpLib\Message\AMQPMessage;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>

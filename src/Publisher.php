@@ -1,6 +1,6 @@
-<?php namespace Bschmitt\Amqp;
+<?php
 
-use Illuminate\Config\Repository;
+namespace Bschmitt\Amqp;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -17,5 +17,4 @@ class Publisher extends Request
     {
         $this->getChannel()->basic_publish($message, $this->getProperty('exchange'), $routing);
     }
-
 }

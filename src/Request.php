@@ -1,6 +1,7 @@
-<?php namespace Bschmitt\Amqp;
+<?php
 
-use Illuminate\Config\Repository;
+namespace Bschmitt\Amqp;
+
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 use PhpAmqpLib\Channel\AMQPChannel;
@@ -64,7 +65,6 @@ class Request extends Context
             durable: true // the exchange will survive server restarts
             auto_delete: false //the exchange won't be deleted once the channel is closed.
         */
-
         $this->channel->exchange_declare(
             $exchange,
             $this->getProperty('exchange_type'),
@@ -79,7 +79,6 @@ class Request extends Context
         $queue = $this->getProperty('queue');
 
         if (!empty($queue) || $this->getProperty('queue_force_declare')) {
-
             /*
                 name: $queue
                 passive: false
@@ -101,10 +100,12 @@ class Request extends Context
                 $this->getProperty('queue_properties')
             );
 
-            $this->channel->queue_bind($queue ?: $this->queueInfo[0], $exchange, $this->getProperty('routing'));
-
+            $this->channel->queue_bind(
+                $queue ?: $this->queueInfo[0],
+                $exchange,
+                $this->getProperty('routing')
+            );
         }
-
         // clear at shutdown
         register_shutdown_function([get_class(), 'shutdown'], $this->channel, $this->connection);
     }
@@ -145,5 +146,4 @@ class Request extends Context
         $channel->close();
         $connection->close();
     }
-
 }
