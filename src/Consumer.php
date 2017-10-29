@@ -5,6 +5,7 @@ namespace Bschmitt\Amqp;
 use Illuminate\Config\Repository;
 use Closure;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
+use PhpAmqpLib\Message\AMQPMessage;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -82,9 +83,9 @@ class Consumer extends Request
     /**
      * Acknowledges a message
      *
-     * @param Message $message
+     * @param AMQPMessage $message
      */
-    public function acknowledge($message)
+    public function acknowledge(AMQPMessage $message)
     {
         $message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
 
@@ -96,10 +97,10 @@ class Consumer extends Request
     /**
      * Rejects a message and requeues it if wanted (default: false)
      *
-     * @param Message $message
+     * @param AMQPMessage $message
      * @param bool    $requeue
      */
-    public function reject($message, $requeue = false)
+    public function reject(AMQPMessage $message, $requeue = false)
     {
         $message->delivery_info['channel']->basic_reject($message->delivery_info['delivery_tag'], $requeue);
     }
