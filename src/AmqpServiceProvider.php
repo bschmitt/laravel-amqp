@@ -1,4 +1,6 @@
-<?php namespace Bschmitt\Amqp;
+<?php
+
+namespace Bschmitt\Amqp;
 
 use Bschmitt\Amqp\Consumer;
 use Bschmitt\Amqp\Publisher;
@@ -40,7 +42,6 @@ class AmqpServiceProvider extends ServiceProvider
         $this->app->singleton('Bschmitt\Amqp\Consumer', function ($app) {
             return new Consumer(config());
         });
-
     }
 
     /**
@@ -52,5 +53,4 @@ class AmqpServiceProvider extends ServiceProvider
     {
         return ['Amqp', 'Bschmitt\Amqp\Publisher', 'Bschmitt\Amqp\Consumer'];
     }
-
 }

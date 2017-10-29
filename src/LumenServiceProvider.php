@@ -1,4 +1,6 @@
-<?php namespace Bschmitt\Amqp;
+<?php
+
+namespace Bschmitt\Amqp;
 
 use Illuminate\Support\ServiceProvider;
 
@@ -17,7 +19,6 @@ class LumenServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-
     }
 
     /**
@@ -41,5 +42,4 @@ class LumenServiceProvider extends ServiceProvider
             class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
         }
     }
-
 }

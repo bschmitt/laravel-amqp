@@ -1,4 +1,6 @@
-<?php namespace Bschmitt\Amqp\Facades;
+<?php
+
+namespace Bschmitt\Amqp\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
@@ -16,5 +18,4 @@ class Amqp extends Facade
     {
         return 'Amqp';
     }
-
 }

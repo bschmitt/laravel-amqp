@@ -1,4 +1,6 @@
-<?php namespace Bschmitt\Amqp;
+<?php
+
+namespace Bschmitt\Amqp;
 
 use Closure;
 use Bschmitt\Amqp\Request;
@@ -62,5 +64,4 @@ class Amqp
     {
         return new Message($body, $properties);
     }
-
 }
