@@ -107,7 +107,7 @@ class Request extends Context
             );
         }
         // clear at shutdown
-        register_shutdown_function([get_class(), 'shutdown'], $this->channel, $this->connection);
+        $this->connection->set_close_on_destruct(true);
     }
 
     /**
