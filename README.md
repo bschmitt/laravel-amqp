@@ -18,7 +18,8 @@ AMQP wrapper for Laravel and Lumen to publish and consume messages especially fr
 Add the following to your require part within the composer.json: 
 
 ```js
-"bschmitt/laravel-amqp": "1.*"
+"bschmitt/laravel-amqp": "2.*" (Laravel >= 5.5)
+"bschmitt/laravel-amqp": "1.*" (Laravel < 5.5)
 ```
 ```batch
 $ php composer update
