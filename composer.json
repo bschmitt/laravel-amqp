@@ -36,7 +36,8 @@
   },
   "autoload": {
     "psr-4": {
-      "Bschmitt\\Amqp\\": "src/"
+      "Bschmitt\\Amqp\\": "src/",
+      "Bschmitt\\Amqp\\Test\\": "test/"
     }
   },
   "extra": {
