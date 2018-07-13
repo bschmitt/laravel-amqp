@@ -23,6 +23,11 @@
       "name": "Björn Schmitt",
       "email": "code@bjoern.io",
       "role": "Author & Original Maintainer"
+    },
+    {
+      "name": "Steven Klar",
+      "email": "stevenklar0@gmail.com",
+      "role": "Maintainer"
     }
   ],
   "require": {
