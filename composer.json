@@ -15,13 +15,14 @@
   ],
   "license": "MIT",
   "support": {
-      "issues": "https://github.com/bschmitt/laravel-amqp/issues",
-      "source": "https://github.com/bschmitt/laravel-amqp"
+    "issues": "https://github.com/bschmitt/laravel-amqp/issues",
+    "source": "https://github.com/bschmitt/laravel-amqp"
   },
   "authors": [
     {
-    "name": "Björn Schmitt",
-    "email": "code@bjoern.io"
+      "name": "Björn Schmitt",
+      "email": "code@bjoern.io",
+      "role": "Author & Original Maintainer"
     }
   ],
   "require": {
