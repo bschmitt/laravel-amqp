@@ -19,11 +19,11 @@ return [
     'properties' => [
 
         'production' => [
-            'host'                  => 'localhost',
-            'port'                  => 5672,
-            'username'              => '',
-            'password'              => '',
-            'vhost'                 => '/',
+            'host'                  => env('RABBITMQ_HOST', 'localhost'),
+            'port'                  => env('RABBITMQ_PORT', 5672),
+            'username'              => env('RABBITMQ_LOGIN', 'guest'),
+            'password'              => env('RABBITMQ_PASSWORD', 'guest'),
+            'vhost'                 => env('RABBITMQ_VHOST', '/'),
             'connect_options'       => [],
             'ssl_options'           => [],
 
