@@ -9,6 +9,7 @@ AMQP wrapper for Laravel and Lumen to publish and consume messages especially fr
   - Advanced queue configuration
   - Add message to queues easily
   - Listen queues with useful options
+  - RPC
 
 
 ## Installation
@@ -38,35 +39,6 @@ $ php composer require bschmitt/laravel-amqp
 Create a **config** folder in the root directory of your Lumen application and copy the content
 from **vendor/bschmitt/laravel-amqp/config/amqp.php** to **config/amqp.php**.
 
-Adjust the properties to your needs.
-
-```php
-return [
-
-    'use' => 'production',
-
-    'properties' => [
-
-        'production' => [
-            'host'                => 'localhost',
-            'port'                => 5672,
-            'username'            => 'username',
-            'password'            => 'password',
-            'vhost'               => '/',
-            'exchange'            => 'amq.topic',
-            'exchange_type'       => 'topic',
-            'consumer_tag'        => 'consumer',
-            'ssl_options'         => [], // See https://secure.php.net/manual/en/context.ssl.php
-            'connect_options'     => [], // See https://github.com/php-amqplib/php-amqplib/blob/master/PhpAmqpLib/Connection/AMQPSSLConnection.php
-            'queue_properties'    => ['x-ha-policy' => ['S', 'all']],
-            'exchange_properties' => [],
-            'timeout'             => 0
-        ],
-
-    ],
-
-];
-```
 
 Register the Lumen Service Provider in **bootstrap/app.php**:
 
@@ -113,23 +85,64 @@ Open **config/app.php** and add the service provider and alias:
 ### Push message with routing key
 
 ```php
-    Amqp::publish('routing-key', 'message');
+Amqp::publish('routing-key', 'message');
 ```
 
 ### Push message with routing key and create queue
 
 ```php	
-    Amqp::publish('routing-key', 'message' , ['queue' => 'queue-name']);
+Amqp::publish('routing-key', 'message' , ['queue' => 'queue-name']);
 ```
 
 ### Push message with routing key and overwrite properties
 
 ```php	
-    Amqp::publish('routing-key', 'message' , ['exchange' => 'amq.direct']);
+Amqp::publish('routing-key', 'message' , ['exchange' => 'amq.direct']);
 ```
 
-
 ## Consuming messages
+
+### Default worker
+
+```bash
+php artisan amqp:worker
+```
+
+You can use a standard worker or write your own.
+
+If a standard worker is used, the message must have a specific JSON format.
+```json
+{
+  "event"   : "eventName",
+  "payload" : ["a", "b"]
+}
+```
+
+You can also use the message builder.
+
+```php
+$message = new \Bschmitt\Amqp\MessageBuilder();
+$message
+    ->setEvent('eventName')
+    ->setPayload(['a'=>1,'b'=>2]);
+
+$message->getMessage(); // message string
+```
+
+When a message is received, the event is ignited. 
+You need to register an event in your **EventServiceProvider.php** 
+and create a handler file.
+
+
+```php
+//...
+protected $listen = [
+    'eventName' => [
+        'App\Listeners\MyEventListener',
+    ]
+];
+//...
+```
 
 ### Consume messages, acknowledge and stop when no message is left
 
@@ -171,6 +184,108 @@ Amqp::consume('queue-name', function ($message, $resolver) {
 	'vhost'   => 'vhost3'
 ]);
 ```
+
+## RPC
+
+### Call RPC
+
+```php
+$result = Amqp::rpc('queue_name', 'message');
+```
+
+### Default worker
+
+```bash
+php artisan amqp:rpc-worker
+```
+
+You can use a standard worker or write your own.
+
+In the case of using a standard worker, the call must have a specific JSON format.
+```json
+{
+  "procedure" : "procedureName",
+  "params"    : ["a", "b"]
+}
+```
+
+You can use the message builder.
+
+```php
+$message = new \Bschmitt\Amqp\RpcMessageBuilder();
+$message
+    ->setProcedure('procedureName')
+    ->setParam('a',1)
+    ->setParam('b',2);
+
+$message->getMessage(); // message string
+```
+
+When a message is received, the handler is called.
+You need to register the handler in the **config/amqp.php** 
+file and create the handler file itself.
+
+
+```php
+//...
+'methods' => [
+    'myProcedure' => \App\Rpc\MyHandlerRpc::class,
+],
+//...
+```
+
+The class **\App\Rpc\MyHandlerRpc** must implement the interface **\Bschmitt\Amqp\Rpc\RpcRpcHandlerInterface**
+
+
+```php
+<?php
+
+namespace App\Rpc;
+
+
+use Bschmitt\Amqp\Rpc\RpcHandlerInterface;
+
+class MyHandlerRpc implements RpcHandlerInterface
+{
+    public function handle(array $params)
+    {
+        return 'myResult';
+    }
+}
+```
+
+### Consume rpc message
+
+```php
+Amqp::consume(
+    'queue_name',
+    function (AMQPMessage $message, Consumer $consumer) {
+    
+        $message->getBody(); //data
+        $result = 'result message';
+        
+        $correlationId = $message->has('correlation_id') ? $message->get('correlation_id') : null;
+        $consumer->getChannel()->basic_publish(
+            new AMQPMessage(
+                $result,
+                [
+                    'content_type'   => $consumer->getProperty('content_type'),
+                    'delivery_mode'  => 1,
+                    'correlation_id' => $correlationId,
+                ]
+            ),
+            '',
+            $message->get('reply_to')
+        );
+    },
+    [
+        'queue_force_declare' => true,
+        'queue_durable'       => true,
+        'consumer_no_ack'     => true,
+    ]
+);
+```
+
 
 ## Fanout example
 
