@@ -2,6 +2,8 @@
 
 namespace Bschmitt\Amqp;
 
+use Bschmitt\Amqp\Console\RpcWorkerCommand;
+use Bschmitt\Amqp\Console\WorkerCommand;
 use Bschmitt\Amqp\Consumer;
 use Bschmitt\Amqp\Publisher;
 use Illuminate\Support\ServiceProvider;
@@ -42,6 +44,14 @@ class AmqpServiceProvider extends ServiceProvider
         $this->app->singleton('Bschmitt\Amqp\Consumer', function ($app) {
             return new Consumer(config());
         });
+        $this->app->singleton('command.worker', function () {
+            return new WorkerCommand();
+        });
+        $this->app->singleton('command.rpc-worker', function () {
+            return new RpcWorkerCommand();
+        });
+        $this->commands('command.worker');
+        $this->commands('command.rpc-worker');
     }
 
     /**

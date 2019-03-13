@@ -2,6 +2,8 @@
 
 namespace Bschmitt\Amqp;
 
+use Bschmitt\Amqp\Console\RpcWorkerCommand;
+use Bschmitt\Amqp\Console\WorkerCommand;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -19,6 +21,7 @@ class LumenServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        //
     }
 
     /**
@@ -37,6 +40,15 @@ class LumenServiceProvider extends ServiceProvider
         });
 
         $this->app->bind('Amqp', 'Bschmitt\Amqp\Amqp');
+
+        $this->app->singleton('command.worker', function () {
+            return new WorkerCommand();
+        });
+        $this->app->singleton('command.rpc-worker', function () {
+            return new RpcWorkerCommand();
+        });
+        $this->commands('command.worker');
+        $this->commands('command.rpc-worker');
 
         if (!class_exists('Amqp')) {
             class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
