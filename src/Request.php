@@ -32,15 +32,35 @@ class Request extends Context
      */
     public function connect()
     {
-        $this->connection = new AMQPSSLConnection(
-            $this->getProperty('host'),
-            $this->getProperty('port'),
-            $this->getProperty('username'),
-            $this->getProperty('password'),
-            $this->getProperty('vhost'),
-            $this->getProperty('ssl_options'),
-            $this->getProperty('connect_options')
-        );
+        if ($this->getProperty('ssl_options')) {
+            $this->connection = new AMQPSSLConnection(
+                $this->getProperty('host'),
+                $this->getProperty('port'),
+                $this->getProperty('username'),
+                $this->getProperty('password'),
+                $this->getProperty('vhost'),
+                $this->getProperty('ssl_options'),
+                $this->getProperty('connect_options')
+            );
+        } else {
+            $this->connection = new AMQPStreamConnection(
+                $this->getProperty('host'),
+                $this->getProperty('port'),
+                $this->getProperty('username'),
+                $this->getProperty('password'),
+                $this->getProperty('vhost'),
+                $this->getConnectOption('insist', false),
+                $this->getConnectOption('login_method', 'AMQPLAIN'),
+                $this->getConnectOption('login_response', null),
+                $this->getConnectOption('locale', 3),
+                $this->getConnectOption('read_write_timeout', 130),
+                $this->getConnectOption('context', null),
+                $this->getConnectOption('keepalive', false),
+                $this->getConnectOption('heartbeat', 60),
+                $this->getConnectOption('channel_rpc_timeout', 0.0),
+                $this->getConnectOption('ssl_protocol', null)
+            );
+        }
 
         $this->channel = $this->connection->channel();
     }
