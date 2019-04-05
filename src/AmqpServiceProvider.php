@@ -29,7 +29,7 @@ class AmqpServiceProvider extends ServiceProvider
         }
 
         $this->publishes([
-            __DIR__.'/config/amqp.php' => config_path('amqp.php'),
+            __DIR__.'/../config/amqp.php' => config_path('amqp.php'),
         ]);
     }
 
