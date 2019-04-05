@@ -27,6 +27,10 @@ class AmqpServiceProvider extends ServiceProvider
         if (!class_exists('Amqp')) {
             class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
         }
+
+        $this->publishes([
+            __DIR__.'/config/amqp.php' => config_path('amqp.php'),
+        ]);
     }
 
     /**
