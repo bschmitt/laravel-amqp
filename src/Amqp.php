@@ -31,8 +31,14 @@ class Amqp
             $message = new Message($message, ['content_type' => 'text/plain', 'delivery_mode' => 2]);
         }
 
-        $publisher->publish($routing, $message);
+        $mandatory = false;
+        if(isset($properties['mandatory']) && $properties['mandatory'] == true) {
+            $mandatory = true;
+        }
+
+        $return = $publisher->publish($routing, $message, $mandatory);
         Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+	return $return;
     }
 
     /**
