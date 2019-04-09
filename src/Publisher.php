@@ -20,7 +20,7 @@ class Publisher extends Request
      * @param Message $message
      * @throws Exception\Configuration
      */
-    public function publish($routing, $message, $mandatory=false)
+    public function publish($routing, $message, $mandatory = false)
     {
 	$this->publish_result = true;
 
