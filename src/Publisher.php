@@ -24,7 +24,7 @@ class Publisher extends Request
     {
 	$this->publish_result = true;
 
-	if($mandatory == true) {
+	if ($mandatory === true) {
             $this->getChannel()->confirm_select();
             $this->getChannel()->set_nack_handler([$this, 'nack']);
             $this->getChannel()->set_return_listener([$this, 'return']);
