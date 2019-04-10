@@ -53,12 +53,11 @@ class Request extends Context
                 $this->getConnectOption('login_method', 'AMQPLAIN'),
                 $this->getConnectOption('login_response', null),
                 $this->getConnectOption('locale', 3),
+                $this->getConnectOption('channel_rpc_timeout', 0.0),
                 $this->getConnectOption('read_write_timeout', 130),
                 $this->getConnectOption('context', null),
                 $this->getConnectOption('keepalive', false),
-                $this->getConnectOption('heartbeat', 60),
-                $this->getConnectOption('channel_rpc_timeout', 0.0),
-                $this->getConnectOption('ssl_protocol', null)
+                $this->getConnectOption('heartbeat', 60)
             );
         }
 
