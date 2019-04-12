@@ -22,29 +22,35 @@ class Publisher extends Request
      */
     public function publish($routing, $message, $mandatory = false)
     {
-	$this->publish_result = true;
+        $this->publish_result = true;
 
-	if ($mandatory === true) {
+        if ($mandatory === true) {
             $this->getChannel()->confirm_select();
             $this->getChannel()->set_nack_handler([$this, 'nack']);
             $this->getChannel()->set_return_listener([$this, 'return']);
         }
 
+        $timeout = $this->getProperty('publish_timeout') > 0
+            ? $this->getProperty('publish_timeout')
+            : 30;
+
         $this->getChannel()->basic_publish($message, $this->getProperty('exchange'), $routing, $mandatory);
-        $mandatory == true && $this->getChannel()->wait_for_pending_acks_returns(30);
+        $mandatory === true && $this->getChannel()->wait_for_pending_acks_returns((int)$timeout);
     }
 
-    /*
-    * @param Object Message object
+    /**
+    * @param Array array of AMQPMessage objects
     */
-    public function nack($msg) {
+    public function nack($msg) 
+    {
     	$this->publish_result = false;
     }
 
-    /*
-    * @param Object Message object
+    /**
+    * @param Array array of AMQPMessage objects
     */
-    public function return($msg) {
+    public function return($msg) 
+    {
     	$this->publish_result = false;
     }
 }

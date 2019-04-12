@@ -51,6 +51,7 @@ return [
             'consumer_nowait'       => false,
             'timeout'               => 0,
             'persistent'            => false,
+            'publish_timeout'       => 0, // Only applicable when a publish is marked as mandatory
         ],
 
     ],
