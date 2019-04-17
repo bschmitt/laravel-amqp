@@ -39,7 +39,8 @@ class Consumer extends Request
                 no_local: Don't receive messages published by this consumer.
                 no_ack: Tells the server if the consumer will acknowledge the messages.
                 exclusive: Request exclusive consumer access, meaning only this consumer can access the queue
-                nowait: basic_qos() method is using to tell RabbitMQ not to give more than one message to a worker at a time.
+                nowait:
+                qos: The consumer-prefetch make it possible to limit the number of unacknowledged messages on a channel (or connection) when consuming.
                                     Or, in other words, don't dispatch a new message to a worker
                                     until it has processed and acknowledged the previous one
                 callback: A PHP Callback
