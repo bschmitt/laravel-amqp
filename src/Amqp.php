@@ -50,8 +50,6 @@ class Amqp
             ->mergeProperties($properties)
             ->setup();
 
-        $consumer->getChannel()->basic_qos($this->prefetch_size, $this->prefetch_count, $this->a_global);
-
         $consumer->consume($queue, $callback);
         Request::shutdown($consumer->getChannel(), $consumer->getConnection());
     }
