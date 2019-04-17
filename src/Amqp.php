@@ -11,23 +11,6 @@ use Bschmitt\Amqp\Message;
  */
 class Amqp
 {
-
-    private $prefetch_size = 0;
-    private $prefetch_count = 1;
-    private $a_global = false;
-
-    public function setPrefetchSize($prefetch_size) {
-        $this->prefetch_size = $prefetch_size;
-    }
-
-    public function setPrefetchCount($prefetch_count) {
-        $this->prefetch_count = $prefetch_count;
-    }
-
-    public function setAGlobal($a_global) {
-        $this->a_global = $a_global;
-    }
-
     /**
      * @param string $routing
      * @param mixed  $message

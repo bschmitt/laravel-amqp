@@ -45,6 +45,11 @@ class Consumer extends Request
 
             $object = $this;
 
+            $this->getChannel()->basic_qos(
+                $this->getProperty('qos_prefetch_size'),
+                $this->getProperty('qos_prefetch_count'),
+                $this->getProperty('qos_a_global'));
+
             $this->getChannel()->basic_consume(
                 $queue,
                 $this->getProperty('consumer_tag'),
