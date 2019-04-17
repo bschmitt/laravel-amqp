@@ -11,7 +11,6 @@ use Bschmitt\Amqp\Message;
  */
 class Amqp
 {
-
     /**
      * @param string $routing
      * @param mixed  $message
