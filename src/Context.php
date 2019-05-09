@@ -62,7 +62,7 @@ abstract class Context
      */
     public function getProperty($key)
     {
-        return array_key_exists($key, $this->properties) ? $this->properties[$key] : null;
+        return array_key_exists($key, $this->properties) ? $this->properties[$key] : [];
     }
 
     /**
