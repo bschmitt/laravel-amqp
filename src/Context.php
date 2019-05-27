@@ -62,7 +62,7 @@ abstract class Context
      */
     public function getProperty($key)
     {
-        return array_key_exists($key, $this->properties) ? $this->properties[$key] : [];
+        return array_key_exists($key, $this->properties) ? $this->properties[$key] : null;
     }
 
     /**
@@ -73,6 +73,11 @@ abstract class Context
     public function getConnectOption($key, $default = null)
     {
         $options = $this->getProperty('connect_options');
+
+        if (!is_array($options)) {
+            return $default;
+        }
+
         return array_key_exists($key, $options) ? $options[$key] : $default;
     }
 
