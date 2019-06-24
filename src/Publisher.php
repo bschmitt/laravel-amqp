@@ -36,6 +36,8 @@ class Publisher extends Request
 
         $this->getChannel()->basic_publish($message, $this->getProperty('exchange'), $routing, $mandatory);
         $mandatory === true && $this->getChannel()->wait_for_pending_acks_returns((int)$timeout);
+
+        return $this->publish_result;
     }
 
     /**
