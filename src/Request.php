@@ -121,11 +121,13 @@ class Request extends Context
                 $this->getProperty('queue_properties')
             );
 
-            $this->channel->queue_bind(
-                $queue ?: $this->queueInfo[0],
-                $exchange,
-                $this->getProperty('routing')
-            );
+            foreach ((array) $this->getProperty('routing') as $routingKey) {
+                $this->channel->queue_bind(
+                    $queue ?: $this->queueInfo[0],
+                    $exchange,
+                    $routingKey
+                );
+            }
         }
         // clear at shutdown
         $this->connection->set_close_on_destruct(true);
