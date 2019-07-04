@@ -82,6 +82,54 @@ class RequestTest extends BaseTestCase
 
     }
 
+    public function testIfQueueGetsDeclaredAndBoundToDifferentRoutingKeysIfInConfig()
+    {
+
+        $queueName = 'amqp-test';
+        $routing = [
+            'routing-test-1',
+            'routing-test-2',
+        ];
+
+        $this->requestMock->mergeProperties([
+            'queue' => $queueName,
+            'queue_force_declare' => true,
+            'routing' => $routing
+        ]);
+        $this->channelMock->shouldReceive('exchange_declare');
+        $this->requestMock->shouldReceive('connect');
+
+        $this->channelMock->shouldReceive('queue_declare')
+                          ->with(
+                              $queueName,
+                              $this->defaultConfig['queue_passive'],
+                              $this->defaultConfig['queue_durable'],
+                              $this->defaultConfig['queue_exclusive'],
+                              $this->defaultConfig['queue_auto_delete'],
+                              $this->defaultConfig['queue_nowait'],
+                              $this->defaultConfig['queue_properties']
+                          )
+                          ->andReturn([$queueName, 4])
+                          ->times(1);
+        $this->channelMock->shouldReceive('queue_bind')
+                          ->with(
+                              $queueName,
+                              $this->defaultConfig['exchange'],
+                              $routing[0]
+                            )
+                          ->times(1);
+        $this->channelMock->shouldReceive('queue_bind')
+                          ->with(
+                              $queueName,
+                              $this->defaultConfig['exchange'],
+                              $routing[1]
+                            )
+                          ->times(1);
+        $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->times(1);
+        $this->requestMock->setup();
+
+    }
+
     public function testQueueMessageCountShouldBeZeroIfQueueinfoIsNotSet()
     {
 
