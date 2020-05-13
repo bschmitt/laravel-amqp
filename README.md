@@ -88,8 +88,9 @@ Add Facade Support for Lumen 5.2+
 
 ```php
 //...
-$app->withFacades();
-class_alias(\Illuminate\Support\Facades\App::class, 'App');
+$app->withFacades(true, [
+    'Bschmitt\Amqp\Facades\Amqp' => 'Amqp',
+]);
 //...
 ```
 
