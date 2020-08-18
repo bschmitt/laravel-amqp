@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'use' => 'production',
+    'use' => env('AMQP_ENV', 'production'),
 
     /*
     |--------------------------------------------------------------------------
@@ -19,11 +19,11 @@ return [
     'properties' => [
 
         'production' => [
-            'host'                  => 'localhost',
-            'port'                  => 5672,
-            'username'              => '',
-            'password'              => '',
-            'vhost'                 => '/',
+            'host'                  => env('AMQP_HOST', 'localhost'),
+            'port'                  => env('AMQP_PORT', 5672),
+            'username'              => env('AMQP_USER', ''),
+            'password'              => env('AMQP_PASSWORD', ''),
+            'vhost'                 => env('AMQP_VHOST', '/'),
             'connect_options'       => [],
             'ssl_options'           => [],
 
