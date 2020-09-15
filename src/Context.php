@@ -2,7 +2,7 @@
 
 namespace Bschmitt\Amqp;
 
-use Illuminate\Config\Repository;
+use Illuminate\Contracts\Config\Repository;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
