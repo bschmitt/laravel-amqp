@@ -190,6 +190,7 @@ Amqp::consume('queue-name', function ($message, $resolver) {
     var_dump($message->body);
     $resolver->acknowledge($message);
 }, [
+    'routing' => '',
     'exchange' => 'amq.fanout',
     'exchange_type' => 'fanout',
     'queue_force_declare' => true,
