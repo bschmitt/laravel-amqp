@@ -37,8 +37,9 @@ class Amqp
     }
 
     /**
-     * @param $routing
-     * @param $message
+     * @param string $routing
+     * @param        $message
+     *
      */
     public function batchBasicPublish(string $routing, $message)
     {
@@ -76,7 +77,10 @@ class Amqp
         Request::shutdown($publisher->getChannel(), $publisher->getConnection());
     }
 
-    public function forgetBatchedMessages()
+    /**
+     * Remove the messages sent as a batch.
+     */
+    private function forgetBatchedMessages()
     {
         self::$batchMessages = [];
     }
