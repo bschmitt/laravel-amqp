@@ -65,7 +65,9 @@ class Consumer extends Request
                 $this->getProperty('consumer_nowait'),
                 function ($message) use ($closure, $object) {
                     $closure($message, $object);
-                }
+                },
+                null,
+                $this->getProperty('consumer_properties')
             );
 
             // consume
