@@ -53,6 +53,7 @@ class Request extends Context
                 $this->getConnectOption('login_method', 'AMQPLAIN'),
                 $this->getConnectOption('login_response', null),
                 $this->getConnectOption('locale', 3),
+                $this->getConnectOption('connection_timeout', 3.0),
                 $this->getConnectOption('read_write_timeout', 130),
                 $this->getConnectOption('context', null),
                 $this->getConnectOption('keepalive', false),
@@ -120,11 +121,13 @@ class Request extends Context
                 $this->getProperty('queue_properties')
             );
 
-            $this->channel->queue_bind(
-                $queue ?: $this->queueInfo[0],
-                $exchange,
-                $this->getProperty('routing')
-            );
+            foreach ((array) $this->getProperty('routing') as $routingKey) {
+                $this->channel->queue_bind(
+                    $queue ?: $this->queueInfo[0],
+                    $exchange,
+                    $routingKey
+                );
+            }
         }
         // clear at shutdown
         $this->connection->set_close_on_destruct(true);

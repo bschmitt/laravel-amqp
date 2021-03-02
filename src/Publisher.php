@@ -17,4 +17,23 @@ class Publisher extends Request
     {
         $this->getChannel()->basic_publish($message, $this->getProperty('exchange'), $routing);
     }
+
+    /**
+     * Add a message to the batch.
+     *
+     * @param string $routing
+     * @param Message $message
+     */
+    public function batchBasicPublish($routing, $message)
+    {
+        $this->getChannel()->batch_basic_publish($message, $this->getProperty('exchange'), $routing);
+    }
+
+    /**
+     * Publish the batched messages.
+     */
+    public function batchPublish()
+    {
+        $this->getChannel()->publish_batch();
+    }
 }

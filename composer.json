@@ -26,7 +26,7 @@
   ],
   "require": {
     "php": ">=7.0",
-    "php-amqplib/php-amqplib": "2.*",
+    "php-amqplib/php-amqplib": ">=2.9",
     "illuminate/support": ">=v5.5.28"
   },
   "require-dev": {
@@ -36,7 +36,11 @@
   },
   "autoload": {
     "psr-4": {
-      "Bschmitt\\Amqp\\": "src/",
+      "Bschmitt\\Amqp\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
       "Bschmitt\\Amqp\\Test\\": "test/"
     }
   },

@@ -40,10 +40,21 @@ class Consumer extends Request
                 no_ack: Tells the server if the consumer will acknowledge the messages.
                 exclusive: Request exclusive consumer access, meaning only this consumer can access the queue
                 nowait:
+                qos: The consumer-prefetch make it possible to limit the number of unacknowledged messages on a channel (or connection) when consuming.
+                                    Or, in other words, don't dispatch a new message to a worker
+                                    until it has processed and acknowledged the previous one
                 callback: A PHP Callback
             */
 
             $object = $this;
+
+            if ($this->getProperty('qos')) {
+                $this->getChannel()->basic_qos(
+                    $this->getProperty('qos_prefetch_size'),
+                    $this->getProperty('qos_prefetch_count'),
+                    $this->getProperty('qos_a_global')
+                );
+            }
 
             $this->getChannel()->basic_consume(
                 $queue,
@@ -59,9 +70,7 @@ class Consumer extends Request
 
             // consume
             while (count($this->getChannel()->callbacks)) {
-                $this->getChannel()->wait(
-                    null,
-                    !$this->getProperty('blocking'),
+                $this->getChannel()->wait(null, false,
                     $this->getProperty('timeout') ? $this->getProperty('timeout') : 0
                 );
             }

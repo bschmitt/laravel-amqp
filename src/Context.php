@@ -2,7 +2,7 @@
 
 namespace Bschmitt\Amqp;
 
-use Illuminate\Config\Repository;
+use Illuminate\Contracts\Config\Repository;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -73,6 +73,11 @@ abstract class Context
     public function getConnectOption($key, $default = null)
     {
         $options = $this->getProperty('connect_options');
+
+        if (!is_array($options)) {
+            return $default;
+        }
+
         return array_key_exists($key, $options) ? $options[$key] : $default;
     }
 
