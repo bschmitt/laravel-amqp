@@ -51,7 +51,7 @@ return [
             'consumer_nowait'       => false,
             'timeout'               => 0,
             'persistent'            => false,
-
+            'publish_timeout'       => 0, // Only applicable when a publish is marked as mandatory
             'qos'                   => false,
             'qos_prefetch_size'     => 0,
             'qos_prefetch_count'    => 1,
