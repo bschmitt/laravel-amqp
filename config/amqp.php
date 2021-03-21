@@ -49,6 +49,7 @@ return [
             'consumer_no_ack'       => false,
             'consumer_exclusive'    => false,
             'consumer_nowait'       => false,
+            'consumer_properties'   => [],
             'timeout'               => 0,
             'persistent'            => false,
             'publish_timeout'       => 0, // Only applicable when a publish is marked as mandatory
