@@ -11,7 +11,7 @@ use Bschmitt\Amqp\Message;
  */
 class Amqp
 {
-    protected static array $batchMessages = [];
+    protected static $batchMessages = [];
 
     /**
      * @param string $routing
