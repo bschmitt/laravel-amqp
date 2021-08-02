@@ -1,0 +1,27 @@
+version: "3.7"
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: ./docker/Dockerfile
+    image: amqp
+    container_name: amqp-ubuntu
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www:delegated
+    networks:
+      - amqp-testing
+
+  rabbit:
+    image: rabbitmq:latest
+    container_name: rabbit
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+    networks:
+      - amqp-testing
+
+networks:
+  amqp-testing:
+    driver: bridge

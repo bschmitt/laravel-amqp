@@ -17,6 +17,11 @@ class Amqp
      * @param string $routing
      * @param mixed  $message
      * @param array  $properties
+     *
+     * @return bool|null
+     *
+     * @throws Exception\Configuration
+     * @throws \Exception
      */
     public function publish($routing, $message, array $properties = [])
     {
@@ -33,13 +38,14 @@ class Amqp
         }
 
         $mandatory = false;
-        if(isset($properties['mandatory']) && $properties['mandatory'] == true) {
+        if (isset($properties['mandatory']) && $properties['mandatory'] == true) {
             $mandatory = true;
         }
 
         $return = $publisher->publish($routing, $message, $mandatory);
         Request::shutdown($publisher->getChannel(), $publisher->getConnection());
-	return $return;
+
+        return $return;
     }
 
     /**
@@ -64,12 +70,11 @@ class Amqp
     public function batchPublish(array $properties = [])
     {
         /* @var Publisher $publisher */
-        $publisher = app()->make('Softonic\Amqp\Publisher');
+        $publisher = app()->make('Bschmitt\Amqp\Publisher');
         $publisher
             ->mergeProperties($properties)
             ->setup();
 
-        $publishData = [];
         foreach(self::$batchMessages as $messageData) {
             if (is_string($messageData['message'])) {
                 $messageData['message'] = new Message($messageData, ['content_type' => 'text/plain', 'delivery_mode' => 2]);

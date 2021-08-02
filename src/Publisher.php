@@ -16,11 +16,13 @@ class Publisher extends Request
     private $publish_result = null;
 
     /**
-     * @param string  $routing
-     * @param Message $message
-     * @throws Exception\Configuration
+     * @param string $routing
+     * @param string $message
+     * @param bool   $mandatory defaults to false
+     *
+     * @return bool|null
      */
-    public function publish($routing, $message, $mandatory = false)
+    public function publish($routing, $message, bool $mandatory = false)
     {
         $this->publish_result = true;
 

@@ -5,6 +5,8 @@ namespace Bschmitt\Amqp\Test;
 use \Mockery;
 use Bschmitt\Amqp\Publisher;
 use Illuminate\Config\Repository;
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AMQPSSLConnection;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -16,26 +18,24 @@ class PublisherTest extends BaseTestCase
     private $connectionMock;
     private $channelMock;
 
-    protected function setUp()
+    protected function setUp()  : void
     {
         parent::setUp();
 
         // partial mock of \Bschmitt\Amqp\Publisher
         // we want all methods except [connect] to be real
-        $this->publisherMock = Mockery::mock('\Bschmitt\Amqp\Publisher[connect]', [$this->configRepository]);
+        $this->publisherMock = Mockery::mock(Publisher::class . '[connect]', [$this->configRepository]);
         // set connection and channel properties
-        $this->channelMock = Mockery::mock('\PhpAmqpLib\Channel\AMQPChannel');
-        $this->connectionMock = Mockery::mock('\PhpAmqpLib\Connection\AMQPSSLConnection');
+        $this->channelMock = Mockery::mock(AMQPChannel::class);
+        $this->connectionMock = Mockery::mock(AMQPSSLConnection::class);
         // channel and connection are both protected and without changing the source this was the only way to mock them
-        $this->setProtectedProperty('\Bschmitt\Amqp\Publisher', $this->publisherMock, 'channel', $this->channelMock);
-        $this->setProtectedProperty('\Bschmitt\Amqp\Publisher', $this->publisherMock, 'connection', $this->connectionMock);
+        $this->setProtectedProperty(Publisher::class, $this->publisherMock, 'channel', $this->channelMock);
+        $this->setProtectedProperty(Publisher::class, $this->publisherMock, 'connection', $this->connectionMock);
 
     }
 
-
     public function testSetupPublisher()
     {
-
         $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->times(1);
 
         $this->channelMock->shouldReceive('exchange_declare')->with(
@@ -49,46 +49,83 @@ class PublisherTest extends BaseTestCase
             $this->defaultConfig['exchange_properties']
         )->times(1);
 
-        $this->publisherMock->shouldReceive('connect')->times(1);
+        $this->publisherMock
+            ->shouldReceive('connect')
+            ->once();
 
-        $this->publisherMock->setup();
+        $exceptionThrown = null;
+        try {
+            $this->publisherMock->setup();
+        } catch (\Exception $exception) {
+            $exceptionThrown = $exception;
+        }
 
+        $this->assertNull($exceptionThrown);
     }
-    
+
     public function testPublishShouldAChannelMethodWithProperParams()
     {
-
         $routing = 'routing-key';
         $message = 'sample-message';
+        $mandatory = false;
 
         $this->channelMock->shouldReceive('basic_publish')
-                          ->with(
-                              $message, 
-                              $this->defaultConfig['exchange'], 
-                              $routing
-                          )->times(1);
+            ->with(
+                $message,
+                $this->defaultConfig['exchange'],
+                $routing,
+                $mandatory
+            )
+            ->once();
 
-        $this->publisherMock->publish($routing, $message);
-
+        $this->assertTrue($this->publisherMock->publish($routing, $message));
     }
 
     public function testPublishShouldCallAChannelMethodWithCustomExchangeValue()
     {
-
         $routing = 'routing-key';
         $message = 'sample-message';
         $exchange = 'custom-exchange';
+        $mandatory = false;
+
         $this->publisherMock->mergeProperties(['exchange' => $exchange]);
 
         $this->channelMock->shouldReceive('basic_publish')
-                          ->with(
-                              $message, 
-                              $exchange, 
-                              $routing
-                          )->times(1);
+            ->with(
+                $message,
+                $exchange,
+                $routing,
+                $mandatory
+            )->times(1);
 
-        $this->publisherMock->publish($routing, $message);
-
+        $this->assertTrue($this->publisherMock->publish($routing, $message));
     }
 
+    public function testBatchPublishWithProperParams()
+    {
+        $routing = 'routing-key';
+        $message = 'sample-message';
+
+        $this->channelMock->shouldReceive('batch_basic_publish')
+            ->with(
+                $message,
+                $this->defaultConfig['exchange'],
+                $routing
+            )
+            ->once();
+
+        $this->channelMock->shouldReceive('publish_batch')
+            ->once();
+
+        $thrownException = null;
+
+        try {
+            $this->publisherMock->batchBasicPublish($routing, $message);
+            $this->publisherMock->batchPublish();
+        } catch (\Exception $exception) {
+            $thrownException = $exception;
+        }
+
+        $this->assertNull($thrownException);
+    }
 }
