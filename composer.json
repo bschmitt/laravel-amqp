@@ -26,7 +26,7 @@
   ],
   "require": {
     "php": "^7.0|^8.0",
-    "php-amqplib/php-amqplib": ">=2.9",
+    "php-amqplib/php-amqplib": "^3.0",
     "illuminate/support": "5.5.44|^7.0"
   },
   "require-dev": {
