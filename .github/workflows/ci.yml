@@ -36,7 +36,7 @@ jobs:
             ${{ matrix.os }}-PHP${{ matrix.php }}-composer-
 
       - name: Composer Install
-        run: composer install --prefer-dist --optimize-autoloader --no-progress --dev --no-suggest --ansi --no-interaction --ignore-platform-reqs --classmap-authoritative
+        run: composer update --prefer-dist --optimize-autoloader --no-progress --ansi --no-interaction
 
       - name: Unit Tests
         if: github.ref != 'refs/heads/master'
