@@ -32,8 +32,6 @@ jobs:
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ matrix.os }}-PHP${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-PHP${{ matrix.php }}-composer-
 
       - name: Composer Install
         run: composer update --prefer-dist --optimize-autoloader --no-progress --ansi --no-interaction
