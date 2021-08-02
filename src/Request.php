@@ -161,8 +161,10 @@ class Request extends Context
     }
 
     /**
-     * @param AMQPChannel          $channel
+     * @param AMQPChannel $channel
      * @param AMQPStreamConnection $connection
+     *
+     * @throws \Exception
      */
     public static function shutdown(AMQPChannel $channel, AMQPStreamConnection $connection)
     {

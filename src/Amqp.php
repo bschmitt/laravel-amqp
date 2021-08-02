@@ -17,6 +17,11 @@ class Amqp
      * @param string $routing
      * @param mixed  $message
      * @param array  $properties
+     *
+     * @return bool|null
+     *
+     * @throws Exception\Configuration
+     * @throws \Exception
      */
     public function publish($routing, $message, array $properties = [])
     {
@@ -33,13 +38,14 @@ class Amqp
         }
 
         $mandatory = false;
-        if(isset($properties['mandatory']) && $properties['mandatory'] == true) {
+        if (isset($properties['mandatory']) && $properties['mandatory'] == true) {
             $mandatory = true;
         }
 
         $return = $publisher->publish($routing, $message, $mandatory);
         Request::shutdown($publisher->getChannel(), $publisher->getConnection());
-	return $return;
+
+        return $return;
     }
 
     /**

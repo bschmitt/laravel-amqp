@@ -1,0 +1,54 @@
+name: 'CI/CD'
+on:
+  push:
+
+jobs:
+  cancel-previous-builds:
+    timeout-minutes: 3
+    runs-on: ubuntu-20.04
+    if: github.ref != 'refs/heads/master'
+    steps:
+      - name: Check Previous
+        uses: rokroskar/workflow-run-cleanup-action@master
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  unit-tests:
+    timeout-minutes: 5
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ ubuntu-20.04 ]
+        php: [ 7.0, 7.1, 7.2, 7.3, 7.4, 8.0 ]
+        stability: [ prefer-lowest, prefer-stable ]
+    name: ${{ matrix.os }} - PHP${{ matrix.php }} - ${{ matrix.stability }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - name: Installing PHP
+        if: github.ref != 'refs/heads/master'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Composer Install
+        run: composer install --prefer-dist --optimize-autoloader --no-progress --dev --no-suggest --ansi --no-interaction --ignore-platform-reqs --classmap-authoritative --${{ matrix.stability }}
+
+      - name: Unit Tests
+        if: github.ref != 'refs/heads/master'
+        run: ./vendor/bin/phpunit
