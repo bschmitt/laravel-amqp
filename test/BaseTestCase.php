@@ -14,7 +14,7 @@ class BaseTestCase extends TestCase
     protected $configRepository;
     protected $defaultConfig;
 
-    protected function setUp()
+    protected function setUp() : void
     {
         $amqpConfig = include dirname(__FILE__).'/../config/amqp.php';
         $this->defaultConfig = $amqpConfig['properties'][$amqpConfig['use']];
