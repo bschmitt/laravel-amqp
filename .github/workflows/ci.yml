@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-18.04, ubuntu-20.04 ]
-        php: [ 7.0, 7.1, 7.2, 7.3, 7.4, 8.0 ]
+        php: [ 7.3, 7.4, 8.0 ]
     name: ${{ matrix.os }} - PHP${{ matrix.php }}
     steps:
       - name: Checkout Repo
