@@ -26,7 +26,7 @@ class BaseTestCase extends TestCase
     }
 
 
-    protected function tearDown()
+    protected function tearDown() : void
     {
         // necessary for Mockery to check if methods were called and with what arguments
         Mockery::close();
