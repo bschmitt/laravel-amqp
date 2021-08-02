@@ -27,7 +27,7 @@
   "require": {
     "php": "^7.0|^8.0",
     "php-amqplib/php-amqplib": ">=2.9",
-    "illuminate/support": "5.5.44|^8.0"
+    "illuminate/support": "5.5.44|^7.0"
   },
   "require-dev": {
     "illuminate/config": ">=5.5",
