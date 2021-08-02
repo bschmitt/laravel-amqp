@@ -3,19 +3,7 @@ on:
   push:
 
 jobs:
-  cancel-previous-builds:
-    timeout-minutes: 3
-    runs-on: ubuntu-20.04
-    if: github.ref != 'refs/heads/master'
-    steps:
-      - name: Check Previous
-        uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
   unit-tests:
-    needs:
-      - cancel-previous-builds
     timeout-minutes: 5
     runs-on: ${{ matrix.os }}
     strategy:
