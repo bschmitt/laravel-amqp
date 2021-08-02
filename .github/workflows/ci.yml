@@ -31,9 +31,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ matrix.os }}-PHP${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-composer-
+            ${{ matrix.os }}-PHP${{ matrix.php }}-composer-
 
       - name: Composer Install
         run: composer install --prefer-dist --optimize-autoloader --no-progress --dev --no-suggest --ansi --no-interaction --ignore-platform-reqs --classmap-authoritative
