@@ -14,6 +14,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   unit-tests:
+    needs:
+      - cancel-previous-builds
     timeout-minutes: 5
     runs-on: ${{ matrix.os }}
     strategy:
