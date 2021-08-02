@@ -70,7 +70,7 @@ class Amqp
     public function batchPublish(array $properties = [])
     {
         /* @var Publisher $publisher */
-        $publisher = app()->make('Softonic\Amqp\Publisher');
+        $publisher = app()->make('Bschmitt\Amqp\Publisher');
         $publisher
             ->mergeProperties($properties)
             ->setup();

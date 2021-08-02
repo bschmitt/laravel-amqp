@@ -100,4 +100,32 @@ class PublisherTest extends BaseTestCase
 
         $this->assertTrue($this->publisherMock->publish($routing, $message));
     }
+
+    public function testBatchPublishWithProperParams()
+    {
+        $routing = 'routing-key';
+        $message = 'sample-message';
+
+        $this->channelMock->shouldReceive('batch_basic_publish')
+            ->with(
+                $message,
+                $this->defaultConfig['exchange'],
+                $routing
+            )
+            ->once();
+
+        $this->channelMock->shouldReceive('publish_batch')
+            ->once();
+
+        $thrownException = null;
+
+        try {
+            $this->publisherMock->batchBasicPublish($routing, $message);
+            $this->publisherMock->batchPublish();
+        } catch (\Exception $exception) {
+            $thrownException = $exception;
+        }
+
+        $this->assertNull($thrownException);
+    }
 }
