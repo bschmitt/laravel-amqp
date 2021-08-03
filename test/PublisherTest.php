@@ -2,9 +2,9 @@
 
 namespace Bschmitt\Amqp\Test;
 
+use Illuminate\Support\Facades\App;
 use \Mockery;
 use Bschmitt\Amqp\Publisher;
-use Illuminate\Config\Repository;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 
@@ -13,9 +13,17 @@ use PhpAmqpLib\Connection\AMQPSSLConnection;
  */
 class PublisherTest extends BaseTestCase
 {
-
+    /**
+     * @var Publisher
+     */
     private $publisherMock;
+    /**
+     * @var AMQPSSLConnection
+     */
     private $connectionMock;
+    /**
+     * @var AMQPChannel
+     */
     private $channelMock;
 
     protected function setUp()  : void
@@ -127,5 +135,17 @@ class PublisherTest extends BaseTestCase
         }
 
         $this->assertNull($thrownException);
+    }
+
+    public function testPublishingToDifferentQueuesAndProperties()
+    {
+        $this->publisherMock->mergeProperties(['exchange_type' => 'fanout', 'exchange' => 'shared']);
+        $this->assertEquals('shared', $this->publisherMock->getProperty('exchange'));
+        $this->assertEquals('fanout', $this->publisherMock->getProperty('exchange_type'));
+
+        $this->publisherMock->mergeProperties(['queue' => 'tasks']);
+        $this->assertEquals('amq.topic', $this->publisherMock->getProperty('exchange'));
+        $this->assertEquals('topic', $this->publisherMock->getProperty('exchange_type'));
+        $this->assertEquals('tasks', $this->publisherMock->getProperty('queue'));
     }
 }
