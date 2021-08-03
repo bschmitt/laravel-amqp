@@ -24,7 +24,7 @@ class Consumer extends Request
      * @return bool
      * @throws \Exception
      */
-    public function consume($queue, Closure $closure)
+    public function consume(string $queue, Closure $closure) : bool
     {
         try {
             $this->messageCount = $this->getQueueMessageCount();
@@ -98,10 +98,10 @@ class Consumer extends Request
      */
     public function acknowledge(AMQPMessage $message)
     {
-        $message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
+        $message->getChannel()->basic_ack($message->getDeliveryTag());
 
         if ($message->body === 'quit') {
-            $message->delivery_info['channel']->basic_cancel($message->delivery_info['consumer_tag']);
+            $message->getChannel()->basic_cancel($message->getConsumerTag());
         }
     }
 
@@ -111,9 +111,9 @@ class Consumer extends Request
      * @param AMQPMessage $message
      * @param bool    $requeue
      */
-    public function reject(AMQPMessage $message, $requeue = false)
+    public function reject(AMQPMessage $message, bool $requeue = false)
     {
-        $message->delivery_info['channel']->basic_reject($message->delivery_info['delivery_tag'], $requeue);
+        $message->getChannel()->basic_reject($message->getDeliveryTag(), $requeue);
     }
 
     /**

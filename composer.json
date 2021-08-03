@@ -31,11 +31,11 @@
   },
   "require-dev": {
     "illuminate/config": ">=5.5",
-    "mockery/mockery": "~0.9",
+    "mockery/mockery": "^1.2",
     "phpoption/phpoption": "1.7.x-dev",
     "phpunit/phpunit": ">=6.0",
     "squizlabs/php_codesniffer": "^3.0@dev",
-    "vlucas/phpdotenv": "^4.2"
+    "vlucas/phpdotenv": "^5.3"
   },
   "autoload": {
     "psr-4": {

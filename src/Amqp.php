@@ -5,6 +5,7 @@ namespace Bschmitt\Amqp;
 use Closure;
 use Bschmitt\Amqp\Request;
 use Bschmitt\Amqp\Message;
+use Illuminate\Support\Facades\App;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -23,12 +24,14 @@ class Amqp
      * @throws Exception\Configuration
      * @throws \Exception
      */
-    public function publish($routing, $message, array $properties = [])
+    public function publish($routing, $message, array $properties = []) : ?bool
     {
         $properties['routing'] = $routing;
 
         /* @var Publisher $publisher */
-        $publisher = app()->make('Bschmitt\Amqp\Publisher');
+
+        $publisher = App::make(Publisher::class);
+
         $publisher
             ->mergeProperties($properties)
             ->setup();
@@ -50,8 +53,7 @@ class Amqp
 
     /**
      * @param string $routing
-     * @param        $message
-     *
+     * @param mixed  $message
      */
     public function batchBasicPublish(string $routing, $message)
     {
@@ -65,12 +67,12 @@ class Amqp
      * @param array $properties
      *
      * @throws Exception\Configuration
-     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     * @throws \Exception
      */
     public function batchPublish(array $properties = [])
     {
         /* @var Publisher $publisher */
-        $publisher = app()->make('Bschmitt\Amqp\Publisher');
+        $publisher = App::make(Publisher::class);
         $publisher
             ->mergeProperties($properties)
             ->setup();
@@ -85,6 +87,7 @@ class Amqp
 
         $publisher->batchPublish();
         $this->forgetBatchedMessages();
+
         Request::shutdown($publisher->getChannel(), $publisher->getConnection());
     }
 
@@ -102,12 +105,12 @@ class Amqp
      * @param array   $properties
      * @throws Exception\Configuration
      */
-    public function consume($queue, Closure $callback, $properties = [])
+    public function consume(string $queue, Closure $callback, array $properties = [])
     {
         $properties['queue'] = $queue;
 
         /* @var Consumer $consumer */
-        $consumer = app()->make('Bschmitt\Amqp\Consumer');
+        $consumer = App::make(Consumer::class);
         $consumer
             ->mergeProperties($properties)
             ->setup();
@@ -119,9 +122,9 @@ class Amqp
     /**
      * @param string $body
      * @param array  $properties
-     * @return \Bschmitt\Amqp\Message
+     * @return Message
      */
-    public function message($body, $properties = [])
+    public function message(string $body, array $properties = []) : Message
     {
         return new Message($body, $properties);
     }
