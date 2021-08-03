@@ -9,13 +9,17 @@ use Illuminate\Contracts\Config\Repository;
  */
 abstract class Context
 {
-
     const REPOSITORY_KEY = 'amqp';
 
     /**
      * @var array
      */
     protected $properties = [];
+
+    /**
+     * @var array
+     */
+    protected $original_properties = [];
 
     /**
      * Context constructor.
@@ -33,8 +37,9 @@ abstract class Context
     protected function extractProperties(Repository $config)
     {
         if ($config->has(self::REPOSITORY_KEY)) {
-            $data             = $config->get(self::REPOSITORY_KEY);
-            $this->properties = $data['properties'][$data['use']];
+            $data = $config->get(self::REPOSITORY_KEY);
+            $this->original_properties = $data['properties'][$data['use']];
+            $this->properties = $this->original_properties;
         }
     }
 
@@ -42,16 +47,17 @@ abstract class Context
      * @param array $properties
      * @return $this
      */
-    public function mergeProperties(array $properties)
+    public function mergeProperties(array $properties) : self
     {
-        $this->properties = array_merge($this->properties, $properties);
+        $this->properties = array_merge($this->original_properties, $properties);
+
         return $this;
     }
 
     /**
      * @return array
      */
-    public function getProperties()
+    public function getProperties() : array
     {
         return $this->properties;
     }
@@ -60,7 +66,7 @@ abstract class Context
      * @param string $key
      * @return mixed
      */
-    public function getProperty($key)
+    public function getProperty(string $key)
     {
         return array_key_exists($key, $this->properties) ? $this->properties[$key] : null;
     }
@@ -70,7 +76,7 @@ abstract class Context
      * @param mixed $default
      * @return mixed
      */
-    public function getConnectOption($key, $default = null)
+    public function getConnectOption(string $key, $default = null)
     {
         $options = $this->getProperty('connect_options');
 
