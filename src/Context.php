@@ -9,7 +9,6 @@ use Illuminate\Contracts\Config\Repository;
  */
 abstract class Context
 {
-
     const REPOSITORY_KEY = 'amqp';
 
     /**
@@ -42,7 +41,7 @@ abstract class Context
      * @param array $properties
      * @return $this
      */
-    public function mergeProperties(array $properties)
+    public function mergeProperties(array $properties) : self
     {
         $this->properties = array_merge($this->properties, $properties);
         return $this;
@@ -51,7 +50,7 @@ abstract class Context
     /**
      * @return array
      */
-    public function getProperties()
+    public function getProperties() : array
     {
         return $this->properties;
     }
@@ -60,7 +59,7 @@ abstract class Context
      * @param string $key
      * @return mixed
      */
-    public function getProperty($key)
+    public function getProperty(string $key)
     {
         return array_key_exists($key, $this->properties) ? $this->properties[$key] : null;
     }
@@ -70,7 +69,7 @@ abstract class Context
      * @param mixed $default
      * @return mixed
      */
-    public function getConnectOption($key, $default = null)
+    public function getConnectOption(string $key, $default = null)
     {
         $options = $this->getProperty('connect_options');
 

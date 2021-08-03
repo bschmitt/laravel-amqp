@@ -134,9 +134,9 @@ class Request extends Context
     }
 
     /**
-     * @return \PhpAmqpLib\Channel\AMQPChannel
+     * @return AMQPChannel
      */
-    public function getChannel()
+    public function getChannel() : AMQPChannel
     {
         return $this->channel;
     }
@@ -144,7 +144,7 @@ class Request extends Context
     /**
      * @return AMQPStreamConnection
      */
-    public function getConnection()
+    public function getConnection() : AMQPStreamConnection
     {
         return $this->connection;
     }
@@ -152,7 +152,7 @@ class Request extends Context
     /**
      * @return int
      */
-    public function getQueueMessageCount()
+    public function getQueueMessageCount() : int
     {
         if (is_array($this->queueInfo)) {
             return $this->queueInfo[1];

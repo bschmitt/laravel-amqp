@@ -16,13 +16,13 @@ class Publisher extends Request
     private $publish_result = null;
 
     /**
-     * @param string $routing
-     * @param string $message
-     * @param bool   $mandatory defaults to false
+     * @param string         $routing
+     * @param string|Message $message
+     * @param bool           $mandatory defaults to false
      *
      * @return bool|null
      */
-    public function publish($routing, $message, bool $mandatory = false)
+    public function publish(string $routing, $message, bool $mandatory = false) : ?bool
     {
         $this->publish_result = true;
 
@@ -61,10 +61,10 @@ class Publisher extends Request
     /**
      * Add a message to the batch.
      *
-     * @param string $routing
-     * @param Message $message
+     * @param string         $routing
+     * @param Message|string $message
      */
-    public function batchBasicPublish($routing, $message)
+    public function batchBasicPublish(string $routing, $message)
     {
         $this->getChannel()->batch_basic_publish($message, $this->getProperty('exchange'), $routing);
     }
