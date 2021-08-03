@@ -17,6 +17,11 @@ abstract class Context
     protected $properties = [];
 
     /**
+     * @var array
+     */
+    protected $original_properties = [];
+
+    /**
      * Context constructor.
      *
      * @param Repository $config
@@ -32,8 +37,9 @@ abstract class Context
     protected function extractProperties(Repository $config)
     {
         if ($config->has(self::REPOSITORY_KEY)) {
-            $data             = $config->get(self::REPOSITORY_KEY);
-            $this->properties = $data['properties'][$data['use']];
+            $data = $config->get(self::REPOSITORY_KEY);
+            $this->original_properties = $data['properties'][$data['use']];
+            $this->properties = $this->original_properties;
         }
     }
 
@@ -43,7 +49,8 @@ abstract class Context
      */
     public function mergeProperties(array $properties) : self
     {
-        $this->properties = array_merge($this->properties, $properties);
+        $this->properties = array_merge($this->original_properties, $properties);
+
         return $this;
     }
 

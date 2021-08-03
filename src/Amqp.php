@@ -5,6 +5,7 @@ namespace Bschmitt\Amqp;
 use Closure;
 use Bschmitt\Amqp\Request;
 use Bschmitt\Amqp\Message;
+use Illuminate\Support\Facades\App;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -28,7 +29,9 @@ class Amqp
         $properties['routing'] = $routing;
 
         /* @var Publisher $publisher */
-        $publisher = app()->make('Bschmitt\Amqp\Publisher');
+
+        $publisher = App::make(Publisher::class);
+
         $publisher
             ->mergeProperties($properties)
             ->setup();
@@ -69,7 +72,7 @@ class Amqp
     public function batchPublish(array $properties = [])
     {
         /* @var Publisher $publisher */
-        $publisher = app()->make('Bschmitt\Amqp\Publisher');
+        $publisher = App::make(Publisher::class);
         $publisher
             ->mergeProperties($properties)
             ->setup();
@@ -107,7 +110,7 @@ class Amqp
         $properties['queue'] = $queue;
 
         /* @var Consumer $consumer */
-        $consumer = app()->make('Bschmitt\Amqp\Consumer');
+        $consumer = App::make(Consumer::class);
         $consumer
             ->mergeProperties($properties)
             ->setup();
