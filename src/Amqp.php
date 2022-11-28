@@ -5,6 +5,7 @@ namespace Bschmitt\Amqp;
 use Closure;
 use Bschmitt\Amqp\Request;
 use Bschmitt\Amqp\Message;
+use PhpAmqpLib\Wire\AMQPTable;
 use Illuminate\Support\Facades\App;
 
 /**
@@ -36,8 +37,18 @@ class Amqp
             ->mergeProperties($properties)
             ->setup();
 
+        $applicationHeaders = [];
+        if(isset($properties['application_headers'])) {
+            $applicationHeaders = $properties['application_headers'];
+        }
+
         if (is_string($message)) {
-            $message = new Message($message, ['content_type' => 'text/plain', 'delivery_mode' => 2]);
+            $headers = [
+                'content_type' => 'text/plain', 
+                'delivery_mode' => 2,
+                'application_headers' => new AMQPTable($applicationHeaders)
+            ];
+            $message = new Message($message, $headers);
         }
 
         $mandatory = false;
