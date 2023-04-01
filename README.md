@@ -14,7 +14,7 @@ AMQP wrapper for Laravel and Lumen to publish and consume messages especially fr
 
 ### Composer
 
-Add the following to your require part within the composer.json: 
+Add the following to your require part within the composer.json:
 
 ```js
 "bschmitt/laravel-amqp": "2.*" (Laravel >= 5.5)
@@ -100,11 +100,16 @@ $app->withFacades(true, [
 Open **config/app.php** and add the service provider and alias:
 
 ```php
-'Bschmitt\Amqp\AmqpServiceProvider',
+Bschmitt\Amqp\AmqpServiceProvider::class,
 ```
 
 ```php
-'Amqp' => 'Bschmitt\Amqp\Facades\Amqp',
+'Amqp' => Bschmitt\Amqp\Facades\Amqp::class,
+```
+
+Publish the config file:
+```php
+php artisan vendor:publish --provider="Bschmitt\Amqp\AmqpServiceProvider"
 ```
 
 
