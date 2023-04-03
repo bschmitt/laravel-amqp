@@ -13,7 +13,7 @@ class Request extends Context
 {
 
     /**
-     * @var AMQPStreamConnection
+     * @var ?AMQPStreamConnection
      */
     protected $connection;
 
@@ -158,6 +158,15 @@ class Request extends Context
             return $this->queueInfo[1];
         }
         return 0;
+    }
+
+    /**
+     * Check if connection already exists
+     * @return bool
+     */
+    public function isConnected() : bool
+    {
+        return empty($this->connection);
     }
 
     /**
