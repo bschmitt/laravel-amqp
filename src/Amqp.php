@@ -48,6 +48,9 @@ class Amqp
                 'delivery_mode' => 2,
                 'application_headers' => new AMQPTable($applicationHeaders)
             ];
+            if (isset($properties['priority'])) {
+                $headers['priority'] = $properties['priority'];
+            }
             $message = new Message($message, $headers);
         }
 

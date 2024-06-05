@@ -57,7 +57,7 @@ return [
             'consumer_tag'        => 'consumer',
             'ssl_options'         => [], // See https://secure.php.net/manual/en/context.ssl.php
             'connect_options'     => [], // See https://github.com/php-amqplib/php-amqplib/blob/master/PhpAmqpLib/Connection/AMQPSSLConnection.php
-            'queue_properties'    => ['x-ha-policy' => ['S', 'all']],
+            'queue_properties'    => ['x-ha-policy' => ['S', 'all'], 'x-max-priority' => ['I', 5]],
             'exchange_properties' => [],
             'timeout'             => 0
         ],
@@ -197,6 +197,13 @@ Amqp::consume('queue-name', function ($message, $resolver) {
     'queue_exclusive' => true,
     'persistent' => true // required if you want to listen forever
 ]);
+```
+
+### Priority messages
+
+```php
+    Amqp::publish('routing-key', 'I will be processed second.' , ['queue' => 'queue-name', 'priority' => 0]);
+    Amqp::publish('routing-key', 'I will be processed first.' , ['queue' => 'queue-name', 'priority' => 1]);
 ```
 
 ## Credits
