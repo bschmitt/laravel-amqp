@@ -1,5 +1,5 @@
 {
-  "name": "bschmitt/laravel-amqp",
+  "name": "penskemediacorporation/laravel-amqp",
   "description": "AMQP wrapper for Laravel and Lumen to publish and consume messages",
   "keywords": [
     "laravel",
@@ -15,8 +15,8 @@
   ],
   "license": "MIT",
   "support": {
-      "issues": "https://github.com/bschmitt/laravel-amqp/issues",
-      "source": "https://github.com/bschmitt/laravel-amqp"
+      "issues": "https://github.com/penske-media-corp/laravel-amqp/issues",
+      "source": "https://github.com/penske-media-corp/laravel-amqp"
   },
   "authors": [
     {
