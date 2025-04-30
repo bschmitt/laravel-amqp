@@ -5,8 +5,13 @@ namespace Bschmitt\Amqp\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @author Björn Schmitt <code@bjoern.io>
- * @see Bschmitt\Amqp\Amqp
+ * @method static void publish(string $routingKey, mixed $message, array $properties = [])
+ * @method static void consume(string $queue, callable $callback, array $properties= [])
+ * @method static \Bschmitt\Amqp\Message message(string $body, array $properties = [])
+ * @method static void batchPublish(array $properties = [])
+ * @method static void batchBasicPublish(string $routing, mixed $message)
+ *
+ * @see \Bschmitt\Amqp\Amqp
  */
 class Amqp extends Facade
 {

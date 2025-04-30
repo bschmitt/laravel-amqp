@@ -1,112 +1,11 @@
-# bschmitt/laravel-amqp
-AMQP wrapper for Laravel and Lumen to publish and consume messages especially from RabbitMQ
-
-[![Build Status](https://travis-ci.org/bschmitt/laravel-amqp.svg?branch=master)](https://travis-ci.org/bschmitt/laravel-amqp)
-[![Latest Stable Version](https://poser.pugx.org/bschmitt/laravel-amqp/v/stable.svg)](https://packagist.org/packages/bschmitt/laravel-amqp)
-[![License](https://poser.pugx.org/bschmitt/laravel-amqp/license.svg)](https://packagist.org/packages/bschmitt/laravel-amqp)
-
-## Features
-  - Advanced queue configuration
-  - Add message to queues easily
-  - Listen queues with useful options
+# wangchengtao/laravel-amqp 
+forked from [bschmitt/laravel-amqp](https://github.com/bschmitt/laravel-amqp)
 
 ## Installation
 
-### Composer
-
-Add the following to your require part within the composer.json: 
-
-```js
-"bschmitt/laravel-amqp": "2.*" (Laravel >= 5.5)
-"bschmitt/laravel-amqp": "1.*" (Laravel < 5.5)
 ```
-```batch
-$ php composer update
+$ php composer require wangchengtao/laravel-amqp
 ```
-
-or
-
-```
-$ php composer require bschmitt/laravel-amqp
-```
-
-## Integration
-
-### Lumen
-
-Create a **config** folder in the root directory of your Lumen application and copy the content
-from **vendor/bschmitt/laravel-amqp/config/amqp.php** to **config/amqp.php**.
-
-Adjust the properties to your needs.
-
-```php
-return [
-
-    'use' => 'production',
-
-    'properties' => [
-
-        'production' => [
-            'host'                => 'localhost',
-            'port'                => 5672,
-            'username'            => 'username',
-            'password'            => 'password',
-            'vhost'               => '/',
-            'exchange'            => 'amq.topic',
-            'exchange_type'       => 'topic',
-            'consumer_tag'        => 'consumer',
-            'ssl_options'         => [], // See https://secure.php.net/manual/en/context.ssl.php
-            'connect_options'     => [], // See https://github.com/php-amqplib/php-amqplib/blob/master/PhpAmqpLib/Connection/AMQPSSLConnection.php
-            'queue_properties'    => ['x-ha-policy' => ['S', 'all']],
-            'exchange_properties' => [],
-            'timeout'             => 0
-        ],
-
-    ],
-
-];
-```
-
-Register the Lumen Service Provider in **bootstrap/app.php**:
-
-```php
-/*
-|--------------------------------------------------------------------------
-| Register Service Providers
-|--------------------------------------------------------------------------
-*/
-
-//...
-
-$app->configure('amqp');
-$app->register(Bschmitt\Amqp\LumenServiceProvider::class);
-
-//...
-```
-
-Add Facade Support for Lumen 5.2+
-
-```php
-//...
-$app->withFacades(true, [
-    'Bschmitt\Amqp\Facades\Amqp' => 'Amqp',
-]);
-//...
-```
-
-
-### Laravel
-
-Open **config/app.php** and add the service provider and alias:
-
-```php
-'Bschmitt\Amqp\AmqpServiceProvider',
-```
-
-```php
-'Amqp' => 'Bschmitt\Amqp\Facades\Amqp',
-```
-
 
 ## Publishing a message
 
@@ -198,12 +97,3 @@ Amqp::consume('queue-name', function ($message, $resolver) {
     'persistent' => true // required if you want to listen forever
 ]);
 ```
-
-## Credits
-
-* Some concepts were used from https://github.com/mookofe/tail
-
-
-## License
-
-This package is open-sourced software licensed under the [MIT license](http://opensource.org/licenses/MIT)

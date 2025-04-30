@@ -25,7 +25,7 @@ class Amqp
      * @throws Exception\Configuration
      * @throws \Exception
      */
-    public function publish($routing, $message, array $properties = []) : ?bool
+    public function publish(string $routing, $message, array $properties = []) : ?bool
     {
         $properties['routing'] = $routing;
 
@@ -52,7 +52,7 @@ class Amqp
         }
 
         $mandatory = false;
-        if (isset($properties['mandatory']) && $properties['mandatory'] == true) {
+        if (isset($properties['mandatory']) && $properties['mandatory']) {
             $mandatory = true;
         }
 

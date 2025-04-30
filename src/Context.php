@@ -38,7 +38,7 @@ abstract class Context
     {
         if ($config->has(self::REPOSITORY_KEY)) {
             $data = $config->get(self::REPOSITORY_KEY);
-            $this->original_properties = $data['properties'][$data['use']];
+            $this->original_properties = $data['connections'][$data['default']];
             $this->properties = $this->original_properties;
         }
     }
