@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'default' => env('AMQP_CONNECTION', 'production'),
+    'default' => env('AMQP_CONNECTION', 'rabbitmq'),
 
     /*
     |--------------------------------------------------------------------------
@@ -18,7 +18,7 @@ return [
 
     'connections' => [
 
-        'production' => [
+        'rabbitmq' => [
             'host'                  => env('AMQP_HOST', 'localhost'),
             'port'                  => env('AMQP_PORT', 5672),
             'username'              => env('AMQP_USER', ''),
