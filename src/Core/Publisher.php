@@ -38,6 +38,30 @@ class Publisher extends Request implements PublisherInterface
     private $publishResult = null;
 
     /**
+     * Callback function for ack confirmations
+     * @var callable|null
+     */
+    private $ackHandler = null;
+
+    /**
+     * Callback function for nack confirmations
+     * @var callable|null
+     */
+    private $nackHandler = null;
+
+    /**
+     * Callback function for return messages
+     * @var callable|null
+     */
+    private $returnHandler = null;
+
+    /**
+     * Whether publisher confirms are enabled
+     * @var bool
+     */
+    private $confirmsEnabled = false;
+
+    /**
      * @param ConfigurationProviderInterface|null $config
      * @param ConnectionManagerInterface|null $connectionManager
      * @param ExchangeManager|null $exchangeManager
@@ -93,6 +117,11 @@ class Publisher extends Request implements PublisherInterface
             // Backward compatibility: use old Request::setup() method
             parent::setup();
         }
+
+        // Enable publisher confirms if configured
+        if ($this->getProperty('publisher_confirms', false)) {
+            $this->enablePublisherConfirms();
+        }
     }
 
     /**
@@ -108,10 +137,16 @@ class Publisher extends Request implements PublisherInterface
 
         $channel = $this->getChannel();
 
-        if ($mandatory) {
-            $channel->confirm_select();
-            $channel->set_nack_handler([$this, 'nack']);
-            $channel->set_return_listener([$this, 'return']);
+        // Enable confirms if mandatory flag is set (backward compatibility)
+        if ($mandatory && !$this->confirmsEnabled) {
+            $this->enablePublisherConfirms();
+        }
+
+        // Setup handlers if confirms are enabled
+        if ($this->confirmsEnabled) {
+            if ($mandatory) {
+                $channel->set_return_listener([$this, 'return']);
+            }
         }
 
         $timeout = max(1, (int) $this->getProperty('publish_timeout', 30));
@@ -119,11 +154,161 @@ class Publisher extends Request implements PublisherInterface
 
         $channel->basic_publish($message, $exchange, $routing, $mandatory);
 
-        if ($mandatory) {
+        // Wait for confirms if enabled and configured to wait
+        if ($this->confirmsEnabled && $this->getProperty('wait_for_confirms', true)) {
             $channel->wait_for_pending_acks_returns($timeout);
         }
 
         return $this->publishResult;
+    }
+
+    /**
+     * Enable publisher confirms on the channel
+     *
+     * @return void
+     */
+    public function enablePublisherConfirms(): void
+    {
+        if ($this->confirmsEnabled) {
+            return; // Already enabled
+        }
+
+        $channel = $this->getChannel();
+        $channel->confirm_select();
+        $this->confirmsEnabled = true;
+
+        // Set up handlers
+        $channel->set_ack_handler([$this, 'handleAck']);
+        $channel->set_nack_handler([$this, 'handleNack']);
+    }
+
+    /**
+     * Disable publisher confirms on the channel
+     *
+     * @return void
+     */
+    public function disablePublisherConfirms(): void
+    {
+        if (!$this->confirmsEnabled) {
+            return; // Already disabled
+        }
+
+        $channel = $this->getChannel();
+        // Note: php-amqplib doesn't have a direct way to disable confirms
+        // We just mark it as disabled
+        $this->confirmsEnabled = false;
+    }
+
+    /**
+     * Register a callback for ack confirmations
+     *
+     * @param callable $callback Function to call when message is acked
+     * @return void
+     */
+    public function setAckHandler(callable $callback): void
+    {
+        $this->ackHandler = $callback;
+    }
+
+    /**
+     * Register a callback for nack confirmations
+     *
+     * @param callable $callback Function to call when message is nacked
+     * @return void
+     */
+    public function setNackHandler(callable $callback): void
+    {
+        $this->nackHandler = $callback;
+    }
+
+    /**
+     * Register a callback for return messages
+     *
+     * @param callable $callback Function to call when message is returned
+     * @return void
+     */
+    public function setReturnHandler(callable $callback): void
+    {
+        $this->returnHandler = $callback;
+    }
+
+    /**
+     * Wait for pending publisher confirms
+     *
+     * @param int|null $timeout Timeout in seconds (null uses default from config)
+     * @return bool True if all confirms received, false on timeout or error
+     */
+    public function waitForConfirms(?int $timeout = null): bool
+    {
+        if (!$this->confirmsEnabled) {
+            throw new \RuntimeException('Publisher confirms are not enabled. Call enablePublisherConfirms() first.');
+        }
+
+        $channel = $this->getChannel();
+        $timeout = $timeout ?? max(1, (int) $this->getProperty('publish_timeout', 30));
+
+        try {
+            $result = $channel->wait_for_pending_acks($timeout);
+            return $result === true; // Ensure boolean return
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Wait for pending publisher confirms and returns
+     *
+     * @param int|null $timeout Timeout in seconds (null uses default from config)
+     * @return bool True if all confirms received, false on timeout or error
+     */
+    public function waitForConfirmsAndReturns(?int $timeout = null): bool
+    {
+        if (!$this->confirmsEnabled) {
+            throw new \RuntimeException('Publisher confirms are not enabled. Call enablePublisherConfirms() first.');
+        }
+
+        $channel = $this->getChannel();
+        $timeout = $timeout ?? max(1, (int) $this->getProperty('publish_timeout', 30));
+
+        try {
+            $result = $channel->wait_for_pending_acks_returns($timeout);
+            // wait_for_pending_acks_returns can return true, false, or null
+            // Return true only if explicitly true, otherwise false
+            return $result === true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Handle ack confirmation
+     *
+     * @param \PhpAmqpLib\Message\AMQPMessage $msg
+     * @return void
+     */
+    public function handleAck($msg): void
+    {
+        if ($this->ackHandler !== null) {
+            call_user_func($this->ackHandler, $msg);
+        }
+    }
+
+    /**
+     * Handle nack confirmation
+     *
+     * @param \PhpAmqpLib\Message\AMQPMessage $msg
+     * @return void
+     */
+    public function handleNack($msg): void
+    {
+        $this->publishResult = false;
+
+        if ($this->nackHandler !== null) {
+            call_user_func($this->nackHandler, $msg);
+        } else {
+            // Fallback to old nack method for backward compatibility
+            $this->nack($msg);
+        }
     }
 
     /**
@@ -136,12 +321,40 @@ class Publisher extends Request implements PublisherInterface
     }
 
     /**
+     * Handle return message
+     *
+     * @param \PhpAmqpLib\Message\AMQPMessage $msg
+     * @return void
+     */
+    public function handleReturn($msg): void
+    {
+        $this->publishResult = false;
+
+        if ($this->returnHandler !== null) {
+            call_user_func($this->returnHandler, $msg);
+        } else {
+            // Fallback to old return method for backward compatibility
+            $this->return($msg);
+        }
+    }
+
+    /**
      * @param \PhpAmqpLib\Message\AMQPMessage $msg
      * @return void
      */
     public function return($msg): void
     {
         $this->publishResult = false;
+    }
+
+    /**
+     * Check if publisher confirms are enabled
+     *
+     * @return bool
+     */
+    public function isConfirmsEnabled(): bool
+    {
+        return $this->confirmsEnabled;
     }
 
     /**

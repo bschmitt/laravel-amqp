@@ -49,7 +49,12 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
    - Message replay and offset management
    - Ideal for event sourcing and logging
 
-11. **[Master Locator](./MASTER_LOCATOR_DOCUMENTATION.md)** (Deprecated)
+11. **[Publisher Confirms](./PUBLISHER_CONFIRMS_DOCUMENTATION.md)**
+   - Guaranteed message delivery confirmation
+   - Ack/nack/return callback registration
+   - Wait for confirms API
+
+12. **[Master Locator](./MASTER_LOCATOR_DOCUMENTATION.md)** (Deprecated)
    - `x-queue-master-locator` - Master node locator strategy
    - Note: Deprecated - use Quorum Queues instead
 
@@ -99,6 +104,7 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
 | Exchange Types | ✅ Supported | [EXCHANGE_TYPES_DOCUMENTATION.md](./EXCHANGE_TYPES_DOCUMENTATION.md) |
 | Quorum Queues | ✅ Supported | [QUORUM_QUEUES_DOCUMENTATION.md](./QUORUM_QUEUES_DOCUMENTATION.md) |
 | Stream Queues | ✅ Supported | [STREAM_QUEUES_DOCUMENTATION.md](./STREAM_QUEUES_DOCUMENTATION.md) |
+| Publisher Confirms | ✅ Supported | [PUBLISHER_CONFIRMS_DOCUMENTATION.md](./PUBLISHER_CONFIRMS_DOCUMENTATION.md) |
 | Master Locator | ✅ Supported (Deprecated) | [MASTER_LOCATOR_DOCUMENTATION.md](./MASTER_LOCATOR_DOCUMENTATION.md) |
 
 ## Getting Started

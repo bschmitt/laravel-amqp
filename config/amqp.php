@@ -65,7 +65,9 @@ return [
             'consumer_properties'   => [],
             'timeout'               => 0,
             'persistent'            => false,
-            'publish_timeout'       => 0, // Only applicable when a publish is marked as mandatory
+            'publish_timeout'       => 30, // Timeout for waiting for publisher confirms (seconds)
+            'publisher_confirms'     => false, // Enable publisher confirms
+            'wait_for_confirms'     => true, // Whether to wait for confirms after publishing
             'qos'                   => false,
             'qos_prefetch_size'     => 0,
             'qos_prefetch_count'    => 1,
