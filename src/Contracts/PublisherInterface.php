@@ -2,7 +2,7 @@
 
 namespace Bschmitt\Amqp\Contracts;
 
-use Bschmitt\Amqp\Message;
+use Bschmitt\Amqp\Models\Message;
 
 interface PublisherInterface
 {

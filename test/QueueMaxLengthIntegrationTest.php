@@ -2,8 +2,8 @@
 
 namespace Bschmitt\Amqp\Test;
 
-use Bschmitt\Amqp\Publisher;
-use Bschmitt\Amqp\Consumer;
+use Bschmitt\Amqp\Core\Publisher;
+use Bschmitt\Amqp\Core\Consumer;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\TestCase;
 
@@ -126,7 +126,7 @@ class QueueMaxLengthIntegrationTest extends TestCase
         ];
 
         foreach ($messages as $messageText) {
-            $message = new \Bschmitt\Amqp\Message($messageText, [
+            $message = new \Bschmitt\Amqp\Models\Message($messageText, [
                 'content_type' => 'text/plain',
                 'delivery_mode' => 2
             ]);
@@ -135,7 +135,7 @@ class QueueMaxLengthIntegrationTest extends TestCase
         }
 
         // Close publisher connection
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Now consume - should only get the latest message
         $consumer = new Consumer($this->configRepository);
@@ -156,7 +156,7 @@ class QueueMaxLengthIntegrationTest extends TestCase
         }
 
         // Cleanup
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
 
         // Assertions
         $this->assertTrue($messageReceived, 'At least one message should be received');
@@ -178,12 +178,12 @@ class QueueMaxLengthIntegrationTest extends TestCase
         $publisher->setup();
 
         // Publish first message and consume it
-        $message1 = new \Bschmitt\Amqp\Message('first-message', [
+        $message1 = new \Bschmitt\Amqp\Models\Message('first-message', [
             'content_type' => 'text/plain',
             'delivery_mode' => 2
         ]);
         $publisher->publish($this->testRoutingKey, $message1);
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         $consumer = new Consumer($this->configRepository);
         $consumer->setup();
@@ -199,24 +199,24 @@ class QueueMaxLengthIntegrationTest extends TestCase
             // Expected
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
 
         $this->assertEquals('first-message', $firstMessage);
 
         // Now publish 2 more messages without consuming
         $publisher = new Publisher($this->configRepository);
         $publisher->setup();
-        $message2 = new \Bschmitt\Amqp\Message('second-message', [
+        $message2 = new \Bschmitt\Amqp\Models\Message('second-message', [
             'content_type' => 'text/plain',
             'delivery_mode' => 2
         ]);
-        $message3 = new \Bschmitt\Amqp\Message('third-message', [
+        $message3 = new \Bschmitt\Amqp\Models\Message('third-message', [
             'content_type' => 'text/plain',
             'delivery_mode' => 2
         ]);
         $publisher->publish($this->testRoutingKey, $message2);
         $publisher->publish($this->testRoutingKey, $message3);
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Consume - should only get the latest
         $consumer = new Consumer($this->configRepository);
@@ -233,7 +233,7 @@ class QueueMaxLengthIntegrationTest extends TestCase
             // Expected
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
 
         $this->assertEquals('third-message', $lastMessage, 'Only the latest message should be in queue');
     }

@@ -2,7 +2,7 @@
 
 namespace Bschmitt\Amqp\Test;
 
-use Bschmitt\Amqp\Request;
+use Bschmitt\Amqp\Core\Request;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 use PhpAmqpLib\Wire\AMQPTable;

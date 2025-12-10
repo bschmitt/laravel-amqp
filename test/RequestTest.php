@@ -4,7 +4,7 @@ namespace Bschmitt\Amqp\Test;
 
 use Bschmitt\Amqp\Exception\Configuration;
 use \Mockery;
-use Bschmitt\Amqp\Request;
+use Bschmitt\Amqp\Core\Request;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 

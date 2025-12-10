@@ -1,9 +1,9 @@
 <?php
 
-namespace Bschmitt\Amqp;
+namespace Bschmitt\Amqp\Providers;
 
-use Bschmitt\Amqp\Consumer;
-use Bschmitt\Amqp\Publisher;
+use Bschmitt\Amqp\Core\Consumer;
+use Bschmitt\Amqp\Core\Publisher;
 use Illuminate\Support\ServiceProvider;
 
 class AmqpServiceProvider extends ServiceProvider
@@ -23,13 +23,13 @@ class AmqpServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->app->bind('Amqp', 'Bschmitt\Amqp\Amqp');
+        $this->app->bind('Amqp', \Bschmitt\Amqp\Core\Amqp::class);
         if (!class_exists('Amqp')) {
             class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
         }
 
         $this->publishes([
-            __DIR__.'/../config/amqp.php' => config_path('amqp.php'),
+            __DIR__.'/../../config/amqp.php' => config_path('amqp.php'),
         ]);
     }
 
@@ -57,11 +57,11 @@ class AmqpServiceProvider extends ServiceProvider
             return new Consumer($app['config']);
         });
 
-        $this->app->singleton('Bschmitt\Amqp\Publisher', function ($app) {
+        $this->app->singleton('Bschmitt\Amqp\Core\Publisher', function ($app) {
             return $app->make(\Bschmitt\Amqp\Contracts\PublisherInterface::class);
         });
 
-        $this->app->singleton('Bschmitt\Amqp\Consumer', function ($app) {
+        $this->app->singleton('Bschmitt\Amqp\Core\Consumer', function ($app) {
             return $app->make(\Bschmitt\Amqp\Contracts\ConsumerInterface::class);
         });
 
@@ -75,6 +75,7 @@ class AmqpServiceProvider extends ServiceProvider
      */
     public function provides()
     {
-        return ['Amqp', 'Bschmitt\Amqp\Publisher', 'Bschmitt\Amqp\Consumer'];
+        return ['Amqp', 'Bschmitt\Amqp\Core\Publisher', 'Bschmitt\Amqp\Core\Consumer'];
     }
 }
+

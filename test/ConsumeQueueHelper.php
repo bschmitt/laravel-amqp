@@ -2,7 +2,7 @@
 
 namespace Bschmitt\Amqp\Test;
 
-use Bschmitt\Amqp\Consumer;
+use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Exception\Stop;
 
 /**
@@ -38,7 +38,7 @@ class ConsumeQueueHelper
         echo "[CONSUME HELPER] Initial message count: {$initialCount}\n";
         
         if ($initialCount === 0) {
-            \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
             return [
                 'initial_count' => 0,
                 'consumed' => 0,
@@ -88,7 +88,7 @@ class ConsumeQueueHelper
                 // Timeout is OK
             }
             
-            \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
             usleep(200000);
         }
         
@@ -96,7 +96,7 @@ class ConsumeQueueHelper
         $finalConsumer = new Consumer($this->configRepository);
         $finalConsumer->setup();
         $finalCount = $finalConsumer->getQueueMessageCount();
-        \Bschmitt\Amqp\Request::shutdown($finalConsumer->getChannel(), $finalConsumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($finalConsumer->getChannel(), $finalConsumer->getConnection());
         
         $totalConsumed = count($consumedMessages);
         

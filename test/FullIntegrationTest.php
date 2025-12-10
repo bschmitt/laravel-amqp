@@ -2,10 +2,10 @@
 
 namespace Bschmitt\Amqp\Test;
 
-use Bschmitt\Amqp\Publisher;
-use Bschmitt\Amqp\Consumer;
-use Bschmitt\Amqp\Amqp;
-use Bschmitt\Amqp\Message;
+use Bschmitt\Amqp\Core\Publisher;
+use Bschmitt\Amqp\Core\Consumer;
+use Bschmitt\Amqp\Core\Amqp;
+use Bschmitt\Amqp\Models\Message;
 use Bschmitt\Amqp\Exception\Stop;
 
 /**
@@ -31,7 +31,7 @@ class FullIntegrationTest extends IntegrationTestBase
 
         $this->assertTrue($result !== false);
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
     }
 
     /**
@@ -44,7 +44,7 @@ class FullIntegrationTest extends IntegrationTestBase
         $publisher->setup();
         $message = $this->createMessage('test-consume-message');
         $publisher->publish($this->testRoutingKey, $message);
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Small delay to ensure message is in queue
         usleep(200000); // 0.2 seconds
@@ -70,7 +70,7 @@ class FullIntegrationTest extends IntegrationTestBase
             // Expected when stopWhenProcessed is called
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
 
         $this->assertTrue($callbackExecuted, 'Consumer callback should have been executed');
         $this->assertNotNull($consumedMessage, 'Message should have been consumed');
@@ -96,7 +96,7 @@ class FullIntegrationTest extends IntegrationTestBase
         }
 
         $publisher->batchPublish();
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Small delay to ensure messages are in queue
         usleep(300000);
@@ -121,7 +121,7 @@ class FullIntegrationTest extends IntegrationTestBase
             // Expected
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
 
         $this->assertGreaterThanOrEqual(1, count($consumedMessages), 'Should consume at least 1 message');
         if (count($consumedMessages) >= 3) {
@@ -141,7 +141,7 @@ class FullIntegrationTest extends IntegrationTestBase
         $publisher->setup();
         $message = $this->createMessage('reject-test-message');
         $publisher->publish($this->testRoutingKey, $message);
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Reject it with requeue
         $consumer = new Consumer($this->configRepository);
@@ -158,7 +158,7 @@ class FullIntegrationTest extends IntegrationTestBase
             // Expected
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         $this->assertTrue($rejected);
 
         // Consume again - message should be back in queue
@@ -176,7 +176,7 @@ class FullIntegrationTest extends IntegrationTestBase
             // Expected
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         $this->assertEquals('reject-test-message', $consumedMessage);
     }
 
@@ -190,7 +190,7 @@ class FullIntegrationTest extends IntegrationTestBase
         $publisher->setup();
         $message = $this->createMessage('reject-no-requeue-message');
         $publisher->publish($this->testRoutingKey, $message);
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Reject it without requeue
         $consumer = new Consumer($this->configRepository);
@@ -207,7 +207,7 @@ class FullIntegrationTest extends IntegrationTestBase
             // Expected
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         $this->assertTrue($rejected);
 
         // Try to consume again - message should be gone
@@ -225,7 +225,7 @@ class FullIntegrationTest extends IntegrationTestBase
             // Expected when no messages
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         $this->assertFalse($messageReceived, 'Message should not be in queue after rejection without requeue');
     }
 
@@ -293,7 +293,7 @@ class FullIntegrationTest extends IntegrationTestBase
             usleep(100000); // Small delay between messages
         }
 
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Small delay to ensure all messages are in queue
         usleep(300000); // 0.3 seconds
@@ -305,7 +305,7 @@ class FullIntegrationTest extends IntegrationTestBase
         $messageCount = $consumer->getQueueMessageCount();
         $this->assertEquals(3, $messageCount, "Queue should have 3 messages, but has {$messageCount}");
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
     }
 
     /**
@@ -321,7 +321,7 @@ class FullIntegrationTest extends IntegrationTestBase
 
         $this->assertTrue($result !== false);
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
     }
 
     /**
@@ -343,7 +343,7 @@ class FullIntegrationTest extends IntegrationTestBase
         $publisher->setup();
         $publisher->publish($this->testRoutingKey, $this->createMessage('qos-message-1'));
         $publisher->publish($this->testRoutingKey, $this->createMessage('qos-message-2'));
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // With QoS prefetch=1, only one message should be delivered at a time
         $consumedCount = 0;
@@ -359,7 +359,7 @@ class FullIntegrationTest extends IntegrationTestBase
             // Expected
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         $this->assertEquals(2, $consumedCount);
     }
 
@@ -387,7 +387,7 @@ class FullIntegrationTest extends IntegrationTestBase
         usleep(100000);
         $publisher->publish('routing.key.3', $this->createMessage('message-3'));
 
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Small delay to ensure all messages are in queue
         usleep(300000);
@@ -412,7 +412,7 @@ class FullIntegrationTest extends IntegrationTestBase
             // Expected
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         // At least one message should be consumed (all 3 if routing is working correctly)
         $this->assertGreaterThanOrEqual(1, count($consumedMessages), 'Should consume at least 1 message');

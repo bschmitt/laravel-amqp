@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp;
+namespace Bschmitt\Amqp\Core;
 
 use Illuminate\Contracts\Config\Repository;
 use Bschmitt\Amqp\Support\ConfigurationProvider;
@@ -25,3 +25,4 @@ abstract class Context extends ConfigurationProvider
      */
     abstract public function setup();
 }
+

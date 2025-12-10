@@ -2,7 +2,7 @@
 
 namespace Bschmitt\Amqp\Factories;
 
-use Bschmitt\Amqp\Message;
+use Bschmitt\Amqp\Models\Message;
 use PhpAmqpLib\Wire\AMQPTable;
 
 class MessageFactory

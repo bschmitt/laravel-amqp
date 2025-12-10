@@ -2,8 +2,8 @@
 
 namespace Bschmitt\Amqp\Test;
 
-use Bschmitt\Amqp\Publisher;
-use Bschmitt\Amqp\Consumer;
+use Bschmitt\Amqp\Core\Publisher;
+use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Exception\Stop;
 
 /**
@@ -42,7 +42,7 @@ class ConsumeAllMessagesTest extends IntegrationTestBase
                 echo "[CONSUME ALL] Published message {$i}\n";
             }
             
-            \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
             
             // Wait for messages to be in queue
             sleep(2);
@@ -55,7 +55,7 @@ class ConsumeAllMessagesTest extends IntegrationTestBase
         
         if ($initialMessageCount === 0) {
             echo "[CONSUME ALL] ⚠ Queue is still empty. Nothing to consume.\n";
-            \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
             $this->markTestSkipped('Queue is empty - no messages to consume');
             return;
         }
@@ -114,20 +114,20 @@ class ConsumeAllMessagesTest extends IntegrationTestBase
             }
             
             // Close connection for next iteration
-            \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
             
             // Small delay between iterations
             usleep(300000); // 0.3 seconds
         }
         
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         // Step 3: Check final queue status
         $finalConsumer = new Consumer($this->configRepository);
         $finalConsumer->setup();
         $finalMessageCount = $finalConsumer->getQueueMessageCount();
         echo "[CONSUME ALL] Final queue message count: {$finalMessageCount}\n";
-        \Bschmitt\Amqp\Request::shutdown($finalConsumer->getChannel(), $finalConsumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($finalConsumer->getChannel(), $finalConsumer->getConnection());
         
         // Step 4: Report results
         $totalConsumed = count($consumedMessages);
@@ -172,7 +172,7 @@ class ConsumeAllMessagesTest extends IntegrationTestBase
                 $publisher->publish($this->testRoutingKey, $message);
             }
             
-            \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
             sleep(2);
             
             $consumer->setup();
@@ -235,7 +235,7 @@ class ConsumeAllMessagesTest extends IntegrationTestBase
             usleep(500000); // 0.5 seconds
             
             // Close and reopen connection for next iteration
-            \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         }
         
         // Final check
@@ -243,7 +243,7 @@ class ConsumeAllMessagesTest extends IntegrationTestBase
         $finalConsumer->setup();
         $finalMessageCount = $finalConsumer->getQueueMessageCount();
         echo "[CONSUME LOOP] Final queue message count: {$finalMessageCount}\n";
-        \Bschmitt\Amqp\Request::shutdown($finalConsumer->getChannel(), $finalConsumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($finalConsumer->getChannel(), $finalConsumer->getConnection());
         
         echo "[CONSUME LOOP] ============================================================\n";
         echo "[CONSUME LOOP] SUMMARY:\n";

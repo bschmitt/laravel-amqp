@@ -90,11 +90,11 @@ class IntegrationTestBase extends TestCase
     protected function deleteTestQueue(): void
     {
         try {
-            $consumer = new \Bschmitt\Amqp\Consumer($this->configRepository);
+            $consumer = new \Bschmitt\Amqp\Core\Consumer($this->configRepository);
             $consumer->setup();
             $channel = $consumer->getChannel();
             $channel->queue_delete($this->testQueueName);
-            \Bschmitt\Amqp\Request::shutdown($channel, $consumer->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($channel, $consumer->getConnection());
             echo "[CLEANUP] Deleted queue: {$this->testQueueName}\n";
         } catch (\Exception $e) {
             echo "[CLEANUP] Could not delete queue: " . $e->getMessage() . "\n";
@@ -157,14 +157,14 @@ class IntegrationTestBase extends TestCase
     /**
      * Create a test message
      */
-    protected function createMessage(string $body, array $properties = []): \Bschmitt\Amqp\Message
+    protected function createMessage(string $body, array $properties = []): \Bschmitt\Amqp\Models\Message
     {
         $defaultProperties = [
             'content_type' => 'text/plain',
             'delivery_mode' => 2
         ];
 
-        return new \Bschmitt\Amqp\Message($body, array_merge($defaultProperties, $properties));
+        return new \Bschmitt\Amqp\Models\Message($body, array_merge($defaultProperties, $properties));
     }
 }
 

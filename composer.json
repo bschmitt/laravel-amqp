@@ -47,15 +47,15 @@
       "Bschmitt\\Amqp\\Test\\": "test/"
     }
   },
-  "extra": {
-    "laravel": {
-      "providers": [
-        "Bschmitt\\Amqp\\AmqpServiceProvider"
-      ],
-      "aliases": {
-        "Amqp": "Bschmitt\\Amqp\\Facades\\Amqp"
-      }
-    }
-  },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Bschmitt\\Amqp\\Providers\\AmqpServiceProvider"
+            ],
+            "aliases": {
+                "Amqp": "Bschmitt\\Amqp\\Facades\\Amqp"
+            }
+        }
+    },
   "minimum-stability": "dev"
 }

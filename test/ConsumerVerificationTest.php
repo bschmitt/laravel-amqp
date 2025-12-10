@@ -2,8 +2,8 @@
 
 namespace Bschmitt\Amqp\Test;
 
-use Bschmitt\Amqp\Publisher;
-use Bschmitt\Amqp\Consumer;
+use Bschmitt\Amqp\Core\Publisher;
+use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Exception\Stop;
 
 /**
@@ -28,7 +28,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
         $result = $publisher->publish($this->testRoutingKey, $message);
         echo "[TEST] Publish result: " . ($result ? 'SUCCESS' : 'FAILED') . "\n";
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
         echo "[TEST] Publisher connection closed\n";
 
         // Small delay to ensure message is in queue
@@ -67,7 +67,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
             throw $e;
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         echo "[TEST] Consumer connection closed\n";
 
         // Assertions
@@ -99,7 +99,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
         
         echo "\n[TEST] Publishing message: {$testMessage}\n";
         $publisher->publish($this->testRoutingKey, $message);
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Consume with timeout
         $consumer = new Consumer($configRepo);
@@ -124,7 +124,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
             echo "[TEST] Timeout occurred (this is OK if no more messages)\n";
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
 
         $this->assertTrue($callbackExecuted, 'Callback should have executed');
         $this->assertEquals($testMessage, $consumedMessage);
@@ -152,7 +152,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
             usleep(100000); // Small delay between messages
         }
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Small delay to ensure all messages are in queue
         usleep(300000);
@@ -185,7 +185,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
             // Expected
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         // Should consume at least 1 message (or all if no max-length)
         $this->assertGreaterThanOrEqual(1, $consumedCount, 'Should have consumed at least 1 message');
@@ -219,7 +219,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
             echo "[TEST] Consumer stopped (expected for empty queue with persistent=false)\n";
         }
 
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         $this->assertFalse($callbackExecuted, 'Callback should not execute for empty queue');
     }

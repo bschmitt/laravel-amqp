@@ -100,7 +100,7 @@ $app->withFacades(true, [
 Open **config/app.php** and add the service provider and alias:
 
 ```php
-'Bschmitt\Amqp\AmqpServiceProvider',
+'Bschmitt\Amqp\Providers\AmqpServiceProvider',
 ```
 
 ```php

@@ -2,9 +2,9 @@
 
 namespace Bschmitt\Amqp\Test;
 
-use Bschmitt\Amqp\Publisher;
-use Bschmitt\Amqp\Consumer;
-use Bschmitt\Amqp\Amqp;
+use Bschmitt\Amqp\Core\Publisher;
+use Bschmitt\Amqp\Core\Consumer;
+use Bschmitt\Amqp\Core\Amqp;
 use Bschmitt\Amqp\Exception\Stop;
 
 /**
@@ -45,7 +45,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         echo "[VERIFY] Publish result: " . ($publishResult ? 'SUCCESS' : 'FAILED') . "\n";
         $this->assertTrue($publishResult !== false, 'Message should be published successfully');
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
         echo "[VERIFY] Publisher connection closed\n";
         
         // Delay to ensure message is in queue and visible in Web UI
@@ -87,7 +87,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
             echo "[VERIFY] Consumer stopped (expected)\n";
         }
         
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         echo "[VERIFY] Consumer connection closed\n";
         
         // Check queue status after consumption
@@ -95,7 +95,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         $consumerAfter->setup();
         $messageCountAfter = $consumerAfter->getQueueMessageCount();
         echo "[VERIFY] Queue message count AFTER consumption: {$messageCountAfter}\n";
-        \Bschmitt\Amqp\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
         
         // Final verification
         $this->assertTrue($messageReceived, 'Message should have been received');
@@ -136,7 +136,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
             usleep(100000); // Small delay between messages
         }
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
         echo "[VERIFY] All messages published\n";
         
         // Delay to ensure all messages are in queue and visible in Web UI
@@ -176,14 +176,14 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
             echo "[VERIFY] Consumer stopped (expected)\n";
         }
         
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         // Check queue status after consumption
         $consumerAfter = new Consumer($configRepo);
         $consumerAfter->setup();
         $messageCountAfter = $consumerAfter->getQueueMessageCount();
         echo "[VERIFY] Queue message count AFTER consumption: {$messageCountAfter}\n";
-        \Bschmitt\Amqp\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
         
         // Step 3: Verify messages were consumed
         echo "[VERIFY] Total messages consumed: " . count($consumedMessages) . "\n";
@@ -220,7 +220,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         $this->assertTrue($publishResult !== false, 'Message with special characters should be published successfully');
         echo "[VERIFY] Publish result: SUCCESS\n";
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
         
         // Delay for Web UI visibility
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to appear in RabbitMQ Web UI...\n";
@@ -254,14 +254,14 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
             // Expected
         }
         
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         // Check queue status after consumption
         $consumerAfter = new Consumer($this->configRepository);
         $consumerAfter->setup();
         $messageCountAfter = $consumerAfter->getQueueMessageCount();
         echo "[VERIFY] Queue message count AFTER consumption: {$messageCountAfter}\n";
-        \Bschmitt\Amqp\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
         
         // Final verification
         $this->assertTrue($messageReceived, 'Message should have been received');
@@ -301,7 +301,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         $this->assertTrue($publishResult !== false, 'JSON message should be published successfully');
         echo "[VERIFY] Publish result: SUCCESS\n";
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
         
         // Delay for Web UI visibility
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to appear in RabbitMQ Web UI...\n";
@@ -339,14 +339,14 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
             // Expected
         }
         
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         // Check queue status after consumption
         $consumerAfter = new Consumer($this->configRepository);
         $consumerAfter->setup();
         $messageCountAfter = $consumerAfter->getQueueMessageCount();
         echo "[VERIFY] Queue message count AFTER consumption: {$messageCountAfter}\n";
-        \Bschmitt\Amqp\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
         
         // Final verification
         $this->assertTrue($messageReceived, 'Message should have been received');
@@ -379,7 +379,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         $this->assertTrue($publishResult !== false, 'Message should be published successfully');
         echo "[VERIFY] Publish result: SUCCESS\n";
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
         
         // Delay for Web UI visibility
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to appear in RabbitMQ Web UI...\n";
@@ -416,14 +416,14 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
             // Expected
         }
         
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         // Check queue status after consumption
         $consumerAfter = new Consumer($this->configRepository);
         $consumerAfter->setup();
         $messageCountAfter = $consumerAfter->getQueueMessageCount();
         echo "[VERIFY] Queue message count AFTER consumption: {$messageCountAfter}\n";
-        \Bschmitt\Amqp\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
         
         // Final verification
         $this->assertTrue($messageReceived, 'Message should have been received');
@@ -450,7 +450,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         $publisher->publish($this->testRoutingKey, $message);
         echo "[VERIFY] Message published: {$testMessage}\n";
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
         
         // Delay for Web UI visibility
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to appear in RabbitMQ Web UI...\n";
@@ -485,7 +485,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
             // Expected
         }
         
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         $this->assertTrue($firstConsumed, 'Message should be consumed first time');
         
@@ -524,14 +524,14 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
             echo "[VERIFY] Warning: Queue is empty, message may not have been requeued\n";
         }
         
-        \Bschmitt\Amqp\Request::shutdown($consumer2->getChannel(), $consumer2->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer2->getChannel(), $consumer2->getConnection());
         
         // Check queue status after second consumption
         $consumerAfter = new Consumer($this->configRepository);
         $consumerAfter->setup();
         $messageCountAfter = $consumerAfter->getQueueMessageCount();
         echo "[VERIFY] Queue message count AFTER second consumption: {$messageCountAfter}\n";
-        \Bschmitt\Amqp\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumerAfter->getChannel(), $consumerAfter->getConnection());
         
         // Final verification
         $this->assertTrue($firstConsumed, 'Message should be consumed first time');
@@ -579,7 +579,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
             usleep(200000); // Small delay between messages
         }
         
-        \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
         echo "[VERIFY] All messages published\n";
         
         // Wait for messages to be visible in Web UI
@@ -608,7 +608,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         // With x-max-length=1, only the latest message will be in queue
         $this->assertGreaterThanOrEqual(1, $messageCount, 'Queue should have at least 1 message (latest due to max-length=1)');
         
-        \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         
         echo "[VERIFY] ✓ Test passed: Messages published and visible in queue!\n";
         echo "[VERIFY] NOTE: Messages are still in queue for manual inspection.\n";

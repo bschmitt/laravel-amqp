@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp;
+namespace Bschmitt\Amqp\Core;
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
@@ -68,7 +68,7 @@ class Request extends Context
     }
 
     /**
-     * @throws Exception\Configuration
+     * @throws \Bschmitt\Amqp\Exception\Configuration
      */
     public function setup()
     {
@@ -77,7 +77,7 @@ class Request extends Context
         $exchange = $this->getProperty('exchange');
 
         if (empty($exchange)) {
-            throw new Exception\Configuration('Please check your settings, exchange is not defined.');
+            throw new \Bschmitt\Amqp\Exception\Configuration('Please check your settings, exchange is not defined.');
         }
 
         /*
@@ -203,3 +203,4 @@ class Request extends Context
         $connection->close();
     }
 }
+

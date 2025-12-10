@@ -2,7 +2,7 @@
 
 namespace Bschmitt\Amqp\Test;
 
-use Bschmitt\Amqp\Consumer;
+use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Exception\Stop;
 use Bschmitt\Amqp\Test\ConsumeQueueHelper;
 
@@ -42,7 +42,7 @@ class ConsumeExistingQueueMessagesTest extends IntegrationTestBase
         
         if ($initialMessageCount === 0) {
             echo "[CONSUME EXISTING] ⚠ Queue is empty. Nothing to consume.\n";
-            \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
             $this->markTestSkipped('Queue is empty - no messages to consume');
             return;
         }
@@ -107,7 +107,7 @@ class ConsumeExistingQueueMessagesTest extends IntegrationTestBase
             }
             
             // Close connection for next iteration
-            \Bschmitt\Amqp\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+            \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
             
             // Small delay between iterations to allow RabbitMQ to process
             usleep(200000); // 0.2 seconds
@@ -117,7 +117,7 @@ class ConsumeExistingQueueMessagesTest extends IntegrationTestBase
         $finalConsumer = new Consumer($this->configRepository);
         $finalConsumer->setup();
         $finalMessageCount = $finalConsumer->getQueueMessageCount();
-        \Bschmitt\Amqp\Request::shutdown($finalConsumer->getChannel(), $finalConsumer->getConnection());
+        \Bschmitt\Amqp\Core\Request::shutdown($finalConsumer->getChannel(), $finalConsumer->getConnection());
         
         $totalConsumed = count($consumedMessages);
         
