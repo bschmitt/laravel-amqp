@@ -225,6 +225,13 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
         $config = $this->configRepository->get('amqp');
         $config['properties']['test']['publisher_confirms'] = true;
         $config['properties']['test']['wait_for_confirms'] = false;
+        
+        // Remove x-max-length to allow all messages to be queued
+        // Default config has x-max-length=1 which only keeps the latest message
+        if (isset($config['properties']['test']['queue_properties']['x-max-length'])) {
+            unset($config['properties']['test']['queue_properties']['x-max-length']);
+        }
+        
         $this->configRepository->set('amqp', $config);
 
         $publisher = new Publisher($this->configRepository);
@@ -247,6 +254,9 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
             $this->fail('waitForConfirms should not throw exception: ' . $e->getMessage());
         }
         
+        // Give RabbitMQ time to queue all messages
+        sleep(1);
+        
         // Verify messages were published by consuming them
         $consumedMessages = [];
         $consumer = new Consumer($this->configRepository);
@@ -265,7 +275,7 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
                     }
                 },
                 [
-                    'timeout' => 5,
+                    'timeout' => 10, // Increased timeout to allow all messages to be consumed
                     'persistent' => true
                 ]
             );

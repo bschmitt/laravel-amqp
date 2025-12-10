@@ -55,6 +55,9 @@ class ConsumerPrefetchTest extends BaseTestCase
             ->once();
 
         $this->consumerMock->setPrefetch($prefetchCount, $prefetchSize, $global);
+        
+        // Assert that the method was called (expectations verified by Mockery in tearDown)
+        $this->assertTrue(true, 'setPrefetch should call basic_qos with correct parameters');
     }
 
     /**
@@ -75,6 +78,9 @@ class ConsumerPrefetchTest extends BaseTestCase
             ->once();
 
         $this->consumerMock->setPrefetch($prefetchCount, $prefetchSize, $global);
+        
+        // Assert that the method was called (expectations verified by Mockery in tearDown)
+        $this->assertTrue(true, 'setPrefetch with global flag should call basic_qos correctly');
     }
 
     /**
@@ -95,6 +101,9 @@ class ConsumerPrefetchTest extends BaseTestCase
             ->once();
 
         $this->consumerMock->setPrefetch($prefetchCount, $prefetchSize, $global);
+        
+        // Assert that the method was called (expectations verified by Mockery in tearDown)
+        $this->assertTrue(true, 'setPrefetch with size should call basic_qos correctly');
     }
 
     /**
@@ -223,5 +232,8 @@ class ConsumerPrefetchTest extends BaseTestCase
             ->once();
 
         $this->consumerMock->setPrefetch($prefetchCount, $prefetchSize, $global);
+        
+        // Assert that the method was called (expectations verified by Mockery in tearDown)
+        $this->assertTrue(true, 'setPrefetch with zero count should call basic_qos correctly');
     }
 }
