@@ -293,6 +293,151 @@ class Amqp
     }
 
     /**
+     * Get queue statistics from Management API
+     *
+     * @param string|null $queueName Queue name (optional)
+     * @param string|null $vhost Virtual host (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return array
+     */
+    public function getQueueStatistics(?string $queueName = null, ?string $vhost = null, array $properties = []): array
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        return $apiClient->getQueueStatistics($queueName, $vhost);
+    }
+
+    /**
+     * Get connection information from Management API
+     *
+     * @param string|null $connectionName Connection name (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return array
+     */
+    public function getConnections(?string $connectionName = null, array $properties = []): array
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        return $apiClient->getConnections($connectionName);
+    }
+
+    /**
+     * Get channel information from Management API
+     *
+     * @param string|null $channelName Channel name (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return array
+     */
+    public function getChannels(?string $channelName = null, array $properties = []): array
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        return $apiClient->getChannels($channelName);
+    }
+
+    /**
+     * Get node information from Management API
+     *
+     * @param string|null $nodeName Node name (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return array
+     */
+    public function getNodes(?string $nodeName = null, array $properties = []): array
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        return $apiClient->getNodes($nodeName);
+    }
+
+    /**
+     * List all policies
+     *
+     * @param string|null $vhost Virtual host (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return array
+     */
+    public function listPolicies(?string $vhost = null, array $properties = []): array
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        return $apiClient->listPolicies($vhost);
+    }
+
+    /**
+     * Get a specific policy
+     *
+     * @param string $policyName Policy name
+     * @param string|null $vhost Virtual host (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return array
+     */
+    public function getPolicy(string $policyName, ?string $vhost = null, array $properties = []): array
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        return $apiClient->getPolicy($policyName, $vhost);
+    }
+
+    /**
+     * Create or update a policy
+     *
+     * @param string $policyName Policy name
+     * @param array $definition Policy definition (must include 'pattern', optional: 'apply-to', 'definition', 'priority')
+     * @param string|null $vhost Virtual host (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return array
+     */
+    public function createPolicy(string $policyName, array $definition, ?string $vhost = null, array $properties = []): array
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        return $apiClient->createPolicy($policyName, $definition, $vhost);
+    }
+
+    /**
+     * Delete a policy
+     *
+     * @param string $policyName Policy name
+     * @param string|null $vhost Virtual host (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return void
+     */
+    public function deletePolicy(string $policyName, ?string $vhost = null, array $properties = []): void
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        $apiClient->deletePolicy($policyName, $vhost);
+    }
+
+    /**
+     * Create a new Management API client instance with merged properties
+     *
+     * @param array $properties
+     * @return \Bschmitt\Amqp\Managers\ManagementApiClient
+     */
+    protected function createManagementApiClient(array $properties): \Bschmitt\Amqp\Managers\ManagementApiClient
+    {
+        // Try to get config from App container if available (Laravel context)
+        try {
+            $config = \Illuminate\Support\Facades\App::make(\Bschmitt\Amqp\Contracts\ConfigurationProviderInterface::class);
+            if ($config instanceof \Bschmitt\Amqp\Support\ConfigurationProvider) {
+                $config->mergeProperties($properties);
+            }
+        } catch (\Exception $e) {
+            // If App facade is not available (e.g., in tests), create config from properties
+            $defaultConfig = include __DIR__ . '/../../config/amqp.php';
+            $defaultProperties = $defaultConfig['properties'][$defaultConfig['use']] ?? [];
+            $mergedProperties = array_merge($defaultProperties, $properties);
+            
+            $configArray = [
+                'amqp' => [
+                    'use' => $defaultConfig['use'] ?? 'production',
+                    'properties' => [
+                        $defaultConfig['use'] ?? 'production' => $mergedProperties
+                    ]
+                ]
+            ];
+            
+            $configRepository = new \Illuminate\Config\Repository($configArray);
+            $config = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
+        }
+        
+        return new \Bschmitt\Amqp\Managers\ManagementApiClient($config);
+    }
+
+    /**
      * Disconnect publisher resources
      *
      * @param PublisherInterface $publisher

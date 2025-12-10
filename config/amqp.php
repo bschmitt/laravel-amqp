@@ -24,6 +24,12 @@ return [
             'username'              => env('AMQP_USER', ''),
             'password'              => env('AMQP_PASSWORD', ''),
             'vhost'                 => env('AMQP_VHOST', '/'),
+            
+            // Management HTTP API configuration
+            'management_host'       => env('AMQP_MANAGEMENT_HOST', 'http://localhost'),
+            'management_port'       => env('AMQP_MANAGEMENT_PORT', 15672),
+            'management_username'   => env('AMQP_MANAGEMENT_USER', null), // Falls back to AMQP_USER if not set
+            'management_password'   => env('AMQP_MANAGEMENT_PASSWORD', null), // Falls back to AMQP_PASSWORD if not set
             'connect_options'       => [],
             'ssl_options'           => [],
 
