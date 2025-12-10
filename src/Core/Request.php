@@ -87,6 +87,11 @@ class Request extends Context
             durable: true // the exchange will survive server restarts
             auto_delete: false //the exchange won't be deleted once the channel is closed.
         */
+        
+        // Validate exchange type
+        $exchangeType = $this->getProperty('exchange_type');
+        $this->validateExchangeType($exchangeType);
+        
         $exchangeProperties = $this->getProperty('exchange_properties');
         if ($exchangeProperties instanceof AMQPTable) {
             // Already an AMQPTable, use as-is
@@ -189,6 +194,24 @@ class Request extends Context
             return $this->queueInfo[1];
         }
         return 0;
+    }
+
+    /**
+     * Validate exchange type
+     * 
+     * @param string|null $exchangeType
+     * @throws \Bschmitt\Amqp\Exception\Configuration
+     */
+    protected function validateExchangeType($exchangeType): void
+    {
+        $validTypes = ['topic', 'direct', 'fanout', 'headers'];
+        
+        if (empty($exchangeType) || !in_array($exchangeType, $validTypes, true)) {
+            $validTypesList = implode(', ', $validTypes);
+            throw new \Bschmitt\Amqp\Exception\Configuration(
+                "Invalid exchange type '{$exchangeType}'. Valid types are: {$validTypesList}"
+            );
+        }
     }
 
     /**

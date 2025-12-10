@@ -34,7 +34,12 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
    - `alternate-exchange` - Handling unroutable messages
    - Dead letter routing for exchanges
 
-8. **[Master Locator](./MASTER_LOCATOR_DOCUMENTATION.md)** (Deprecated)
+8. **[Exchange Types](./EXCHANGE_TYPES_DOCUMENTATION.md)**
+   - All RabbitMQ exchange types (topic, direct, fanout, headers)
+   - Exchange type validation
+   - Routing behavior guide
+
+9. **[Master Locator](./MASTER_LOCATOR_DOCUMENTATION.md)** (Deprecated)
    - `x-queue-master-locator` - Master node locator strategy
    - Note: Deprecated - use Quorum Queues instead
 
@@ -81,6 +86,7 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
 | Lazy Queues | ✅ Supported | [LAZY_QUEUES_DOCUMENTATION.md](./LAZY_QUEUES_DOCUMENTATION.md) |
 | Queue Types | ✅ Supported | [QUEUE_TYPE_DOCUMENTATION.md](./QUEUE_TYPE_DOCUMENTATION.md) |
 | Alternate Exchange | ✅ Supported | [ALTERNATE_EXCHANGE_DOCUMENTATION.md](./ALTERNATE_EXCHANGE_DOCUMENTATION.md) |
+| Exchange Types | ✅ Supported | [EXCHANGE_TYPES_DOCUMENTATION.md](./EXCHANGE_TYPES_DOCUMENTATION.md) |
 | Master Locator | ✅ Supported (Deprecated) | [MASTER_LOCATOR_DOCUMENTATION.md](./MASTER_LOCATOR_DOCUMENTATION.md) |
 
 ## Getting Started
