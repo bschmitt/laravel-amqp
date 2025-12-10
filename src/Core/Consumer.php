@@ -224,4 +224,14 @@ class Consumer extends Request implements ConsumerInterface
         }
         return parent::getQueueMessageCount();
     }
+
+    /**
+     * Get connection manager (for resource cleanup)
+     *
+     * @return ConnectionManagerInterface|null
+     */
+    public function getConnectionManager(): ?ConnectionManagerInterface
+    {
+        return $this->connectionManager;
+    }
 }

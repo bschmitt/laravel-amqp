@@ -187,4 +187,14 @@ class Publisher extends Request implements PublisherInterface
         }
         return parent::getConnection();
     }
+
+    /**
+     * Get connection manager (for resource cleanup)
+     *
+     * @return ConnectionManagerInterface|null
+     */
+    public function getConnectionManager(): ?ConnectionManagerInterface
+    {
+        return $this->connectionManager;
+    }
 }

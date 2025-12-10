@@ -212,5 +212,118 @@ class QueueMaxLengthTest extends BaseTestCase
 
         $this->assertNull($thrownException);
     }
+
+    /**
+     * Test that x-max-length-bytes can be configured
+     * 
+     * According to RabbitMQ docs:
+     * - x-max-length-bytes: Maximum total size of all message bodies in bytes
+     * - Only ready messages count (unacknowledged don't count)
+     */
+    public function testQueueDeclareWithMaxLengthBytes()
+    {
+        $queueName = 'test-queue-max-length-bytes';
+        $expectedQueueProperties = [
+            'x-ha-policy' => ['S', 'all'],
+            'x-max-length-bytes' => 1024
+        ];
+
+        $this->requestMock->mergeProperties([
+            'queue' => $queueName,
+            'queue_force_declare' => true,
+            'routing' => 'test-routing',
+            'queue_properties' => $expectedQueueProperties
+        ]);
+
+        $this->channelMock->shouldReceive('exchange_declare');
+        $this->requestMock->shouldReceive('connect');
+
+        $this->channelMock->shouldReceive('queue_declare')
+            ->with(
+                $queueName,
+                $this->defaultConfig['queue_passive'],
+                $this->defaultConfig['queue_durable'],
+                $this->defaultConfig['queue_exclusive'],
+                $this->defaultConfig['queue_auto_delete'],
+                $this->defaultConfig['queue_nowait'],
+                Mockery::on(function ($arg) {
+                    return isset($arg['x-max-length-bytes']) 
+                        && $arg['x-max-length-bytes'] === 1024;
+                })
+            )
+            ->andReturn([$queueName, 0])
+            ->once();
+
+        $this->channelMock->shouldReceive('queue_bind')->once();
+        $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->once();
+
+        $thrownException = null;
+        try {
+            $this->requestMock->setup();
+        } catch (\Exception $exception) {
+            $thrownException = $exception;
+        }
+
+        $this->assertNull($thrownException);
+    }
+
+    /**
+     * Test that both x-max-length and x-max-length-bytes can be set together
+     * 
+     * According to RabbitMQ docs:
+     * - If both are set, whichever limit is hit first will be enforced
+     */
+    public function testQueueDeclareWithBothMaxLengthAndMaxLengthBytes()
+    {
+        $queueName = 'test-queue-both-limits';
+        $expectedQueueProperties = [
+            'x-ha-policy' => ['S', 'all'],
+            'x-max-length' => 10,
+            'x-max-length-bytes' => 1024,
+            'x-overflow' => 'drop-head'
+        ];
+
+        $this->requestMock->mergeProperties([
+            'queue' => $queueName,
+            'queue_force_declare' => true,
+            'routing' => 'test-routing',
+            'queue_properties' => $expectedQueueProperties
+        ]);
+
+        $this->channelMock->shouldReceive('exchange_declare');
+        $this->requestMock->shouldReceive('connect');
+
+        $this->channelMock->shouldReceive('queue_declare')
+            ->with(
+                $queueName,
+                $this->defaultConfig['queue_passive'],
+                $this->defaultConfig['queue_durable'],
+                $this->defaultConfig['queue_exclusive'],
+                $this->defaultConfig['queue_auto_delete'],
+                $this->defaultConfig['queue_nowait'],
+                Mockery::on(function ($arg) {
+                    return isset($arg['x-max-length']) 
+                        && $arg['x-max-length'] === 10
+                        && isset($arg['x-max-length-bytes'])
+                        && $arg['x-max-length-bytes'] === 1024
+                        && isset($arg['x-overflow'])
+                        && $arg['x-overflow'] === 'drop-head';
+                })
+            )
+            ->andReturn([$queueName, 0])
+            ->once();
+
+        $this->channelMock->shouldReceive('queue_bind')->once();
+        $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->once();
+
+        $thrownException = null;
+        try {
+            $this->requestMock->setup();
+        } catch (\Exception $exception) {
+            $thrownException = $exception;
+        }
+
+        $this->assertNull($thrownException);
+    }
 }
 

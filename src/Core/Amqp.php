@@ -5,10 +5,12 @@ namespace Bschmitt\Amqp\Core;
 use Closure;
 use Bschmitt\Amqp\Contracts\PublisherInterface;
 use Bschmitt\Amqp\Contracts\ConsumerInterface;
+use Bschmitt\Amqp\Contracts\PublisherFactoryInterface;
+use Bschmitt\Amqp\Contracts\ConsumerFactoryInterface;
+use Bschmitt\Amqp\Contracts\BatchManagerInterface;
 use Bschmitt\Amqp\Factories\MessageFactory;
 use Bschmitt\Amqp\Managers\ConnectionManager;
 use Bschmitt\Amqp\Models\Message;
-use Illuminate\Support\Facades\App;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -16,14 +18,14 @@ use Illuminate\Support\Facades\App;
 class Amqp
 {
     /**
-     * @var PublisherInterface
+     * @var PublisherFactoryInterface
      */
-    protected $publisher;
+    protected $publisherFactory;
 
     /**
-     * @var ConsumerInterface
+     * @var ConsumerFactoryInterface
      */
-    protected $consumer;
+    protected $consumerFactory;
 
     /**
      * @var MessageFactory
@@ -31,23 +33,26 @@ class Amqp
     protected $messageFactory;
 
     /**
-     * @var array
+     * @var BatchManagerInterface
      */
-    protected static $batchMessages = [];
+    protected $batchManager;
 
     /**
-     * @param PublisherInterface|null $publisher
-     * @param ConsumerInterface|null $consumer
-     * @param MessageFactory|null $messageFactory
+     * @param PublisherFactoryInterface $publisherFactory
+     * @param ConsumerFactoryInterface $consumerFactory
+     * @param MessageFactory $messageFactory
+     * @param BatchManagerInterface $batchManager
      */
     public function __construct(
-        PublisherInterface $publisher = null,
-        ConsumerInterface $consumer = null,
-        MessageFactory $messageFactory = null
+        PublisherFactoryInterface $publisherFactory,
+        ConsumerFactoryInterface $consumerFactory,
+        MessageFactory $messageFactory,
+        BatchManagerInterface $batchManager
     ) {
-        $this->publisher = $publisher ?? App::make(\Bschmitt\Amqp\Core\Publisher::class);
-        $this->consumer = $consumer ?? App::make(\Bschmitt\Amqp\Core\Consumer::class);
-        $this->messageFactory = $messageFactory ?? new MessageFactory();
+        $this->publisherFactory = $publisherFactory;
+        $this->consumerFactory = $consumerFactory;
+        $this->messageFactory = $messageFactory;
+        $this->batchManager = $batchManager;
     }
 
     /**
@@ -59,12 +64,8 @@ class Amqp
      */
     public function publish(string $routing, $message, array $properties = []): ?bool
     {
-        if (!($this->publisher instanceof \Bschmitt\Amqp\Core\Publisher)) {
-            throw new \RuntimeException('Publisher must be an instance of Publisher class for property merging.');
-        }
-
         $properties['routing'] = $routing;
-        $publisher = $this->createPublisherInstance($properties);
+        $publisher = $this->publisherFactory->create($properties);
 
         try {
             $applicationHeaders = $properties['application_headers'] ?? [];
@@ -84,10 +85,7 @@ class Amqp
      */
     public function batchBasicPublish(string $routing, $message): void
     {
-        self::$batchMessages[] = [
-            'routing' => $routing,
-            'message' => $message,
-        ];
+        $this->batchManager->add($routing, $message);
     }
 
     /**
@@ -96,18 +94,14 @@ class Amqp
      */
     public function batchPublish(array $properties = []): void
     {
-        if (empty(self::$batchMessages)) {
+        if ($this->batchManager->isEmpty()) {
             return;
         }
 
-        if (!($this->publisher instanceof \Bschmitt\Amqp\Core\Publisher)) {
-            throw new \RuntimeException('Publisher must be an instance of Publisher class for property merging.');
-        }
-
-        $publisher = $this->createPublisherInstance($properties);
+        $publisher = $this->publisherFactory->create($properties);
 
         try {
-            foreach (self::$batchMessages as $messageData) {
+            foreach ($this->batchManager->getMessages() as $messageData) {
                 if (!isset($messageData['routing']) || !isset($messageData['message'])) {
                     continue;
                 }
@@ -117,7 +111,7 @@ class Amqp
             }
 
             $publisher->batchPublish();
-            $this->forgetBatchedMessages();
+            $this->batchManager->clear();
         } finally {
             $this->disconnectPublisher($publisher);
         }
@@ -131,12 +125,8 @@ class Amqp
      */
     public function consume(string $queue, Closure $callback, array $properties = []): bool
     {
-        if (!($this->consumer instanceof \Bschmitt\Amqp\Core\Consumer)) {
-            throw new \RuntimeException('Consumer must be an instance of Consumer class for property merging.');
-        }
-
         $properties['queue'] = $queue;
-        $consumer = $this->createConsumerInstance($properties);
+        $consumer = $this->consumerFactory->create($properties);
 
         try {
             return $consumer->consume($queue, $callback);
@@ -156,42 +146,24 @@ class Amqp
     }
 
     /**
-     * Create a new publisher instance with merged properties
-     *
-     * @param array $properties
-     * @return Publisher
-     */
-    protected function createPublisherInstance(array $properties): \Bschmitt\Amqp\Core\Publisher
-    {
-        $publisher = new \Bschmitt\Amqp\Core\Publisher();
-        $publisher->mergeProperties($properties)->setup();
-        return $publisher;
-    }
-
-    /**
-     * Create a new consumer instance with merged properties
-     *
-     * @param array $properties
-     * @return \Bschmitt\Amqp\Core\Consumer
-     */
-    protected function createConsumerInstance(array $properties): \Bschmitt\Amqp\Core\Consumer
-    {
-        $consumer = new \Bschmitt\Amqp\Core\Consumer();
-        $consumer->mergeProperties($properties)->setup();
-        return $consumer;
-    }
-
-    /**
      * Disconnect publisher resources
      *
-     * @param \Bschmitt\Amqp\Core\Publisher $publisher
+     * @param PublisherInterface $publisher
      * @return void
      */
-    protected function disconnectPublisher(\Bschmitt\Amqp\Core\Publisher $publisher): void
+    protected function disconnectPublisher(PublisherInterface $publisher): void
     {
-        if (isset($publisher->connectionManager) && $publisher->connectionManager instanceof ConnectionManager) {
-            $publisher->connectionManager->disconnect();
-        } else {
+        // Check if publisher has a connection manager (new architecture)
+        if ($publisher instanceof \Bschmitt\Amqp\Core\Publisher) {
+            $connectionManager = $publisher->getConnectionManager();
+            if ($connectionManager !== null) {
+                $connectionManager->disconnect();
+                return;
+            }
+        }
+
+        // Fallback: use Request::shutdown for backward compatibility
+        if (method_exists($publisher, 'getChannel') && method_exists($publisher, 'getConnection')) {
             \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
         }
     }
@@ -199,25 +171,23 @@ class Amqp
     /**
      * Disconnect consumer resources
      *
-     * @param \Bschmitt\Amqp\Core\Consumer $consumer
+     * @param ConsumerInterface $consumer
      * @return void
      */
-    protected function disconnectConsumer(\Bschmitt\Amqp\Core\Consumer $consumer): void
+    protected function disconnectConsumer(ConsumerInterface $consumer): void
     {
-        if (isset($consumer->connectionManager) && $consumer->connectionManager instanceof ConnectionManager) {
-            $consumer->connectionManager->disconnect();
-        } else {
+        // Check if consumer has a connection manager (new architecture)
+        if ($consumer instanceof \Bschmitt\Amqp\Core\Consumer) {
+            $connectionManager = $consumer->getConnectionManager();
+            if ($connectionManager !== null) {
+                $connectionManager->disconnect();
+                return;
+            }
+        }
+
+        // Fallback: use Request::shutdown for backward compatibility
+        if (method_exists($consumer, 'getChannel') && method_exists($consumer, 'getConnection')) {
             \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         }
-    }
-
-    /**
-     * Remove the messages sent as a batch
-     *
-     * @return void
-     */
-    protected function forgetBatchedMessages(): void
-    {
-        self::$batchMessages = [];
     }
 }

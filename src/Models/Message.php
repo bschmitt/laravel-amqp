@@ -11,3 +11,4 @@ class Message extends AMQPMessage
 {
 
 }
+
