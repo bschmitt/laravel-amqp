@@ -39,7 +39,12 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
    - Exchange type validation
    - Routing behavior guide
 
-9. **[Master Locator](./MASTER_LOCATOR_DOCUMENTATION.md)** (Deprecated)
+9. **[Quorum Queues](./QUORUM_QUEUES_DOCUMENTATION.md)**
+   - High availability queues with automatic leader election
+   - Raft consensus and replication
+   - Modern alternative to mirrored queues
+
+10. **[Master Locator](./MASTER_LOCATOR_DOCUMENTATION.md)** (Deprecated)
    - `x-queue-master-locator` - Master node locator strategy
    - Note: Deprecated - use Quorum Queues instead
 
@@ -87,6 +92,7 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
 | Queue Types | ✅ Supported | [QUEUE_TYPE_DOCUMENTATION.md](./QUEUE_TYPE_DOCUMENTATION.md) |
 | Alternate Exchange | ✅ Supported | [ALTERNATE_EXCHANGE_DOCUMENTATION.md](./ALTERNATE_EXCHANGE_DOCUMENTATION.md) |
 | Exchange Types | ✅ Supported | [EXCHANGE_TYPES_DOCUMENTATION.md](./EXCHANGE_TYPES_DOCUMENTATION.md) |
+| Quorum Queues | ✅ Supported | [QUORUM_QUEUES_DOCUMENTATION.md](./QUORUM_QUEUES_DOCUMENTATION.md) |
 | Master Locator | ✅ Supported (Deprecated) | [MASTER_LOCATOR_DOCUMENTATION.md](./MASTER_LOCATOR_DOCUMENTATION.md) |
 
 ## Getting Started
