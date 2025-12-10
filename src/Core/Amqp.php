@@ -146,6 +146,153 @@ class Amqp
     }
 
     /**
+     * Unbind a queue from an exchange
+     *
+     * @param string $queue Queue name
+     * @param string $exchange Exchange name
+     * @param string $routingKey Routing key (optional, defaults to empty string)
+     * @param array|null $arguments Additional arguments (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return void
+     */
+    public function queueUnbind(string $queue, string $exchange, string $routingKey = '', ?array $arguments = null, array $properties = []): void
+    {
+        $management = $this->createManagementInstance($properties);
+        try {
+            $management->queueUnbind($queue, $exchange, $routingKey, $arguments);
+        } finally {
+            $this->disconnectManagement($management);
+        }
+    }
+
+    /**
+     * Unbind an exchange from another exchange
+     *
+     * @param string $destination Destination exchange name
+     * @param string $source Source exchange name
+     * @param string $routingKey Routing key (optional, defaults to empty string)
+     * @param array|null $arguments Additional arguments (optional)
+     * @param array $properties Configuration properties (optional)
+     * @return void
+     */
+    public function exchangeUnbind(string $destination, string $source, string $routingKey = '', ?array $arguments = null, array $properties = []): void
+    {
+        $management = $this->createManagementInstance($properties);
+        try {
+            $management->exchangeUnbind($destination, $source, $routingKey, $arguments);
+        } finally {
+            $this->disconnectManagement($management);
+        }
+    }
+
+    /**
+     * Purge all messages from a queue
+     *
+     * @param string $queue Queue name
+     * @param array $properties Configuration properties (optional)
+     * @return int Number of messages purged
+     */
+    public function queuePurge(string $queue, array $properties = []): int
+    {
+        $management = $this->createManagementInstance($properties);
+        try {
+            return $management->queuePurge($queue);
+        } finally {
+            $this->disconnectManagement($management);
+        }
+    }
+
+    /**
+     * Delete a queue
+     *
+     * @param string $queue Queue name
+     * @param bool $ifUnused Only delete if queue has no consumers (default: false)
+     * @param bool $ifEmpty Only delete if queue is empty (default: false)
+     * @param array $properties Configuration properties (optional)
+     * @return int Number of messages deleted with the queue
+     */
+    public function queueDelete(string $queue, bool $ifUnused = false, bool $ifEmpty = false, array $properties = []): int
+    {
+        $management = $this->createManagementInstance($properties);
+        try {
+            return $management->queueDelete($queue, $ifUnused, $ifEmpty);
+        } finally {
+            $this->disconnectManagement($management);
+        }
+    }
+
+    /**
+     * Delete an exchange
+     *
+     * @param string $exchange Exchange name
+     * @param bool $ifUnused Only delete if exchange is not in use (default: false)
+     * @param array $properties Configuration properties (optional)
+     * @return void
+     */
+    public function exchangeDelete(string $exchange, bool $ifUnused = false, array $properties = []): void
+    {
+        $management = $this->createManagementInstance($properties);
+        try {
+            $management->exchangeDelete($exchange, $ifUnused);
+        } finally {
+            $this->disconnectManagement($management);
+        }
+    }
+
+    /**
+     * Create a new management instance with merged properties
+     *
+     * @param array $properties
+     * @return \Bschmitt\Amqp\Managers\Management
+     */
+    protected function createManagementInstance(array $properties): \Bschmitt\Amqp\Managers\Management
+    {
+        // Try to get config from App container if available (Laravel context)
+        try {
+            $config = \Illuminate\Support\Facades\App::make(\Bschmitt\Amqp\Contracts\ConfigurationProviderInterface::class);
+            if ($config instanceof \Bschmitt\Amqp\Support\ConfigurationProvider) {
+                $config->mergeProperties($properties);
+            }
+        } catch (\Exception $e) {
+            // If App facade is not available (e.g., in tests), create config from properties
+            $defaultConfig = include __DIR__ . '/../../config/amqp.php';
+            $defaultProperties = $defaultConfig['properties'][$defaultConfig['use']] ?? [];
+            $mergedProperties = array_merge($defaultProperties, $properties);
+            
+            $configArray = [
+                'amqp' => [
+                    'use' => $defaultConfig['use'] ?? 'production',
+                    'properties' => [
+                        $defaultConfig['use'] ?? 'production' => $mergedProperties
+                    ]
+                ]
+            ];
+            
+            $configRepository = new \Illuminate\Config\Repository($configArray);
+            $config = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
+        }
+        
+        $connectionManager = new \Bschmitt\Amqp\Managers\ConnectionManager($config);
+        $connectionManager->connect();
+        
+        return new \Bschmitt\Amqp\Managers\Management($config, $connectionManager);
+    }
+
+    /**
+     * Disconnect management resources
+     *
+     * @param \Bschmitt\Amqp\Managers\Management $management
+     * @return void
+     */
+    protected function disconnectManagement(\Bschmitt\Amqp\Managers\Management $management): void
+    {
+        $connectionManager = $management->getConnectionManager();
+        if ($connectionManager instanceof \Bschmitt\Amqp\Managers\ConnectionManager) {
+            $connectionManager->disconnect();
+        }
+    }
+
+    /**
      * Disconnect publisher resources
      *
      * @param PublisherInterface $publisher
