@@ -34,7 +34,9 @@ return [
             'exchange_auto_delete'  => false,
             'exchange_internal'     => false,
             'exchange_nowait'       => false,
-            'exchange_properties'   => [],
+            'exchange_properties'   => [
+                // 'alternate-exchange' => 'unroutable-exchange',  // Alternate exchange for unroutable messages
+            ],
 
             'queue_force_declare'   => false,
             'queue_passive'         => false,
