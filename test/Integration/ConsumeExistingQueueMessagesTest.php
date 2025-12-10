@@ -4,7 +4,8 @@ namespace Bschmitt\Amqp\Test;
 
 use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Exception\Stop;
-use Bschmitt\Amqp\Test\ConsumeQueueHelper;
+use Bschmitt\Amqp\Test\Support\ConsumeQueueHelper;
+use Bschmitt\Amqp\Test\Support\IntegrationTestBase;
 
 /**
  * Test to consume ALL existing messages from a specific queue
@@ -170,7 +171,6 @@ class ConsumeExistingQueueMessagesTest extends IntegrationTestBase
     public function testConsumeFromSpecificQueue()
     {
         // TODO: Update this to your actual queue name
-        // You can find it in RabbitMQ Web UI: http://localhost:15672
         $queueName = 'test-queue-integration';
         
         echo "\n[CONSUME SPECIFIC] Test: Consume From Specific Queue\n";

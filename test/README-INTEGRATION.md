@@ -135,13 +135,14 @@ For detailed debugging, use `ConsumerVerificationTest` which outputs:
 
 Example output:
 ```
-[TEST] Publishing message: immediate-consume-test-1765305275
+[TEST] Publishing message: immediate-consume-test
 [TEST] Publish result: SUCCESS
 [TEST] Queue message count: 1
 [TEST] Starting consumer...
-[TEST] Callback executed! Message received: immediate-consume-test-1765305275
+[TEST] Callback executed! Message received: immediate-consume-test
 [TEST] Message acknowledged
 [TEST] All assertions passed!
 ```
+
 
 

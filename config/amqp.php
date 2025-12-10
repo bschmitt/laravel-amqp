@@ -51,6 +51,7 @@ return [
                 // 'x-dead-letter-routing-key' => 'dlx.key',    // Routing key for dead letters (optional)
                 // 'x-max-priority' => 10,                      // Maximum priority level (0-255)
                 // 'x-queue-mode' => 'lazy',                    // Queue mode: 'lazy' or 'default' (lazy queues keep messages on disk)
+                // 'x-queue-type' => 'quorum',                  // Queue type: 'classic' (default), 'quorum', or 'stream'
             ],
 
             'consumer_tag'          => '',

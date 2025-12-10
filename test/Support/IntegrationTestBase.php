@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Support;
 
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\TestCase;
@@ -32,7 +32,7 @@ class IntegrationTestBase extends TestCase
         $this->testRoutingKey = 'test.routing.key';
 
         // Load real configuration from .env
-        $amqpConfig = include dirname(__FILE__) . '/../config/amqp.php';
+        $amqpConfig = include dirname(__FILE__) . '/../../config/amqp.php';
         $defaultProperties = $amqpConfig['properties'][$amqpConfig['use']];
 
         // Load .env file if it exists
@@ -122,7 +122,7 @@ class IntegrationTestBase extends TestCase
      */
     protected function loadEnvFile(): void
     {
-        $envFile = dirname(__FILE__) . '/../../../../.env';
+        $envFile = dirname(__FILE__) . '/../../../../../.env';
         if (file_exists($envFile)) {
             $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
