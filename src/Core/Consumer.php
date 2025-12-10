@@ -163,6 +163,68 @@ class Consumer extends Request implements ConsumerInterface
     }
 
     /**
+     * Dynamically adjust consumer prefetch settings at runtime
+     *
+     * This method allows you to change the prefetch count and size while
+     * the consumer is running, without recreating the consumer instance.
+     *
+     * @param int $prefetchCount Number of unacknowledged messages to prefetch (0 = unlimited)
+     * @param int $prefetchSize Prefetch size in bytes (0 = unlimited, rarely used)
+     * @param bool $global Whether to apply to all consumers on the channel (false = per-consumer)
+     * @return void
+     * @throws \RuntimeException if channel is not available
+     */
+    public function setPrefetch(int $prefetchCount, int $prefetchSize = 0, bool $global = false): void
+    {
+        if ($prefetchCount < 0) {
+            throw new \InvalidArgumentException('Prefetch count must be non-negative');
+        }
+
+        if ($prefetchSize < 0) {
+            throw new \InvalidArgumentException('Prefetch size must be non-negative');
+        }
+
+        // Use connectionManager if available, otherwise use parent's getChannel()
+        try {
+            $channel = $this->connectionManager !== null 
+                ? $this->connectionManager->getChannel() 
+                : $this->getChannel();
+        } catch (\Exception $e) {
+            throw new \RuntimeException('Channel is not available. Call setup() first.', 0, $e);
+        }
+
+        if ($channel === null) {
+            throw new \RuntimeException('Channel is not available. Call setup() first.');
+        }
+
+        $channel->basic_qos($prefetchSize, $prefetchCount, $global);
+
+        // Update internal properties to reflect the change
+        // Note: This doesn't update the config repository, but updates the internal property cache
+        // which is used by getProperty() and getPrefetch()
+        $this->mergeProperties([
+            'qos' => true,
+            'qos_prefetch_count' => $prefetchCount,
+            'qos_prefetch_size' => $prefetchSize,
+            'qos_a_global' => $global,
+        ]);
+    }
+
+    /**
+     * Get current prefetch settings
+     *
+     * @return array{prefetch_count: int, prefetch_size: int, global: bool}
+     */
+    public function getPrefetch(): array
+    {
+        return [
+            'prefetch_count' => (int) $this->getProperty('qos_prefetch_count', 1),
+            'prefetch_size' => (int) $this->getProperty('qos_prefetch_size', 0),
+            'global' => (bool) $this->getProperty('qos_a_global', false),
+        ];
+    }
+
+    /**
      * @param AMQPMessage $message
      * @return void
      */
