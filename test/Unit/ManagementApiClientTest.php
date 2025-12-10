@@ -244,6 +244,41 @@ class ManagementApiClientTest extends TestCase
         $this->assertTrue(true, 'Policy delete called successfully');
     }
 
+    public function testListFeatureFlags()
+    {
+        $expectedResponse = [
+            ['name' => 'virtual_host_metadata', 'state' => 'enabled'],
+            ['name' => 'quorum_queue', 'state' => 'enabled']
+        ];
+
+        $this->apiClient->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', m::pattern('/\/api\/feature-flags$/'))
+            ->andReturn($expectedResponse);
+
+        $result = $this->apiClient->listFeatureFlags();
+        
+        $this->assertEquals($expectedResponse, $result);
+    }
+
+    public function testGetFeatureFlag()
+    {
+        $expectedResponse = [
+            'name' => 'quorum_queue',
+            'state' => 'enabled',
+            'description' => 'Quorum queues support'
+        ];
+
+        $this->apiClient->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', m::pattern('/\/api\/feature-flags\/quorum_queue/'))
+            ->andReturn($expectedResponse);
+
+        $result = $this->apiClient->getFeatureFlag('quorum_queue');
+        
+        $this->assertEquals($expectedResponse, $result);
+    }
+
     public function testMakeRequestHandlesHttpError()
     {
         $apiClient = new ManagementApiClient($this->config);

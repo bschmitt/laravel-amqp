@@ -402,6 +402,31 @@ class Amqp
     }
 
     /**
+     * List all feature flags
+     *
+     * @param array $properties Configuration properties (optional)
+     * @return array
+     */
+    public function listFeatureFlags(array $properties = []): array
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        return $apiClient->listFeatureFlags();
+    }
+
+    /**
+     * Get a specific feature flag
+     *
+     * @param string $featureFlagName Feature flag name
+     * @param array $properties Configuration properties (optional)
+     * @return array
+     */
+    public function getFeatureFlag(string $featureFlagName, array $properties = []): array
+    {
+        $apiClient = $this->createManagementApiClient($properties);
+        return $apiClient->getFeatureFlag($featureFlagName);
+    }
+
+    /**
      * Create a new Management API client instance with merged properties
      *
      * @param array $properties

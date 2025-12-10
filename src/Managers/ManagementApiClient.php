@@ -207,6 +207,44 @@ class ManagementApiClient
     }
 
     /**
+     * List all feature flags
+     *
+     * @return array
+     */
+    public function listFeatureFlags(): array
+    {
+        $url = $this->buildUrl("/api/feature-flags");
+        return $this->makeRequest('GET', $url);
+    }
+
+    /**
+     * Get a specific feature flag
+     *
+     * @param string $featureFlagName Feature flag name
+     * @return array
+     */
+    public function getFeatureFlag(string $featureFlagName): array
+    {
+        // Try the individual endpoint first
+        try {
+            $url = $this->buildUrl("/api/feature-flags/{$featureFlagName}");
+            return $this->makeRequest('GET', $url);
+        } catch (\RuntimeException $e) {
+            // If individual endpoint doesn't exist (406/404), get from list
+            if (strpos($e->getMessage(), '406') !== false || strpos($e->getMessage(), '404') !== false) {
+                $allFlags = $this->listFeatureFlags();
+                foreach ($allFlags as $flag) {
+                    if (isset($flag['name']) && $flag['name'] === $featureFlagName) {
+                        return $flag;
+                    }
+                }
+                throw new \RuntimeException("Feature flag '{$featureFlagName}' not found", 404);
+            }
+            throw $e;
+        }
+    }
+
+    /**
      * Make HTTP request to Management API
      *
      * @param string $method HTTP method
