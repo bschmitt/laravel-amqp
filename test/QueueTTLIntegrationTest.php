@@ -28,9 +28,9 @@ class QueueTTLIntegrationTest extends TestCase
     {
         parent::setUp();
 
-        // Generate unique queue name for each test
-        $this->testQueueName = 'test-ttl-' . uniqid();
-        $this->testExchange = 'test-exchange-ttl-' . uniqid();
+        // Use fixed queue name for tests
+        $this->testQueueName = 'test-ttl';
+        $this->testExchange = 'test-exchange-ttl';
         $this->testRoutingKey = 'test.routing.key';
     }
 

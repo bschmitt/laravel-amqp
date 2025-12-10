@@ -28,9 +28,9 @@ class MessagePriorityIntegrationTest extends TestCase
     {
         parent::setUp();
 
-        // Generate unique queue name for each test
-        $this->testQueueName = 'test-priority-' . uniqid();
-        $this->testExchange = 'test-exchange-priority-' . uniqid();
+        // Use fixed queue name for tests
+        $this->testQueueName = 'test-priority';
+        $this->testExchange = 'test-exchange-priority';
         $this->testRoutingKey = 'test.routing.key';
     }
 

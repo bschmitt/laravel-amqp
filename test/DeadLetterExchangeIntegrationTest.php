@@ -31,12 +31,12 @@ class DeadLetterExchangeIntegrationTest extends TestCase
     {
         parent::setUp();
 
-        // Generate unique names for each test
-        $this->testQueueName = 'test-dlx-' . uniqid();
-        $this->testExchange = 'test-exchange-dlx-' . uniqid();
+        // Use fixed names for tests
+        $this->testQueueName = 'test-dlx';
+        $this->testExchange = 'test-exchange-dlx';
         $this->testRoutingKey = 'test.routing.key';
-        $this->dlxExchange = 'dlx-exchange-' . uniqid();
-        $this->dlxQueue = 'dlx-queue-' . uniqid();
+        $this->dlxExchange = 'dlx-exchange';
+        $this->dlxQueue = 'dlx-queue';
         $this->dlxRoutingKey = 'dlx.routing.key';
     }
 

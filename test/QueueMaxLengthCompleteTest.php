@@ -32,9 +32,9 @@ class QueueMaxLengthCompleteTest extends TestCase
     {
         parent::setUp();
 
-        // Generate unique queue name for each test
-        $this->testQueueName = 'test-maxlength-' . uniqid();
-        $this->testExchange = 'test-exchange-' . uniqid();
+        // Use fixed queue name for tests
+        $this->testQueueName = 'test-maxlength';
+        $this->testExchange = 'test-exchange-maxlength';
         $this->testRoutingKey = 'test.routing.key';
     }
 
@@ -236,8 +236,8 @@ class QueueMaxLengthCompleteTest extends TestCase
             $this->markTestSkipped('RabbitMQ is not available');
         }
 
-        // Use unique queue name to avoid conflicts
-        $uniqueQueueName = 'test-queue-reject-publish-' . uniqid();
+        // Use fixed queue name to avoid conflicts
+        $uniqueQueueName = 'test-queue-reject-publish';
         $config = $this->createConfig([
             'x-max-length' => 2,
             'x-overflow' => 'reject-publish'

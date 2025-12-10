@@ -9,21 +9,20 @@ use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 
 /**
- * Test cases for RabbitMQ Message Priority feature
+ * Test cases for lazy queue mode feature (x-queue-mode)
  * 
- * Tests:
- * - x-max-priority: Maximum priority level for queue (0-255)
- * - Message priority property: Priority of individual messages
- * 
- * Reference: https://www.rabbitmq.com/docs/priority
+ * According to RabbitMQ docs:
+ * - x-queue-mode: Queue mode ('lazy' or 'default')
+ * - Lazy queues keep messages on disk, reducing memory usage for large backlogs
+ * - Reference: https://www.rabbitmq.com/docs/lazy-queues
  */
-class MessagePriorityTest extends BaseTestCase
+class LazyQueueTest extends BaseTestCase
 {
     private $connectionMock;
     private $channelMock;
     private $requestMock;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -36,19 +35,13 @@ class MessagePriorityTest extends BaseTestCase
     }
 
     /**
-     * Test that x-max-priority can be configured
-     * 
-     * According to RabbitMQ docs:
-     * - x-max-priority: Maximum priority level for the queue (0-255)
-     * - Must be set on queue declaration
-     * - Messages with priority > max-priority are treated as max-priority
+     * Test that queue_properties includes x-queue-mode when configured as 'lazy'
      */
-    public function testQueueDeclareWithMaxPriority()
+    public function testQueueDeclareWithLazyMode()
     {
-        $queueName = 'test-queue-priority';
-        $maxPriority = 10;
+        $queueName = 'test-queue-lazy';
         $expectedQueueProperties = [
-            'x-max-priority' => $maxPriority
+            'x-queue-mode' => 'lazy'
         ];
 
         $this->requestMock->mergeProperties([
@@ -69,15 +62,22 @@ class MessagePriorityTest extends BaseTestCase
                 $this->defaultConfig['queue_exclusive'],
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
-                Mockery::on(function ($arg) use ($maxPriority) {
-                    return isset($arg['x-max-priority']) 
-                        && $arg['x-max-priority'] === $maxPriority;
+                Mockery::on(function ($arg) {
+                    return isset($arg['x-queue-mode']) 
+                        && $arg['x-queue-mode'] === 'lazy';
                 })
             )
             ->andReturn([$queueName, 0])
             ->once();
 
-        $this->channelMock->shouldReceive('queue_bind')->once();
+        $this->channelMock->shouldReceive('queue_bind')
+            ->with(
+                $queueName,
+                $this->defaultConfig['exchange'],
+                'test-routing'
+            )
+            ->once();
+
         $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->once();
 
         $thrownException = null;
@@ -91,16 +91,13 @@ class MessagePriorityTest extends BaseTestCase
     }
 
     /**
-     * Test that x-priority (alias) can be configured
-     * 
-     * Some RabbitMQ versions use x-priority instead of x-max-priority
+     * Test that queue_properties includes x-queue-mode when configured as 'default'
      */
-    public function testQueueDeclareWithPriorityAlias()
+    public function testQueueDeclareWithDefaultMode()
     {
-        $queueName = 'test-queue-priority-alias';
-        $maxPriority = 5;
+        $queueName = 'test-queue-default-mode';
         $expectedQueueProperties = [
-            'x-priority' => $maxPriority
+            'x-queue-mode' => 'default'
         ];
 
         $this->requestMock->mergeProperties([
@@ -121,9 +118,9 @@ class MessagePriorityTest extends BaseTestCase
                 $this->defaultConfig['queue_exclusive'],
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
-                Mockery::on(function ($arg) use ($maxPriority) {
-                    return isset($arg['x-priority']) 
-                        && $arg['x-priority'] === $maxPriority;
+                Mockery::on(function ($arg) {
+                    return isset($arg['x-queue-mode']) 
+                        && $arg['x-queue-mode'] === 'default';
                 })
             )
             ->andReturn([$queueName, 0])
@@ -143,14 +140,14 @@ class MessagePriorityTest extends BaseTestCase
     }
 
     /**
-     * Test that priority works with other queue properties
+     * Test that x-queue-mode can be combined with other queue properties
      */
-    public function testQueueDeclareWithPriorityAndOtherProperties()
+    public function testQueueDeclareWithLazyModeAndOtherProperties()
     {
-        $queueName = 'test-queue-priority-combined';
+        $queueName = 'test-queue-lazy-combined';
         $expectedQueueProperties = [
-            'x-max-priority' => 10,
-            'x-max-length' => 100,
+            'x-queue-mode' => 'lazy',
+            'x-max-length' => 1000,
             'x-message-ttl' => 60000
         ];
 
@@ -173,10 +170,10 @@ class MessagePriorityTest extends BaseTestCase
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
                 Mockery::on(function ($arg) {
-                    return isset($arg['x-max-priority']) 
-                        && $arg['x-max-priority'] === 10
+                    return isset($arg['x-queue-mode']) 
+                        && $arg['x-queue-mode'] === 'lazy'
                         && isset($arg['x-max-length'])
-                        && $arg['x-max-length'] === 100
+                        && $arg['x-max-length'] === 1000
                         && isset($arg['x-message-ttl'])
                         && $arg['x-message-ttl'] === 60000;
                 })
@@ -198,56 +195,54 @@ class MessagePriorityTest extends BaseTestCase
     }
 
     /**
-     * Test different priority levels
+     * Test that queue can be declared without x-queue-mode (default behavior)
      */
-    public function testQueueDeclareWithDifferentPriorityLevels()
+    public function testQueueDeclareWithoutQueueMode()
     {
-        $priorityLevels = [1, 5, 10, 50, 255];
+        $queueName = 'test-queue-no-mode';
+        $expectedQueueProperties = [
+            'x-max-length' => 10
+        ];
 
-        foreach ($priorityLevels as $priority) {
-            $queueName = 'test-queue-priority-' . $priority; // Fixed name per priority level
-            $expectedQueueProperties = [
-                'x-max-priority' => $priority
-            ];
+        $this->requestMock->mergeProperties([
+            'queue' => $queueName,
+            'queue_force_declare' => true,
+            'routing' => 'test-routing',
+            'queue_properties' => $expectedQueueProperties
+        ]);
 
-            $this->requestMock->mergeProperties([
-                'queue' => $queueName,
-                'queue_force_declare' => true,
-                'routing' => 'test-routing',
-                'queue_properties' => $expectedQueueProperties
-            ]);
+        $this->channelMock->shouldReceive('exchange_declare');
+        $this->requestMock->shouldReceive('connect');
 
-            $this->channelMock->shouldReceive('exchange_declare');
-            $this->requestMock->shouldReceive('connect');
+        $this->channelMock->shouldReceive('queue_declare')
+            ->with(
+                $queueName,
+                $this->defaultConfig['queue_passive'],
+                $this->defaultConfig['queue_durable'],
+                $this->defaultConfig['queue_exclusive'],
+                $this->defaultConfig['queue_auto_delete'],
+                $this->defaultConfig['queue_nowait'],
+                Mockery::on(function ($arg) {
+                    // Should not have x-queue-mode when not specified
+                    return !isset($arg['x-queue-mode'])
+                        && isset($arg['x-max-length'])
+                        && $arg['x-max-length'] === 10;
+                })
+            )
+            ->andReturn([$queueName, 0])
+            ->once();
 
-            $this->channelMock->shouldReceive('queue_declare')
-                ->with(
-                    $queueName,
-                    $this->defaultConfig['queue_passive'],
-                    $this->defaultConfig['queue_durable'],
-                    $this->defaultConfig['queue_exclusive'],
-                    $this->defaultConfig['queue_auto_delete'],
-                    $this->defaultConfig['queue_nowait'],
-                    Mockery::on(function ($arg) use ($priority) {
-                        return isset($arg['x-max-priority']) 
-                            && $arg['x-max-priority'] === $priority;
-                    })
-                )
-                ->andReturn([$queueName, 0])
-                ->once();
+        $this->channelMock->shouldReceive('queue_bind')->once();
+        $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->once();
 
-            $this->channelMock->shouldReceive('queue_bind')->once();
-            $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->once();
-
-            $thrownException = null;
-            try {
-                $this->requestMock->setup();
-            } catch (\Exception $exception) {
-                $thrownException = $exception;
-            }
-
-            $this->assertNull($thrownException, "Priority level {$priority} should be supported");
+        $thrownException = null;
+        try {
+            $this->requestMock->setup();
+        } catch (\Exception $exception) {
+            $thrownException = $exception;
         }
+
+        $this->assertNull($thrownException);
     }
 }
 

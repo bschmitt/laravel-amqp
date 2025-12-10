@@ -50,6 +50,7 @@ return [
                 // 'x-dead-letter-exchange' => 'dlx-exchange',  // Dead letter exchange name
                 // 'x-dead-letter-routing-key' => 'dlx.key',    // Routing key for dead letters (optional)
                 // 'x-max-priority' => 10,                      // Maximum priority level (0-255)
+                // 'x-queue-mode' => 'lazy',                    // Queue mode: 'lazy' or 'default' (lazy queues keep messages on disk)
             ],
 
             'consumer_tag'          => '',

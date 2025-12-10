@@ -61,7 +61,7 @@ class IntegrationTestBase extends TestCase
                         'routing' => $this->testRoutingKey,
                         'persistent' => true, // Keep consumer running even if queue is empty initially
                         'timeout' => 5, // 5 second timeout for waiting
-                        'consumer_tag' => 'test-consumer-' . uniqid(),
+                        'consumer_tag' => 'test-consumer',
                         'consumer_no_local' => false,
                         'consumer_no_ack' => false,
                         'consumer_exclusive' => false,

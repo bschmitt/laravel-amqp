@@ -138,8 +138,8 @@ class FullIntegrationTest extends IntegrationTestBase
      */
     public function testMessageRejectionWithRequeue()
     {
-        // Use a unique queue name for this test (without max-length)
-        $uniqueQueueName = 'test-queue-requeue-' . uniqid();
+        // Use a fixed queue name for this test (without max-length)
+        $uniqueQueueName = 'test-queue-requeue';
         $config = $this->configRepository->get('amqp');
         $config['properties']['test']['queue'] = $uniqueQueueName;
         $config['properties']['test']['queue_force_declare'] = true;
@@ -332,7 +332,7 @@ class FullIntegrationTest extends IntegrationTestBase
     public function testQueueMessageCount()
     {
         // Use a unique queue name for this test
-        $uniqueQueueName = 'test-queue-count-' . uniqid();
+        $uniqueQueueName = 'test-queue-count';
         $config = $this->configRepository->get('amqp');
         $config['properties']['test']['queue'] = $uniqueQueueName;
         $config['properties']['test']['queue_force_declare'] = true;
@@ -386,7 +386,7 @@ class FullIntegrationTest extends IntegrationTestBase
     public function testQoSConfiguration()
     {
         // Use a unique queue name to avoid conflicts
-        $uniqueQueueName = 'test-queue-qos-' . uniqid();
+        $uniqueQueueName = 'test-queue-qos';
         $config = $this->configRepository->get('amqp');
         $config['properties']['test']['queue'] = $uniqueQueueName;
         $config['properties']['test']['queue_force_declare'] = true;
@@ -434,7 +434,7 @@ class FullIntegrationTest extends IntegrationTestBase
     public function testMultipleRoutingKeys()
     {
         // Use a unique queue name to avoid conflicts
-        $uniqueQueueName = 'test-queue-routing-' . uniqid();
+        $uniqueQueueName = 'test-queue-routing';
         $config = $this->configRepository->get('amqp');
         $config['properties']['test']['queue'] = $uniqueQueueName;
         $config['properties']['test']['queue_force_declare'] = true;

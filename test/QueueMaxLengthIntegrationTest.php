@@ -35,9 +35,9 @@ class QueueMaxLengthIntegrationTest extends TestCase
     {
         parent::setUp();
 
-        // Generate unique queue name for each test
-        $this->testQueueName = 'test-max-length-' . uniqid();
-        $this->testExchange = 'test-exchange-' . uniqid();
+        // Use fixed queue name for tests
+        $this->testQueueName = 'test-max-length';
+        $this->testExchange = 'test-exchange-max-length';
         $this->testRoutingKey = 'test.routing.key';
 
         // Create config with max length = 1
