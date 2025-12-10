@@ -5,6 +5,7 @@ namespace Bschmitt\Amqp\Test;
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Exception\Stop;
+use Bschmitt\Amqp\Test\Support\IntegrationTestBase;
 
 /**
  * Test to consume ALL messages from a queue
@@ -37,7 +38,7 @@ class ConsumeAllMessagesTest extends IntegrationTestBase
             $publisher->setup();
             
             for ($i = 1; $i <= 3; $i++) {
-                $message = $this->createMessage("Test Message {$i} - " . time());
+                $message = $this->createMessage("Test Message {$i} - "  );
                 $publisher->publish($this->testRoutingKey, $message);
                 echo "[CONSUME ALL] Published message {$i}\n";
             }
@@ -62,7 +63,7 @@ class ConsumeAllMessagesTest extends IntegrationTestBase
         
         echo "[CONSUME ALL] Starting to consume all {$initialMessageCount} messages...\n";
         echo "[CONSUME ALL] Waiting 5 seconds for messages to be visible in Web UI...\n";
-        echo "[CONSUME ALL] Check http://localhost:15672 -> Queues -> {$this->testQueueName}\n";
+        echo "[CONSUME ALL] Check server -> Queues -> {$this->testQueueName}\n";
         sleep(5);
         
         // Step 2: Consume ALL messages using a loop approach
@@ -168,7 +169,7 @@ class ConsumeAllMessagesTest extends IntegrationTestBase
             $publisher->setup();
             
             for ($i = 1; $i <= 5; $i++) {
-                $message = $this->createMessage("Loop Test Message {$i} - " . time());
+                $message = $this->createMessage("Loop Test Message {$i} - "  );
                 $publisher->publish($this->testRoutingKey, $message);
             }
             

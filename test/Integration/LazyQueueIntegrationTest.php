@@ -5,6 +5,7 @@ namespace Bschmitt\Amqp\Test;
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Models\Message;
+use Bschmitt\Amqp\Test\Support\IntegrationTestBase;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 
 /**
@@ -96,7 +97,7 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
         $this->configRepository->set('amqp', $config);
 
         // Publish a message
-        $testMessage = 'Lazy queue test message ' . time();
+        $testMessage = 'Lazy queue test message '  ;
         $message = new Message($testMessage, ['content_type' => 'text/plain']);
         
         $publisher = new Publisher($this->configRepository);
@@ -199,7 +200,7 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
         $this->configRepository->set('amqp', $config);
 
         // Publish and consume should work normally
-        $testMessage = 'Default mode test message ' . time();
+        $testMessage = 'Default mode test message '  ;
         $message = new Message($testMessage, ['content_type' => 'text/plain']);
         
         $publisher = new Publisher($this->configRepository);

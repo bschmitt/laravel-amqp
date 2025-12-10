@@ -6,6 +6,7 @@ use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Core\Amqp;
 use Bschmitt\Amqp\Exception\Stop;
+use Bschmitt\Amqp\Test\Support\IntegrationTestBase;
 
 /**
  * Test cases to verify message publishing and consumption
@@ -16,7 +17,7 @@ use Bschmitt\Amqp\Exception\Stop;
  * 3. The consumed message content matches what was published
  * 
  * NOTE: These tests include delays to allow messages to be visible in RabbitMQ Web UI.
- * Check http://localhost:15672 (guest/guest) to see queue status during tests.
+ * Check server (guest/guest) to see queue status during tests.
  */
 class PublishConsumeVerificationTest extends IntegrationTestBase
 {
@@ -30,7 +31,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
      */
     public function testPublishAndConsumeSimpleMessage()
     {
-        $testMessage = 'Hello, RabbitMQ! - ' . time();
+        $testMessage = 'Hello, RabbitMQ! - '  ;
         
         echo "\n[VERIFY] Test: Publish and Consume Simple Message\n";
         echo "[VERIFY] Publishing message: {$testMessage}\n";
@@ -50,7 +51,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         
         // Delay to ensure message is in queue and visible in Web UI
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to appear in RabbitMQ Web UI...\n";
-        echo "[VERIFY] Check http://localhost:15672 -> Queues -> {$this->testQueueName}\n";
+        echo "[VERIFY] Check server -> Queues -> {$this->testQueueName}\n";
         sleep($this->webUIDelaySeconds);
         
         // Step 2: Consume the message
@@ -117,9 +118,9 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         
         $messages = [
-            'Message-1-' . time(),
-            'Message-2-' . time(),
-            'Message-3-' . time(),
+            'Message-1-'  ,
+            'Message-2-'  ,
+            'Message-3-'  ,
         ];
         
         echo "\n[VERIFY] Test: Publish and Consume Multiple Messages\n";
@@ -141,7 +142,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         
         // Delay to ensure all messages are in queue and visible in Web UI
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for messages to appear in RabbitMQ Web UI...\n";
-        echo "[VERIFY] Check http://localhost:15672 -> Queues -> {$this->testQueueName}\n";
+        echo "[VERIFY] Check server -> Queues -> {$this->testQueueName}\n";
         sleep($this->webUIDelaySeconds);
         
         // Step 2: Consume all messages
@@ -224,7 +225,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         
         // Delay for Web UI visibility
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to appear in RabbitMQ Web UI...\n";
-        echo "[VERIFY] Check http://localhost:15672 -> Queues -> {$this->testQueueName}\n";
+        echo "[VERIFY] Check server -> Queues -> {$this->testQueueName}\n";
         sleep($this->webUIDelaySeconds);
         
         // Step 2: Consume
@@ -305,7 +306,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         
         // Delay for Web UI visibility
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to appear in RabbitMQ Web UI...\n";
-        echo "[VERIFY] Check http://localhost:15672 -> Queues -> {$this->testQueueName}\n";
+        echo "[VERIFY] Check server -> Queues -> {$this->testQueueName}\n";
         sleep($this->webUIDelaySeconds);
         
         // Step 2: Consume
@@ -364,7 +365,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
      */
     public function testPublishAndConsumeUsingDirectClasses()
     {
-        $testMessage = 'Direct Classes Test Message - ' . time();
+        $testMessage = 'Direct Classes Test Message - '  ;
         
         echo "\n[VERIFY] Test: Publish and Consume Using Direct Classes\n";
         echo "[VERIFY] Publishing message: {$testMessage}\n";
@@ -383,7 +384,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         
         // Delay for Web UI visibility
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to appear in RabbitMQ Web UI...\n";
-        echo "[VERIFY] Check http://localhost:15672 -> Queues -> {$this->testQueueName}\n";
+        echo "[VERIFY] Check server -> Queues -> {$this->testQueueName}\n";
         sleep($this->webUIDelaySeconds);
         
         // Step 2: Consume using Consumer directly
@@ -438,7 +439,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
      */
     public function testPublishConsumeRequeueAndConsumeAgain()
     {
-        $testMessage = 'Requeue Test - ' . time();
+        $testMessage = 'Requeue Test - '  ;
         
         echo "\n[VERIFY] Test: Publish, Consume, Requeue, and Consume Again\n";
         
@@ -454,7 +455,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         
         // Delay for Web UI visibility
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to appear in RabbitMQ Web UI...\n";
-        echo "[VERIFY] Check http://localhost:15672 -> Queues -> {$this->testQueueName}\n";
+        echo "[VERIFY] Check server -> Queues -> {$this->testQueueName}\n";
         sleep($this->webUIDelaySeconds);
         
         // Step 2: Consume and reject with requeue
@@ -491,7 +492,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         
         // Wait for message to be requeued and visible in Web UI
         echo "[VERIFY] Waiting {$this->webUIDelaySeconds} seconds for message to be requeued...\n";
-        echo "[VERIFY] Check http://localhost:15672 -> Queues -> {$this->testQueueName}\n";
+        echo "[VERIFY] Check server -> Queues -> {$this->testQueueName}\n";
         sleep($this->webUIDelaySeconds);
         
         // Step 3: Consume again (message should be back in queue)
@@ -553,9 +554,9 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
     public function testPublishMessagesForWebUIInspection()
     {
         $messages = [
-            'WebUI-Inspection-1-' . time(),
-            'WebUI-Inspection-2-' . time(),
-            'WebUI-Inspection-3-' . time(),
+            'WebUI-Inspection-1-' ,
+            'WebUI-Inspection-2-' ,
+            'WebUI-Inspection-3-' ,
         ];
         
         echo "\n[VERIFY] Test: Publish Messages for Web UI Inspection\n";

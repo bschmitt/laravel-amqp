@@ -10,14 +10,15 @@ use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 
 /**
- * Test cases for lazy queue mode feature (x-queue-mode)
+ * Test cases for master locator feature (x-queue-master-locator)
  * 
  * According to RabbitMQ docs:
- * - x-queue-mode: Queue mode ('lazy' or 'default')
- * - Lazy queues keep messages on disk, reducing memory usage for large backlogs
- * - Reference: https://www.rabbitmq.com/docs/lazy-queues
+ * - x-queue-master-locator: Master node locator strategy for mirrored queues
+ * - Values: 'min-masters', 'client-local', or 'random'
+ * - Note: This feature is deprecated. RabbitMQ recommends using Quorum Queues instead
+ * - Reference: https://www.rabbitmq.com/docs/ha
  */
-class LazyQueueTest extends BaseTestCase
+class MasterLocatorTest extends BaseTestCase
 {
     private $connectionMock;
     private $channelMock;
@@ -36,13 +37,13 @@ class LazyQueueTest extends BaseTestCase
     }
 
     /**
-     * Test that queue_properties includes x-queue-mode when configured as 'lazy'
+     * Test that queue_properties includes x-queue-master-locator when configured as 'min-masters'
      */
-    public function testQueueDeclareWithLazyMode()
+    public function testQueueDeclareWithMinMastersLocator()
     {
-        $queueName = 'test-queue-lazy';
+        $queueName = 'test-queue-master-locator';
         $expectedQueueProperties = [
-            'x-queue-mode' => 'lazy'
+            'x-queue-master-locator' => 'min-masters'
         ];
 
         $this->requestMock->mergeProperties([
@@ -64,8 +65,8 @@ class LazyQueueTest extends BaseTestCase
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
                 Mockery::on(function ($arg) {
-                    return isset($arg['x-queue-mode']) 
-                        && $arg['x-queue-mode'] === 'lazy';
+                    return isset($arg['x-queue-master-locator']) 
+                        && $arg['x-queue-master-locator'] === 'min-masters';
                 })
             )
             ->andReturn([$queueName, 0])
@@ -92,13 +93,13 @@ class LazyQueueTest extends BaseTestCase
     }
 
     /**
-     * Test that queue_properties includes x-queue-mode when configured as 'default'
+     * Test that queue_properties includes x-queue-master-locator when configured as 'client-local'
      */
-    public function testQueueDeclareWithDefaultMode()
+    public function testQueueDeclareWithClientLocalLocator()
     {
-        $queueName = 'test-queue-default-mode';
+        $queueName = 'test-queue-client-local';
         $expectedQueueProperties = [
-            'x-queue-mode' => 'default'
+            'x-queue-master-locator' => 'client-local'
         ];
 
         $this->requestMock->mergeProperties([
@@ -120,14 +121,21 @@ class LazyQueueTest extends BaseTestCase
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
                 Mockery::on(function ($arg) {
-                    return isset($arg['x-queue-mode']) 
-                        && $arg['x-queue-mode'] === 'default';
+                    return isset($arg['x-queue-master-locator']) 
+                        && $arg['x-queue-master-locator'] === 'client-local';
                 })
             )
             ->andReturn([$queueName, 0])
             ->once();
 
-        $this->channelMock->shouldReceive('queue_bind')->once();
+        $this->channelMock->shouldReceive('queue_bind')
+            ->with(
+                $queueName,
+                $this->defaultConfig['exchange'],
+                'test-routing'
+            )
+            ->once();
+
         $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->once();
 
         $thrownException = null;
@@ -141,14 +149,70 @@ class LazyQueueTest extends BaseTestCase
     }
 
     /**
-     * Test that x-queue-mode can be combined with other queue properties
+     * Test that queue_properties includes x-queue-master-locator when configured as 'random'
      */
-    public function testQueueDeclareWithLazyModeAndOtherProperties()
+    public function testQueueDeclareWithRandomLocator()
     {
-        $queueName = 'test-queue-lazy-combined';
+        $queueName = 'test-queue-random';
         $expectedQueueProperties = [
-            'x-queue-mode' => 'lazy',
-            'x-max-length' => 1000,
+            'x-queue-master-locator' => 'random'
+        ];
+
+        $this->requestMock->mergeProperties([
+            'queue' => $queueName,
+            'queue_force_declare' => true,
+            'routing' => 'test-routing',
+            'queue_properties' => $expectedQueueProperties
+        ]);
+
+        $this->channelMock->shouldReceive('exchange_declare');
+        $this->requestMock->shouldReceive('connect');
+
+        $this->channelMock->shouldReceive('queue_declare')
+            ->with(
+                $queueName,
+                $this->defaultConfig['queue_passive'],
+                $this->defaultConfig['queue_durable'],
+                $this->defaultConfig['queue_exclusive'],
+                $this->defaultConfig['queue_auto_delete'],
+                $this->defaultConfig['queue_nowait'],
+                Mockery::on(function ($arg) {
+                    return isset($arg['x-queue-master-locator']) 
+                        && $arg['x-queue-master-locator'] === 'random';
+                })
+            )
+            ->andReturn([$queueName, 0])
+            ->once();
+
+        $this->channelMock->shouldReceive('queue_bind')
+            ->with(
+                $queueName,
+                $this->defaultConfig['exchange'],
+                'test-routing'
+            )
+            ->once();
+
+        $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->once();
+
+        $thrownException = null;
+        try {
+            $this->requestMock->setup();
+        } catch (\Exception $exception) {
+            $thrownException = $exception;
+        }
+
+        $this->assertNull($thrownException);
+    }
+
+    /**
+     * Test that queue_properties can include x-queue-master-locator with other properties
+     */
+    public function testQueueDeclareWithMasterLocatorAndOtherProperties()
+    {
+        $queueName = 'test-queue-master-locator-combined';
+        $expectedQueueProperties = [
+            'x-queue-master-locator' => 'min-masters',
+            'x-max-length' => 100,
             'x-message-ttl' => 60000
         ];
 
@@ -171,10 +235,10 @@ class LazyQueueTest extends BaseTestCase
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
                 Mockery::on(function ($arg) {
-                    return isset($arg['x-queue-mode']) 
-                        && $arg['x-queue-mode'] === 'lazy'
+                    return isset($arg['x-queue-master-locator']) 
+                        && $arg['x-queue-master-locator'] === 'min-masters'
                         && isset($arg['x-max-length'])
-                        && $arg['x-max-length'] === 1000
+                        && $arg['x-max-length'] === 100
                         && isset($arg['x-message-ttl'])
                         && $arg['x-message-ttl'] === 60000;
                 })
@@ -182,7 +246,14 @@ class LazyQueueTest extends BaseTestCase
             ->andReturn([$queueName, 0])
             ->once();
 
-        $this->channelMock->shouldReceive('queue_bind')->once();
+        $this->channelMock->shouldReceive('queue_bind')
+            ->with(
+                $queueName,
+                $this->defaultConfig['exchange'],
+                'test-routing'
+            )
+            ->once();
+
         $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->once();
 
         $thrownException = null;
@@ -196,20 +267,20 @@ class LazyQueueTest extends BaseTestCase
     }
 
     /**
-     * Test that queue can be declared without x-queue-mode (default behavior)
+     * Test that queue_declare works without x-queue-master-locator
      */
-    public function testQueueDeclareWithoutQueueMode()
+    public function testQueueDeclareWithoutMasterLocator()
     {
-        $queueName = 'test-queue-no-mode';
-        $expectedQueueProperties = [
-            'x-max-length' => 10
+        $queueName = 'test-queue-no-master-locator';
+        $queueProperties = [
+            'x-max-length' => 50
         ];
 
         $this->requestMock->mergeProperties([
             'queue' => $queueName,
             'queue_force_declare' => true,
             'routing' => 'test-routing',
-            'queue_properties' => $expectedQueueProperties
+            'queue_properties' => $queueProperties
         ]);
 
         $this->channelMock->shouldReceive('exchange_declare');
@@ -224,16 +295,22 @@ class LazyQueueTest extends BaseTestCase
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
                 Mockery::on(function ($arg) {
-                    // Should not have x-queue-mode when not specified
-                    return !isset($arg['x-queue-mode'])
+                    return !isset($arg['x-queue-master-locator'])
                         && isset($arg['x-max-length'])
-                        && $arg['x-max-length'] === 10;
+                        && $arg['x-max-length'] === 50;
                 })
             )
             ->andReturn([$queueName, 0])
             ->once();
 
-        $this->channelMock->shouldReceive('queue_bind')->once();
+        $this->channelMock->shouldReceive('queue_bind')
+            ->with(
+                $queueName,
+                $this->defaultConfig['exchange'],
+                'test-routing'
+            )
+            ->once();
+
         $this->connectionMock->shouldReceive('set_close_on_destruct')->with(true)->once();
 
         $thrownException = null;

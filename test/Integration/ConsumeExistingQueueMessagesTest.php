@@ -50,7 +50,7 @@ class ConsumeExistingQueueMessagesTest extends IntegrationTestBase
         
         echo "[CONSUME EXISTING] Found {$initialMessageCount} messages in queue.\n";
         echo "[CONSUME EXISTING] Waiting 3 seconds for Web UI visibility...\n";
-        echo "[CONSUME EXISTING] Check http://localhost:15672 -> Queues -> {$this->testQueueName}\n";
+        echo "[CONSUME EXISTING] Check server -> Queues -> {$this->testQueueName}\n";
         sleep(3);
         
         // Step 2: Consume ALL messages using iterative approach

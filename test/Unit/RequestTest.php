@@ -3,6 +3,7 @@
 namespace Bschmitt\Amqp\Test;
 
 use Bschmitt\Amqp\Exception\Configuration;
+use Bschmitt\Amqp\Test\Support\BaseTestCase;
 use \Mockery;
 use Bschmitt\Amqp\Core\Request;
 use PhpAmqpLib\Channel\AMQPChannel;

@@ -6,6 +6,7 @@ use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Core\Request;
 use Bschmitt\Amqp\Models\Message;
+use Bschmitt\Amqp\Test\Support\IntegrationTestBase;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 
 /**
@@ -102,7 +103,7 @@ class QueueTypeIntegrationTest extends IntegrationTestBase
         $this->configRepository->set('amqp', $config);
 
         // Publish a message
-        $testMessage = 'Classic queue test message ' . time();
+        $testMessage = 'Classic queue test message '  ;
         $message = new Message($testMessage, ['content_type' => 'text/plain']);
         
         $publisher = new Publisher($this->configRepository);
@@ -198,7 +199,7 @@ class QueueTypeIntegrationTest extends IntegrationTestBase
 
         try {
             // Publish a message
-            $testMessage = 'Quorum queue test message ' . time();
+            $testMessage = 'Quorum queue test message '  ;
             $message = new Message($testMessage, ['content_type' => 'text/plain']);
             
             $publisher = new Publisher($this->configRepository);

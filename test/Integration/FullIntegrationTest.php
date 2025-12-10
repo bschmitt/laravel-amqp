@@ -7,6 +7,7 @@ use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Core\Amqp;
 use Bschmitt\Amqp\Models\Message;
 use Bschmitt\Amqp\Exception\Stop;
+use Bschmitt\Amqp\Test\Support\IntegrationTestBase;
 
 /**
  * Full integration tests using real RabbitMQ connections

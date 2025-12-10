@@ -52,6 +52,7 @@ return [
                 // 'x-max-priority' => 10,                      // Maximum priority level (0-255)
                 // 'x-queue-mode' => 'lazy',                    // Queue mode: 'lazy' or 'default' (lazy queues keep messages on disk)
                 // 'x-queue-type' => 'quorum',                  // Queue type: 'classic' (default), 'quorum', or 'stream'
+                // 'x-queue-master-locator' => 'min-masters',   // Master locator: 'min-masters', 'client-local', or 'random' (deprecated - use quorum queues instead)
             ],
 
             'consumer_tag'          => '',

@@ -3,6 +3,7 @@
 namespace Bschmitt\Amqp\Test;
 
 use Bschmitt\Amqp\Core\Request;
+use Bschmitt\Amqp\Test\Support\BaseTestCase;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 use PhpAmqpLib\Wire\AMQPTable;

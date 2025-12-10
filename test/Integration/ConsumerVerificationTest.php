@@ -5,6 +5,7 @@ namespace Bschmitt\Amqp\Test;
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Exception\Stop;
+use Bschmitt\Amqp\Test\Support\IntegrationTestBase;
 
 /**
  * Test to verify message consumption is working correctly
@@ -94,7 +95,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
         $publisher = new Publisher($configRepo);
         $publisher->setup();
         
-        $testMessage = 'timeout-test-' . time();
+        $testMessage = 'timeout-test-'  ;
         $message = $this->createMessage($testMessage);
         
         echo "\n[TEST] Publishing message: {$testMessage}\n";
