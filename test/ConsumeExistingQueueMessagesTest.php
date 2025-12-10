@@ -171,7 +171,7 @@ class ConsumeExistingQueueMessagesTest extends IntegrationTestBase
     {
         // TODO: Update this to your actual queue name
         // You can find it in RabbitMQ Web UI: http://localhost:15672
-        $queueName = 'your-actual-queue-name-here';
+        $queueName = 'test-queue-integration';
         
         echo "\n[CONSUME SPECIFIC] Test: Consume From Specific Queue\n";
         echo "[CONSUME SPECIFIC] Queue name: {$queueName}\n";

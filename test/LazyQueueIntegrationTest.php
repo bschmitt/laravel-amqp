@@ -29,9 +29,18 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
         // Use fixed queue name for lazy queue tests
         $this->testQueueName = 'test-queue-lazy';
         $this->testExchange = 'test-exchange-lazy';
+        $this->testRoutingKey = 'test.routing.key';
         
-        // Delete queue if it exists to start fresh
+        // Delete queue if it exists to start fresh (ensures clean state)
         $this->deleteQueue($this->testQueueName);
+        
+        // Update config with test queue and exchange
+        $config = $this->configRepository->get('amqp');
+        $config['properties']['test']['queue'] = $this->testQueueName;
+        $config['properties']['test']['exchange'] = $this->testExchange;
+        $config['properties']['test']['routing'] = $this->testRoutingKey;
+        $config['properties']['test']['queue_durable'] = true; // Lazy queues should be durable
+        $this->configRepository->set('amqp', $config);
     }
 
     protected function tearDown(): void
@@ -107,9 +116,10 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
         $consumer = new Consumer($this->configRepository);
         $consumer->setup();
         
-        $consumer->consume(1, function ($msg, $res) use (&$consumedMessages) {
+        $consumer->consume($this->testQueueName, function ($msg, $resolver) use (&$consumedMessages) {
             $consumedMessages[] = $msg->body;
-            $res->ack();
+            $resolver->acknowledge($msg);
+            $resolver->stopWhenProcessed();
         });
         
         \Bschmitt\Amqp\Core\Request::shutdown(
@@ -160,8 +170,7 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
         // Need to declare queue again to get message count
         $checkConsumer = new Consumer($this->configRepository);
         $checkConsumer->setup();
-        $checkConsumer->getChannel()->queue_declare($this->testQueueName, true); // passive=true
-        $queueInfo = $checkConsumer->getChannel()->queue_declare($this->testQueueName, false); // passive=false to get count
+        $queueInfo = $checkConsumer->getChannel()->queue_declare($this->testQueueName, true, true, false, false); // passive=true, durable=true
         $messageCount = $queueInfo[1]; // Second element is message count
         
         \Bschmitt\Amqp\Core\Request::shutdown(
@@ -208,9 +217,10 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
         $consumer = new Consumer($this->configRepository);
         $consumer->setup();
         
-        $consumer->consume(1, function ($msg, $res) use (&$consumedMessages) {
+        $consumer->consume($this->testQueueName, function ($msg, $resolver) use (&$consumedMessages) {
             $consumedMessages[] = $msg->body;
-            $res->ack();
+            $resolver->acknowledge($msg);
+            $resolver->stopWhenProcessed();
         });
         
         \Bschmitt\Amqp\Core\Request::shutdown(

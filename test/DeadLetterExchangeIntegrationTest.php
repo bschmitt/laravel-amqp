@@ -4,6 +4,7 @@ namespace Bschmitt\Amqp\Test;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
+use Bschmitt\Amqp\Core\Request;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\TestCase;
 
@@ -38,6 +39,49 @@ class DeadLetterExchangeIntegrationTest extends TestCase
         $this->dlxExchange = 'dlx-exchange';
         $this->dlxQueue = 'dlx-queue';
         $this->dlxRoutingKey = 'dlx.routing.key';
+        
+        // Delete queues if they exist to start fresh (ensures clean state)
+        $this->deleteQueue($this->testQueueName);
+        $this->deleteQueue($this->dlxQueue);
+    }
+    
+    protected function tearDown(): void
+    {
+        // Clean up: delete test queues
+        $this->deleteQueue($this->testQueueName);
+        $this->deleteQueue($this->dlxQueue);
+        parent::tearDown();
+    }
+    
+    /**
+     * Helper method to delete a queue
+     */
+    private function deleteQueue(string $queueName): void
+    {
+        try {
+            // Create minimal config just for connection (don't declare queue)
+            $defaultProperties = [
+                'host' => env('AMQP_HOST', 'localhost'),
+                'port' => (int) env('AMQP_PORT', 5672),
+                'username' => env('AMQP_USER', 'guest'),
+                'password' => env('AMQP_PASSWORD', 'guest'),
+                'vhost' => env('AMQP_VHOST', '/'),
+            ];
+            $config = new Repository([
+                'amqp' => [
+                    'use' => 'test',
+                    'properties' => ['test' => $defaultProperties]
+                ]
+            ]);
+            
+            $request = new \Bschmitt\Amqp\Core\Request($config);
+            $request->connect(); // Only connect, don't setup (which declares queue)
+            $channel = $request->getChannel();
+            $channel->queue_delete($queueName, false, false);
+            Request::shutdown($channel, $request->getConnection());
+        } catch (\Exception $e) {
+            // Queue might not exist, ignore error
+        }
     }
 
     /**
@@ -296,6 +340,9 @@ class DeadLetterExchangeIntegrationTest extends TestCase
             $this->markTestSkipped('RabbitMQ is not available');
         }
 
+        // Delete queue to ensure clean state
+        $this->deleteQueue($this->testQueueName);
+
         // Setup DLX
         $this->setupDLX();
 
@@ -371,6 +418,9 @@ class DeadLetterExchangeIntegrationTest extends TestCase
         if (!$this->isRabbitMQAvailable()) {
             $this->markTestSkipped('RabbitMQ is not available');
         }
+
+        // Delete queue to ensure clean state
+        $this->deleteQueue($this->testQueueName);
 
         // Setup DLX
         $this->setupDLX();

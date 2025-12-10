@@ -21,7 +21,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
         $publisher = new Publisher($this->configRepository);
         $publisher->setup();
         
-        $testMessage = 'immediate-consume-test-' . time();
+        $testMessage = 'immediate-consume-test';
         $message = $this->createMessage($testMessage);
         
         echo "\n[TEST] Publishing message: {$testMessage}\n";
