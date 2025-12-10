@@ -71,9 +71,7 @@ class QueueMaxLengthIntegrationTest extends TestCase
                         'queue_auto_delete' => true, // Auto-delete for cleanup
                         'queue_nowait' => false,
                         'queue_properties' => [
-                            'x-max-length' => 1,
-                            // x-overflow defaults to 'drop-head' which drops oldest messages
-                            // Other options: 'reject-publish', 'reject-publish-dlx'
+                            'x-max-length' => 1
                         ],
 
                         'routing' => $this->testRoutingKey,
@@ -127,7 +125,11 @@ class QueueMaxLengthIntegrationTest extends TestCase
             'message-3-latest'
         ];
 
-        foreach ($messages as $message) {
+        foreach ($messages as $messageText) {
+            $message = new \Bschmitt\Amqp\Message($messageText, [
+                'content_type' => 'text/plain',
+                'delivery_mode' => 2
+            ]);
             $publisher->publish($this->testRoutingKey, $message);
             usleep(100000); // Small delay to ensure ordering
         }
@@ -176,7 +178,11 @@ class QueueMaxLengthIntegrationTest extends TestCase
         $publisher->setup();
 
         // Publish first message and consume it
-        $publisher->publish($this->testRoutingKey, 'first-message');
+        $message1 = new \Bschmitt\Amqp\Message('first-message', [
+            'content_type' => 'text/plain',
+            'delivery_mode' => 2
+        ]);
+        $publisher->publish($this->testRoutingKey, $message1);
         \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         $consumer = new Consumer($this->configRepository);
@@ -200,8 +206,16 @@ class QueueMaxLengthIntegrationTest extends TestCase
         // Now publish 2 more messages without consuming
         $publisher = new Publisher($this->configRepository);
         $publisher->setup();
-        $publisher->publish($this->testRoutingKey, 'second-message');
-        $publisher->publish($this->testRoutingKey, 'third-message');
+        $message2 = new \Bschmitt\Amqp\Message('second-message', [
+            'content_type' => 'text/plain',
+            'delivery_mode' => 2
+        ]);
+        $message3 = new \Bschmitt\Amqp\Message('third-message', [
+            'content_type' => 'text/plain',
+            'delivery_mode' => 2
+        ]);
+        $publisher->publish($this->testRoutingKey, $message2);
+        $publisher->publish($this->testRoutingKey, $message3);
         \Bschmitt\Amqp\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
 
         // Consume - should only get the latest

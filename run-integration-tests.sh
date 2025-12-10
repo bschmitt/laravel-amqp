@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Run integration tests with real RabbitMQ credentials
+# No mocks - all tests use actual AMQP connections
+
+echo "Running integration tests with real RabbitMQ credentials..."
+echo "Make sure RabbitMQ is running and credentials are set in .env"
+echo ""
+
+cd "$(dirname "$0")"
+
+php vendor/bin/phpunit test/FullIntegrationTest.php test/QueueMaxLengthIntegrationTest.php --colors=always
+
+

@@ -2,16 +2,34 @@
 
 namespace Bschmitt\Amqp;
 
-use Illuminate\Config\Repository;
 use Closure;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
+use Bschmitt\Amqp\Contracts\ConsumerInterface;
+use Bschmitt\Amqp\Contracts\ConfigurationProviderInterface;
+use Bschmitt\Amqp\Contracts\ConnectionManagerInterface;
+use Bschmitt\Amqp\Managers\ExchangeManager;
+use Bschmitt\Amqp\Managers\QueueManager;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
  */
-class Consumer extends Request
+class Consumer extends Request implements ConsumerInterface
 {
+    /**
+     * @var ConnectionManagerInterface
+     */
+    protected $connectionManager;
+
+    /**
+     * @var ExchangeManager
+     */
+    protected $exchangeManager;
+
+    /**
+     * @var QueueManager
+     */
+    protected $queueManager;
 
     /**
      * @var int
@@ -19,112 +37,191 @@ class Consumer extends Request
     protected $messageCount = 0;
 
     /**
+     * @param ConfigurationProviderInterface|null $config
+     * @param ConnectionManagerInterface|null $connectionManager
+     * @param ExchangeManager|null $exchangeManager
+     * @param QueueManager|null $queueManager
+     */
+    public function __construct(
+        $config = null,
+        ConnectionManagerInterface $connectionManager = null,
+        ExchangeManager $exchangeManager = null,
+        QueueManager $queueManager = null
+    ) {
+        if ($config === null) {
+            $config = \Illuminate\Support\Facades\App::make('config');
+        }
+
+        if ($config === null || !($config instanceof \Illuminate\Contracts\Config\Repository)) {
+            $config = \Illuminate\Support\Facades\App::make('config');
+        }
+
+        parent::__construct($config);
+
+        // Only create managers if explicitly provided or if we're using the new structure
+        // This allows backward compatibility with tests that mock the old structure
+        if ($connectionManager !== null || $exchangeManager !== null || $queueManager !== null) {
+            if ($connectionManager === null) {
+                $connectionManager = new \Bschmitt\Amqp\Managers\ConnectionManager($this);
+            }
+
+            if ($exchangeManager === null) {
+                $exchangeManager = new ExchangeManager($this, $connectionManager);
+            }
+
+            if ($queueManager === null) {
+                $queueManager = new QueueManager($this, $connectionManager);
+            }
+
+            $this->connectionManager = $connectionManager;
+            $this->exchangeManager = $exchangeManager;
+            $this->queueManager = $queueManager;
+        }
+    }
+
+    /**
+     * @return void
+     */
+    public function setup(): void
+    {
+        if ($this->connectionManager !== null && $this->exchangeManager !== null && $this->queueManager !== null) {
+            $this->connectionManager->connect();
+            $this->exchangeManager->declareExchange();
+            $this->queueManager->declareAndBind();
+            $this->messageCount = $this->queueManager->getMessageCount();
+        } else {
+            // Backward compatibility: use old Request::setup() method
+            parent::setup();
+            $this->messageCount = parent::getQueueMessageCount();
+        }
+    }
+
+    /**
      * @param string  $queue
      * @param Closure $closure
      * @return bool
-     * @throws \Exception
      */
-    public function consume(string $queue, Closure $closure) : bool
+    public function consume(string $queue, Closure $closure): bool
     {
         try {
-            $this->messageCount = $this->getQueueMessageCount();
+            $persistent = (bool) $this->getProperty('persistent', false);
 
-            if (!$this->getProperty('persistent') && $this->messageCount == 0) {
+            if (!$persistent && $this->messageCount === 0) {
                 throw new Exception\Stop();
             }
 
-            /*
-                queue: Queue from where to get the messages
-                consumer_tag: Consumer identifier
-                no_local: Don't receive messages published by this consumer.
-                no_ack: Tells the server if the consumer will acknowledge the messages.
-                exclusive: Request exclusive consumer access, meaning only this consumer can access the queue
-                nowait:
-                qos: The consumer-prefetch make it possible to limit the number of unacknowledged messages on a channel (or connection) when consuming.
-                                    Or, in other words, don't dispatch a new message to a worker
-                                    until it has processed and acknowledged the previous one
-                callback: A PHP Callback
-            */
+            $this->configureQos();
 
-            $object = $this;
-
-            if ($this->getProperty('qos')) {
-                $this->getChannel()->basic_qos(
-                    $this->getProperty('qos_prefetch_size'),
-                    $this->getProperty('qos_prefetch_count'),
-                    $this->getProperty('qos_a_global')
-                );
-            }
-
-            $this->getChannel()->basic_consume(
+            $channel = $this->getChannel();
+            $channel->basic_consume(
                 $queue,
-                $this->getProperty('consumer_tag'),
-                $this->getProperty('consumer_no_local'),
-                $this->getProperty('consumer_no_ack'),
-                $this->getProperty('consumer_exclusive'),
-                $this->getProperty('consumer_nowait'),
-                function ($message) use ($closure, $object) {
-                    $closure($message, $object);
+                $this->getProperty('consumer_tag', ''),
+                (bool) $this->getProperty('consumer_no_local', false),
+                (bool) $this->getProperty('consumer_no_ack', false),
+                (bool) $this->getProperty('consumer_exclusive', false),
+                (bool) $this->getProperty('consumer_nowait', false),
+                function ($message) use ($closure) {
+                    $closure($message, $this);
                 },
                 null,
-                $this->getProperty('consumer_properties')
+                $this->getProperty('consumer_properties', [])
             );
 
-            // consume
-            while (count($this->getChannel()->callbacks)) {
-                $this->getChannel()->wait(null, false,
-                    $this->getProperty('timeout') ? $this->getProperty('timeout') : 0
-                );
-            }
-        } catch (\Exception $e) {
-            if ($e instanceof Exception\Stop) {
-                return true;
-            }
+            $timeout = max(0, (int) $this->getProperty('timeout', 0));
 
-            if ($e instanceof AMQPTimeoutException) {
-                return true;
+            while (count($channel->callbacks) > 0) {
+                $channel->wait(null, false, $timeout);
             }
-
-            throw $e;
+        } catch (Exception\Stop $e) {
+            return true;
+        } catch (AMQPTimeoutException $e) {
+            return true;
         }
 
         return true;
     }
 
     /**
-     * Acknowledges a message
+     * Configure Quality of Service
      *
-     * @param AMQPMessage $message
+     * @return void
      */
-    public function acknowledge(AMQPMessage $message)
+    protected function configureQos(): void
+    {
+        if ($this->getProperty('qos', false)) {
+            $this->connectionManager->getChannel()->basic_qos(
+                (int) $this->getProperty('qos_prefetch_size', 0),
+                (int) $this->getProperty('qos_prefetch_count', 1),
+                (bool) $this->getProperty('qos_a_global', false)
+            );
+        }
+    }
+
+    /**
+     * @param AMQPMessage $message
+     * @return void
+     */
+    public function acknowledge(AMQPMessage $message): void
     {
         $message->getChannel()->basic_ack($message->getDeliveryTag());
 
-        if ($message->body === 'quit') {
+        $shutdownSignal = $this->getProperty('shutdown_signal', 'quit');
+        if ($message->body === $shutdownSignal) {
             $message->getChannel()->basic_cancel($message->getConsumerTag());
         }
     }
 
     /**
-     * Rejects a message and requeues it if wanted (default: false)
-     *
      * @param AMQPMessage $message
-     * @param bool    $requeue
+     * @param bool $requeue
+     * @return void
      */
-    public function reject(AMQPMessage $message, bool $requeue = false)
+    public function reject(AMQPMessage $message, bool $requeue = false): void
     {
         $message->getChannel()->basic_reject($message->getDeliveryTag(), $requeue);
     }
 
     /**
-     * Stops consumer when no message is left
-     *
+     * @return void
      * @throws Exception\Stop
      */
-    public function stopWhenProcessed()
+    public function stopWhenProcessed(): void
     {
         if (--$this->messageCount <= 0) {
             throw new Exception\Stop();
         }
+    }
+
+    /**
+     * @return \PhpAmqpLib\Channel\AMQPChannel
+     */
+    public function getChannel(): \PhpAmqpLib\Channel\AMQPChannel
+    {
+        if ($this->connectionManager !== null) {
+            return $this->connectionManager->getChannel();
+        }
+        return parent::getChannel();
+    }
+
+    /**
+     * @return \PhpAmqpLib\Connection\AMQPStreamConnection
+     */
+    public function getConnection(): \PhpAmqpLib\Connection\AMQPStreamConnection
+    {
+        if ($this->connectionManager !== null) {
+            return $this->connectionManager->getConnection();
+        }
+        return parent::getConnection();
+    }
+
+    /**
+     * @return int
+     */
+    public function getQueueMessageCount(): int
+    {
+        if ($this->queueManager !== null) {
+            return $this->queueManager->getMessageCount();
+        }
+        return parent::getQueueMessageCount();
     }
 }

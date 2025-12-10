@@ -20,6 +20,52 @@ Key points:
 
 ## Running Tests
 
+### Integration Tests (Real RabbitMQ - No Mocks)
+
+To run tests with real RabbitMQ credentials and no mocks:
+
+1. **Ensure RabbitMQ is running:**
+   ```bash
+   # Using Docker
+   docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+   
+   # Or use docker-compose if available
+   docker-compose up -d rabbit
+   ```
+
+2. **Set credentials in `.env` file (in project root):**
+   ```env
+   AMQP_HOST=localhost
+   AMQP_PORT=5672
+   AMQP_USER=guest
+   AMQP_PASSWORD=guest
+   AMQP_VHOST=/
+   ```
+
+3. **Run integration tests:**
+   ```bash
+   # Linux/Mac
+   ./run-integration-tests.sh
+   
+   # Windows
+   run-integration-tests.bat
+   
+   # Or directly with PHPUnit
+   php vendor/bin/phpunit test/FullIntegrationTest.php test/QueueMaxLengthIntegrationTest.php
+   ```
+
+**Available Integration Test Suites:**
+- `FullIntegrationTest.php` - Comprehensive integration tests covering:
+  - Basic publish/consume
+  - Batch publishing
+  - Message rejection (with/without requeue)
+  - Amqp facade methods
+  - Queue message count
+  - Mandatory publishing
+  - QoS configuration
+  - Multiple routing keys
+- `QueueMaxLengthIntegrationTest.php` - Tests for queue max length feature
+
 ### Prerequisites
 
 1. **Start RabbitMQ using Docker:**

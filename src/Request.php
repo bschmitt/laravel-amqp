@@ -5,6 +5,7 @@ namespace Bschmitt\Amqp;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Wire\AMQPTable;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -86,6 +87,15 @@ class Request extends Context
             durable: true // the exchange will survive server restarts
             auto_delete: false //the exchange won't be deleted once the channel is closed.
         */
+        $exchangeProperties = $this->getProperty('exchange_properties');
+        if ($exchangeProperties instanceof AMQPTable) {
+            // Already an AMQPTable, use as-is
+        } elseif (is_array($exchangeProperties) && !empty($exchangeProperties)) {
+            $exchangeProperties = new AMQPTable($exchangeProperties);
+        } else {
+            $exchangeProperties = null;
+        }
+        
         $this->channel->exchange_declare(
             $exchange,
             $this->getProperty('exchange_type'),
@@ -94,7 +104,7 @@ class Request extends Context
             $this->getProperty('exchange_auto_delete'),
             $this->getProperty('exchange_internal'),
             $this->getProperty('exchange_nowait'),
-            $this->getProperty('exchange_properties')
+            $exchangeProperties
         );
 
         $queue = $this->getProperty('queue');
@@ -111,6 +121,27 @@ class Request extends Context
             */
 
             /** @var ['queue name', 'message count',] queueInfo */
+            $queueProperties = $this->getProperty('queue_properties');
+            
+            // Handle backward compatibility: support both array and AMQPTable
+            $queueArguments = null;
+            
+            if ($queueProperties instanceof AMQPTable) {
+                // Already an AMQPTable object, use as-is (backward compatible)
+                $queueArguments = $queueProperties;
+            } elseif (is_array($queueProperties) && !empty($queueProperties)) {
+                // Filter out x-ha-policy as it uses deprecated format incompatible with php-amqplib
+                $filtered = [];
+                foreach ($queueProperties as $key => $value) {
+                    if ($key !== 'x-ha-policy' && $value !== null) {
+                        $filtered[$key] = $value;
+                    }
+                }
+                if (!empty($filtered)) {
+                    $queueArguments = new AMQPTable($filtered);
+                }
+            }
+            
             $this->queueInfo = $this->channel->queue_declare(
                 $queue,
                 $this->getProperty('queue_passive'),
@@ -118,7 +149,7 @@ class Request extends Context
                 $this->getProperty('queue_exclusive'),
                 $this->getProperty('queue_auto_delete'),
                 $this->getProperty('queue_nowait'),
-                $this->getProperty('queue_properties')
+                $queueArguments
             );
 
             foreach ((array) $this->getProperty('routing') as $routingKey) {

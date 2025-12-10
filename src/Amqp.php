@@ -3,9 +3,10 @@
 namespace Bschmitt\Amqp;
 
 use Closure;
-use Bschmitt\Amqp\Request;
-use Bschmitt\Amqp\Message;
-use PhpAmqpLib\Wire\AMQPTable;
+use Bschmitt\Amqp\Contracts\PublisherInterface;
+use Bschmitt\Amqp\Contracts\ConsumerInterface;
+use Bschmitt\Amqp\Factories\MessageFactory;
+use Bschmitt\Amqp\Managers\ConnectionManager;
 use Illuminate\Support\Facades\App;
 
 /**
@@ -13,7 +14,40 @@ use Illuminate\Support\Facades\App;
  */
 class Amqp
 {
+    /**
+     * @var PublisherInterface
+     */
+    protected $publisher;
+
+    /**
+     * @var ConsumerInterface
+     */
+    protected $consumer;
+
+    /**
+     * @var MessageFactory
+     */
+    protected $messageFactory;
+
+    /**
+     * @var array
+     */
     protected static $batchMessages = [];
+
+    /**
+     * @param PublisherInterface|null $publisher
+     * @param ConsumerInterface|null $consumer
+     * @param MessageFactory|null $messageFactory
+     */
+    public function __construct(
+        PublisherInterface $publisher = null,
+        ConsumerInterface $consumer = null,
+        MessageFactory $messageFactory = null
+    ) {
+        $this->publisher = $publisher ?? App::make(Publisher::class);
+        $this->consumer = $consumer ?? App::make(Consumer::class);
+        $this->messageFactory = $messageFactory ?? new MessageFactory();
+    }
 
     /**
      * @param string $routing
@@ -21,52 +55,33 @@ class Amqp
      * @param array  $properties
      *
      * @return bool|null
-     *
-     * @throws Exception\Configuration
-     * @throws \Exception
      */
-    public function publish($routing, $message, array $properties = []) : ?bool
+    public function publish(string $routing, $message, array $properties = []): ?bool
     {
+        if (!($this->publisher instanceof Publisher)) {
+            throw new \RuntimeException('Publisher must be an instance of Publisher class for property merging.');
+        }
+
         $properties['routing'] = $routing;
+        $publisher = $this->createPublisherInstance($properties);
 
-        /* @var Publisher $publisher */
+        try {
+            $applicationHeaders = $properties['application_headers'] ?? [];
+            $message = $this->messageFactory->create($message, $applicationHeaders);
+            $mandatory = (bool) ($properties['mandatory'] ?? false);
 
-        $publisher = App::make(Publisher::class);
-
-        $publisher
-            ->mergeProperties($properties)
-            ->setup();
-
-        $applicationHeaders = [];
-        if(isset($properties['application_headers'])) {
-            $applicationHeaders = $properties['application_headers'];
+            return $publisher->publish($routing, $message, $mandatory);
+        } finally {
+            $this->disconnectPublisher($publisher);
         }
-
-        if (is_string($message)) {
-            $headers = [
-                'content_type' => 'text/plain', 
-                'delivery_mode' => 2,
-                'application_headers' => new AMQPTable($applicationHeaders)
-            ];
-            $message = new Message($message, $headers);
-        }
-
-        $mandatory = false;
-        if (isset($properties['mandatory']) && $properties['mandatory'] == true) {
-            $mandatory = true;
-        }
-
-        $return = $publisher->publish($routing, $message, $mandatory);
-        Request::shutdown($publisher->getChannel(), $publisher->getConnection());
-
-        return $return;
     }
 
     /**
      * @param string $routing
      * @param mixed  $message
+     * @return void
      */
-    public function batchBasicPublish(string $routing, $message)
+    public function batchBasicPublish(string $routing, $message): void
     {
         self::$batchMessages[] = [
             'routing' => $routing,
@@ -76,58 +91,57 @@ class Amqp
 
     /**
      * @param array $properties
-     *
-     * @throws Exception\Configuration
-     * @throws \Exception
+     * @return void
      */
-    public function batchPublish(array $properties = [])
+    public function batchPublish(array $properties = []): void
     {
-        /* @var Publisher $publisher */
-        $publisher = App::make(Publisher::class);
-        $publisher
-            ->mergeProperties($properties)
-            ->setup();
-
-        foreach(self::$batchMessages as $messageData) {
-            if (is_string($messageData['message'])) {
-                $messageData['message'] = new Message($messageData['message'], ['content_type' => 'text/plain', 'delivery_mode' => 2]);
-            }
-
-            $publisher->batchBasicPublish($messageData['routing'], $messageData['message']);
+        if (empty(self::$batchMessages)) {
+            return;
         }
 
-        $publisher->batchPublish();
-        $this->forgetBatchedMessages();
+        if (!($this->publisher instanceof Publisher)) {
+            throw new \RuntimeException('Publisher must be an instance of Publisher class for property merging.');
+        }
 
-        Request::shutdown($publisher->getChannel(), $publisher->getConnection());
-    }
+        $publisher = $this->createPublisherInstance($properties);
 
-    /**
-     * Remove the messages sent as a batch.
-     */
-    private function forgetBatchedMessages()
-    {
-        self::$batchMessages = [];
+        try {
+            foreach (self::$batchMessages as $messageData) {
+                if (!isset($messageData['routing']) || !isset($messageData['message'])) {
+                    continue;
+                }
+
+                $message = $this->messageFactory->create($messageData['message']);
+                $publisher->batchBasicPublish($messageData['routing'], $message);
+            }
+
+            $publisher->batchPublish();
+            $this->forgetBatchedMessages();
+        } finally {
+            $this->disconnectPublisher($publisher);
+        }
     }
 
     /**
      * @param string  $queue
      * @param Closure $callback
      * @param array   $properties
-     * @throws Exception\Configuration
+     * @return bool
      */
-    public function consume(string $queue, Closure $callback, array $properties = [])
+    public function consume(string $queue, Closure $callback, array $properties = []): bool
     {
+        if (!($this->consumer instanceof Consumer)) {
+            throw new \RuntimeException('Consumer must be an instance of Consumer class for property merging.');
+        }
+
         $properties['queue'] = $queue;
+        $consumer = $this->createConsumerInstance($properties);
 
-        /* @var Consumer $consumer */
-        $consumer = App::make(Consumer::class);
-        $consumer
-            ->mergeProperties($properties)
-            ->setup();
-
-        $consumer->consume($queue, $callback);
-        Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        try {
+            return $consumer->consume($queue, $callback);
+        } finally {
+            $this->disconnectConsumer($consumer);
+        }
     }
 
     /**
@@ -135,8 +149,74 @@ class Amqp
      * @param array  $properties
      * @return Message
      */
-    public function message(string $body, array $properties = []) : Message
+    public function message(string $body, array $properties = []): Message
     {
-        return new Message($body, $properties);
+        return $this->messageFactory->createWithProperties($body, $properties);
+    }
+
+    /**
+     * Create a new publisher instance with merged properties
+     *
+     * @param array $properties
+     * @return Publisher
+     */
+    protected function createPublisherInstance(array $properties): Publisher
+    {
+        $publisher = new Publisher();
+        $publisher->mergeProperties($properties)->setup();
+        return $publisher;
+    }
+
+    /**
+     * Create a new consumer instance with merged properties
+     *
+     * @param array $properties
+     * @return Consumer
+     */
+    protected function createConsumerInstance(array $properties): Consumer
+    {
+        $consumer = new Consumer();
+        $consumer->mergeProperties($properties)->setup();
+        return $consumer;
+    }
+
+    /**
+     * Disconnect publisher resources
+     *
+     * @param Publisher $publisher
+     * @return void
+     */
+    protected function disconnectPublisher(Publisher $publisher): void
+    {
+        if (isset($publisher->connectionManager) && $publisher->connectionManager instanceof ConnectionManager) {
+            $publisher->connectionManager->disconnect();
+        } else {
+            Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        }
+    }
+
+    /**
+     * Disconnect consumer resources
+     *
+     * @param Consumer $consumer
+     * @return void
+     */
+    protected function disconnectConsumer(Consumer $consumer): void
+    {
+        if (isset($consumer->connectionManager) && $consumer->connectionManager instanceof ConnectionManager) {
+            $consumer->connectionManager->disconnect();
+        } else {
+            Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        }
+    }
+
+    /**
+     * Remove the messages sent as a batch
+     *
+     * @return void
+     */
+    protected function forgetBatchedMessages(): void
+    {
+        self::$batchMessages = [];
     }
 }

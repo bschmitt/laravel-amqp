@@ -40,12 +40,32 @@ class AmqpServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->app->singleton(\Bschmitt\Amqp\Contracts\ConfigurationProviderInterface::class, function ($app) {
+            return new \Bschmitt\Amqp\Support\ConfigurationProvider($app['config']);
+        });
+
+        $this->app->singleton(\Bschmitt\Amqp\Contracts\ConnectionManagerInterface::class, function ($app) {
+            $config = $app->make(\Bschmitt\Amqp\Contracts\ConfigurationProviderInterface::class);
+            return new \Bschmitt\Amqp\Managers\ConnectionManager($config);
+        });
+
+        $this->app->singleton(\Bschmitt\Amqp\Contracts\PublisherInterface::class, function ($app) {
+            return new Publisher($app['config']);
+        });
+
+        $this->app->singleton(\Bschmitt\Amqp\Contracts\ConsumerInterface::class, function ($app) {
+            return new Consumer($app['config']);
+        });
+
         $this->app->singleton('Bschmitt\Amqp\Publisher', function ($app) {
-            return new Publisher(config());
+            return $app->make(\Bschmitt\Amqp\Contracts\PublisherInterface::class);
         });
+
         $this->app->singleton('Bschmitt\Amqp\Consumer', function ($app) {
-            return new Consumer(config());
+            return $app->make(\Bschmitt\Amqp\Contracts\ConsumerInterface::class);
         });
+
+        $this->app->singleton(\Bschmitt\Amqp\Factories\MessageFactory::class);
     }
 
     /**

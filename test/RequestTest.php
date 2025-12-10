@@ -60,7 +60,7 @@ class RequestTest extends BaseTestCase
                 $this->defaultConfig['queue_exclusive'],
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
-                $this->defaultConfig['queue_properties']
+                \Mockery::any()
             )
             ->andReturn([$queueName, 4])
             ->once();
@@ -107,7 +107,7 @@ class RequestTest extends BaseTestCase
                 $this->defaultConfig['queue_exclusive'],
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
-                $this->defaultConfig['queue_properties']
+                \Mockery::any()
             )
             ->andReturn([$queueName, 4])
             ->once();
