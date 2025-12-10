@@ -148,6 +148,10 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
         $alternateConfig = $this->configRepository->get('amqp');
         $alternateConfig['properties']['test']['queue'] = $this->alternateQueue;
         $alternateConfig['properties']['test']['exchange'] = $this->alternateExchange;
+        $alternateConfig['properties']['test']['exchange_type'] = 'fanout'; // Must match the alternate exchange type
+        $alternateConfig['properties']['test']['exchange_passive'] = true; // Use passive to check existence without redeclaring
+        $alternateConfig['properties']['test']['exchange_force_declare'] = false;
+        $alternateConfig['properties']['test']['queue_force_declare'] = false; // Don't redeclare queue either
         $alternateConfig['properties']['test']['routing'] = '#'; // Consume all messages
         $this->configRepository->set('amqp', $alternateConfig);
         
@@ -235,9 +239,14 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
         $this->assertEquals($testMessage, $consumedMessages[0]);
         
         // Verify alternate queue is empty
+        // Use passive exchange declaration to avoid redeclaring with different properties
         $alternateConfig = $this->configRepository->get('amqp');
         $alternateConfig['properties']['test']['queue'] = $this->alternateQueue;
         $alternateConfig['properties']['test']['exchange'] = $this->alternateExchange;
+        $alternateConfig['properties']['test']['exchange_type'] = 'fanout'; // Must match the alternate exchange type
+        $alternateConfig['properties']['test']['exchange_passive'] = true; // Use passive to check existence without redeclaring
+        $alternateConfig['properties']['test']['exchange_force_declare'] = false;
+        $alternateConfig['properties']['test']['queue_force_declare'] = false; // Don't redeclare queue either
         $alternateConfig['properties']['test']['routing'] = '#';
         $this->configRepository->set('amqp', $alternateConfig);
         

@@ -332,8 +332,12 @@ class FullIntegrationTest extends IntegrationTestBase
      */
     public function testQueueMessageCount()
     {
-        // Use a unique queue name for this test
-        $uniqueQueueName = 'test-queue-count';
+        // Use a unique queue name for this test (with timestamp to ensure uniqueness)
+        $uniqueQueueName = 'test-queue-count-' . time();
+        
+        // Delete queue if it exists to ensure clean state
+        $this->deleteQueue($uniqueQueueName);
+        
         $config = $this->configRepository->get('amqp');
         $config['properties']['test']['queue'] = $uniqueQueueName;
         $config['properties']['test']['queue_force_declare'] = true;
@@ -363,6 +367,39 @@ class FullIntegrationTest extends IntegrationTestBase
         $this->assertEquals(3, $messageCount, "Queue should have 3 messages, but has {$messageCount}");
 
         \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+        
+        // Clean up: delete the test queue
+        $this->deleteQueue($uniqueQueueName);
+    }
+    
+    /**
+     * Helper method to delete a queue if it exists
+     */
+    private function deleteQueue(string $queueName): void
+    {
+        try {
+            $defaultProperties = [
+                'host' => getenv('AMQP_HOST') ?: 'localhost',
+                'port' => (int) (getenv('AMQP_PORT') ?: 5672),
+                'username' => getenv('AMQP_USER') ?: 'guest',
+                'password' => getenv('AMQP_PASSWORD') ?: 'guest',
+                'vhost' => getenv('AMQP_VHOST') ?: '/',
+            ];
+            $config = new \Illuminate\Config\Repository([
+                'amqp' => [
+                    'use' => 'test',
+                    'properties' => ['test' => $defaultProperties]
+                ]
+            ]);
+            
+            $request = new \Bschmitt\Amqp\Core\Request($config);
+            $request->connect();
+            $channel = $request->getChannel();
+            $channel->queue_delete($queueName, false, false);
+            \Bschmitt\Amqp\Core\Request::shutdown($channel, $request->getConnection());
+        } catch (\Exception $e) {
+            // Queue might not exist, ignore error
+        }
     }
 
     /**

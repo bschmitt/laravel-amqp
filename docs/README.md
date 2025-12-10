@@ -44,7 +44,12 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
    - Raft consensus and replication
    - Modern alternative to mirrored queues
 
-10. **[Master Locator](./MASTER_LOCATOR_DOCUMENTATION.md)** (Deprecated)
+10. **[Stream Queues](./STREAM_QUEUES_DOCUMENTATION.md)**
+   - High-throughput append-only log queues
+   - Message replay and offset management
+   - Ideal for event sourcing and logging
+
+11. **[Master Locator](./MASTER_LOCATOR_DOCUMENTATION.md)** (Deprecated)
    - `x-queue-master-locator` - Master node locator strategy
    - Note: Deprecated - use Quorum Queues instead
 
@@ -93,6 +98,7 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
 | Alternate Exchange | ✅ Supported | [ALTERNATE_EXCHANGE_DOCUMENTATION.md](./ALTERNATE_EXCHANGE_DOCUMENTATION.md) |
 | Exchange Types | ✅ Supported | [EXCHANGE_TYPES_DOCUMENTATION.md](./EXCHANGE_TYPES_DOCUMENTATION.md) |
 | Quorum Queues | ✅ Supported | [QUORUM_QUEUES_DOCUMENTATION.md](./QUORUM_QUEUES_DOCUMENTATION.md) |
+| Stream Queues | ✅ Supported | [STREAM_QUEUES_DOCUMENTATION.md](./STREAM_QUEUES_DOCUMENTATION.md) |
 | Master Locator | ✅ Supported (Deprecated) | [MASTER_LOCATOR_DOCUMENTATION.md](./MASTER_LOCATOR_DOCUMENTATION.md) |
 
 ## Getting Started
