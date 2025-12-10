@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp;
+namespace Bschmitt\Amqp\Models;
 
 use PhpAmqpLib\Message\AMQPMessage;
 

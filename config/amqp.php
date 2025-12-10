@@ -49,6 +49,7 @@ return [
                 // 'x-expires' => 3600000,          // Queue expiration in milliseconds (1 hour)
                 // 'x-dead-letter-exchange' => 'dlx-exchange',  // Dead letter exchange name
                 // 'x-dead-letter-routing-key' => 'dlx.key',    // Routing key for dead letters (optional)
+                // 'x-max-priority' => 10,                      // Maximum priority level (0-255)
             ],
 
             'consumer_tag'          => '',

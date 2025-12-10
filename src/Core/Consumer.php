@@ -149,7 +149,12 @@ class Consumer extends Request implements ConsumerInterface
     protected function configureQos(): void
     {
         if ($this->getProperty('qos', false)) {
-            $this->connectionManager->getChannel()->basic_qos(
+            // Use connectionManager if available, otherwise use parent's getChannel()
+            $channel = $this->connectionManager !== null 
+                ? $this->connectionManager->getChannel() 
+                : $this->getChannel();
+            
+            $channel->basic_qos(
                 (int) $this->getProperty('qos_prefetch_size', 0),
                 (int) $this->getProperty('qos_prefetch_count', 1),
                 (bool) $this->getProperty('qos_a_global', false)

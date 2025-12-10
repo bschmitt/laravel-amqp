@@ -226,6 +226,9 @@ class QueueMaxLengthCompleteTest extends TestCase
      * - reject-publish: Rejects new publishes with basic.nack when queue is full
      * - Messages are not enqueued, publisher receives nack
      * - Requires publisher confirms to be enabled
+     * 
+     * Note: This test verifies that reject-publish works, but the actual nack
+     * handling requires careful timing. We verify by checking queue message count.
      */
     public function testOverflowRejectPublish()
     {
@@ -233,15 +236,23 @@ class QueueMaxLengthCompleteTest extends TestCase
             $this->markTestSkipped('RabbitMQ is not available');
         }
 
+        // Use unique queue name to avoid conflicts
+        $uniqueQueueName = 'test-queue-reject-publish-' . uniqid();
         $config = $this->createConfig([
             'x-max-length' => 2,
             'x-overflow' => 'reject-publish'
         ]);
+        
+        // Override queue name
+        $configData = $config->get('amqp');
+        $configData['properties']['test']['queue'] = $uniqueQueueName;
+        $configData['properties']['test']['queue_force_declare'] = true;
+        $config = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
         $publisher = new Publisher($config);
         $publisher->setup();
 
-        // Fill queue to max (2 messages)
+        // Fill queue to max (2 messages) - publish without mandatory to avoid blocking
         $message1 = new \Bschmitt\Amqp\Models\Message('msg-1', [
             'content_type' => 'text/plain',
             'delivery_mode' => 2
@@ -251,18 +262,23 @@ class QueueMaxLengthCompleteTest extends TestCase
             'delivery_mode' => 2
         ]);
 
-        // Publish with mandatory flag to get nack
-        $result1 = $publisher->publish($this->testRoutingKey, $message1, true);
-        $result2 = $publisher->publish($this->testRoutingKey, $message2, true);
+        // Publish first two messages (should succeed)
+        $result1 = $publisher->publish($this->testRoutingKey, $message1, false);
+        usleep(100000); // Small delay
+        $result2 = $publisher->publish($this->testRoutingKey, $message2, false);
+        usleep(200000); // Wait for messages to be in queue
 
-        // Try to publish 3rd message - should be rejected
+        // Try to publish 3rd message - should be rejected (but we can't easily detect nack without confirms)
         $message3 = new \Bschmitt\Amqp\Models\Message('msg-3', [
             'content_type' => 'text/plain',
             'delivery_mode' => 2
         ]);
-        $result3 = $publisher->publish($this->testRoutingKey, $message3, true);
+        $result3 = $publisher->publish($this->testRoutingKey, $message3, false);
 
         \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+
+        // Wait a bit for any rejected messages to be processed
+        usleep(300000);
 
         // Consume - should only have 2 messages (3rd was rejected)
         $consumer = new Consumer($config);
@@ -271,7 +287,7 @@ class QueueMaxLengthCompleteTest extends TestCase
         $consumedMessages = [];
         $messageCount = 0;
         try {
-            $consumer->consume($this->testQueueName, function ($message, $resolver) use (&$consumedMessages, &$messageCount) {
+            $consumer->consume($uniqueQueueName, function ($message, $resolver) use (&$consumedMessages, &$messageCount) {
                 $consumedMessages[] = $message->body;
                 $messageCount++;
                 $resolver->acknowledge($message);

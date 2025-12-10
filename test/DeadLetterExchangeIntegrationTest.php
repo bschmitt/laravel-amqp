@@ -57,7 +57,7 @@ class DeadLetterExchangeIntegrationTest extends TestCase
             'exchange' => $exchange ?? $this->testExchange,
             'exchange_type' => 'topic',
             'exchange_passive' => false,
-            'exchange_durable' => true,
+            'exchange_durable' => true,  // Durable exchanges (matches DLX requirements)
             'exchange_auto_delete' => false,
             'exchange_internal' => false,
             'exchange_nowait' => false,
@@ -102,41 +102,25 @@ class DeadLetterExchangeIntegrationTest extends TestCase
 
     /**
      * Setup DLX exchange and queue
+     * Uses durable exchange to match main exchange settings
      */
     private function setupDLX(): void
     {
-        $dlxConfig = $this->createConfig([], $this->dlxExchange, $this->dlxQueue);
+        // Create DLX queue and bind it (exchange will be created automatically)
+        // Use durable exchange to match main exchange settings
+        $dlxQueueConfig = $this->createConfig(
+            [],  // No queue properties
+            $this->dlxExchange,  // DLX exchange name
+            $this->dlxQueue  // DLX queue name
+        );
         
-        // Create DLX exchange
-        $publisher = new Publisher($dlxConfig);
-        $publisher->setup();
-        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+        // Override routing key for DLX queue
+        $configData = $dlxQueueConfig->get('amqp');
+        $configData['properties']['test']['routing'] = $this->dlxRoutingKey;
+        $dlxQueueConfig = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
-        // Create DLX queue and bind it
-        $dlxQueueConfig = [
-            'amqp' => [
-                'use' => 'test',
-                'properties' => [
-                    'test' => [
-                        'host' => env('AMQP_HOST', 'localhost'),
-                        'port' => (int) env('AMQP_PORT', 5672),
-                        'username' => env('AMQP_USER', 'guest'),
-                        'password' => env('AMQP_PASSWORD', 'guest'),
-                        'vhost' => env('AMQP_VHOST', '/'),
-                        'exchange' => $this->dlxExchange,
-                        'exchange_type' => 'topic',
-                        'queue' => $this->dlxQueue,
-                        'queue_force_declare' => true,
-                        'queue_durable' => false,
-                        'queue_auto_delete' => true,
-                        'routing' => $this->dlxRoutingKey,
-                        'queue_properties' => [],
-                    ]
-                ]
-            ]
-        ];
-
-        $consumer = new Consumer(new Repository($dlxQueueConfig));
+        // This will create both the exchange and queue
+        $consumer = new Consumer($dlxQueueConfig);
         $consumer->setup();
         \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
     }
@@ -200,31 +184,21 @@ class DeadLetterExchangeIntegrationTest extends TestCase
         usleep(500000); // 0.5 seconds
 
         // Check DLX queue for the dead letter
-        $dlxQueueConfig = [
-            'amqp' => [
-                'use' => 'test',
-                'properties' => [
-                    'test' => [
-                        'host' => env('AMQP_HOST', 'localhost'),
-                        'port' => (int) env('AMQP_PORT', 5672),
-                        'username' => env('AMQP_USER', 'guest'),
-                        'password' => env('AMQP_PASSWORD', 'guest'),
-                        'vhost' => env('AMQP_VHOST', '/'),
-                        'exchange' => $this->dlxExchange,
-                        'exchange_type' => 'topic',
-                        'queue' => $this->dlxQueue,
-                        'queue_force_declare' => false, // Don't recreate
-                        'queue_durable' => false,
-                        'queue_auto_delete' => true,
-                        'routing' => $this->dlxRoutingKey,
-                        'queue_properties' => [],
-                        'timeout' => 2,
-                    ]
-                ]
-            ]
-        ];
+        // Use createConfig to ensure exchange durability matches
+        $dlxQueueConfig = $this->createConfig(
+            [],  // No queue properties
+            $this->dlxExchange,  // DLX exchange name
+            $this->dlxQueue  // DLX queue name
+        );
+        
+        // Override routing key and ensure exchange durability matches
+        $configData = $dlxQueueConfig->get('amqp');
+        $configData['properties']['test']['routing'] = $this->dlxRoutingKey;
+        $configData['properties']['test']['exchange_durable'] = true;  // Match setupDLX
+        $configData['properties']['test']['queue_force_declare'] = false;  // Don't recreate
+        $dlxQueueConfig = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
-        $dlxConsumer = new Consumer(new Repository($dlxQueueConfig));
+        $dlxConsumer = new Consumer($dlxQueueConfig);
         $dlxConsumer->setup();
 
         $dlxMessages = [];
@@ -280,31 +254,20 @@ class DeadLetterExchangeIntegrationTest extends TestCase
         sleep(3);
 
         // Check DLX queue for expired message
-        $dlxQueueConfig = [
-            'amqp' => [
-                'use' => 'test',
-                'properties' => [
-                    'test' => [
-                        'host' => env('AMQP_HOST', 'localhost'),
-                        'port' => (int) env('AMQP_PORT', 5672),
-                        'username' => env('AMQP_USER', 'guest'),
-                        'password' => env('AMQP_PASSWORD', 'guest'),
-                        'vhost' => env('AMQP_VHOST', '/'),
-                        'exchange' => $this->dlxExchange,
-                        'exchange_type' => 'topic',
-                        'queue' => $this->dlxQueue,
-                        'queue_force_declare' => false,
-                        'queue_durable' => false,
-                        'queue_auto_delete' => true,
-                        'routing' => $this->dlxRoutingKey,
-                        'queue_properties' => [],
-                        'timeout' => 2,
-                    ]
-                ]
-            ]
-        ];
+        $dlxQueueConfig = $this->createConfig(
+            [],  // No queue properties
+            $this->dlxExchange,  // DLX exchange name
+            $this->dlxQueue  // DLX queue name
+        );
+        
+        // Override routing key and ensure exchange durability matches
+        $configData = $dlxQueueConfig->get('amqp');
+        $configData['properties']['test']['routing'] = $this->dlxRoutingKey;
+        $configData['properties']['test']['exchange_durable'] = true;  // Match setupDLX
+        $configData['properties']['test']['queue_force_declare'] = false;  // Don't recreate
+        $dlxQueueConfig = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
-        $dlxConsumer = new Consumer(new Repository($dlxQueueConfig));
+        $dlxConsumer = new Consumer($dlxQueueConfig);
         $dlxConsumer->setup();
 
         $dlxMessages = [];
@@ -367,31 +330,20 @@ class DeadLetterExchangeIntegrationTest extends TestCase
         usleep(500000); // 0.5 seconds
 
         // Check DLX queue
-        $dlxQueueConfig = [
-            'amqp' => [
-                'use' => 'test',
-                'properties' => [
-                    'test' => [
-                        'host' => env('AMQP_HOST', 'localhost'),
-                        'port' => (int) env('AMQP_PORT', 5672),
-                        'username' => env('AMQP_USER', 'guest'),
-                        'password' => env('AMQP_PASSWORD', 'guest'),
-                        'vhost' => env('AMQP_VHOST', '/'),
-                        'exchange' => $this->dlxExchange,
-                        'exchange_type' => 'topic',
-                        'queue' => $this->dlxQueue,
-                        'queue_force_declare' => false,
-                        'queue_durable' => false,
-                        'queue_auto_delete' => true,
-                        'routing' => $this->dlxRoutingKey,
-                        'queue_properties' => [],
-                        'timeout' => 2,
-                    ]
-                ]
-            ]
-        ];
+        $dlxQueueConfig = $this->createConfig(
+            [],  // No queue properties
+            $this->dlxExchange,  // DLX exchange name
+            $this->dlxQueue  // DLX queue name
+        );
+        
+        // Override routing key and ensure exchange durability matches
+        $configData = $dlxQueueConfig->get('amqp');
+        $configData['properties']['test']['routing'] = $this->dlxRoutingKey;
+        $configData['properties']['test']['exchange_durable'] = true;  // Match setupDLX
+        $configData['properties']['test']['queue_force_declare'] = false;  // Don't recreate
+        $dlxQueueConfig = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
-        $dlxConsumer = new Consumer(new Repository($dlxQueueConfig));
+        $dlxConsumer = new Consumer($dlxQueueConfig);
         $dlxConsumer->setup();
 
         $dlxMessages = [];
