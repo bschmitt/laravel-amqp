@@ -44,7 +44,11 @@ return [
             'queue_nowait'          => false,
             'queue_properties'      => [
                 'x-ha-policy' => ['S', 'all'],
-                'x-max-length' => 1
+                'x-max-length' => 1,
+                // 'x-message-ttl' => 60000,        // Message TTL in milliseconds (60 seconds)
+                // 'x-expires' => 3600000,          // Queue expiration in milliseconds (1 hour)
+                // 'x-dead-letter-exchange' => 'dlx-exchange',  // Dead letter exchange name
+                // 'x-dead-letter-routing-key' => 'dlx.key',    // Routing key for dead letters (optional)
             ],
 
             'consumer_tag'          => '',
