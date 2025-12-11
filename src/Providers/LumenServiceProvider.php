@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp;
+namespace Bschmitt\Amqp\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
@@ -28,18 +28,19 @@ class LumenServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->bind('Bschmitt\Amqp\Publisher', function ($app) {
-            return new Publisher($app->config);
+        $this->app->bind(\Bschmitt\Amqp\Core\Publisher::class, function ($app) {
+            return new \Bschmitt\Amqp\Core\Publisher($app->config);
         });
 
-        $this->app->bind('Bschmitt\Amqp\Consumer', function ($app) {
-            return new Consumer($app->config);
+        $this->app->bind(\Bschmitt\Amqp\Core\Consumer::class, function ($app) {
+            return new \Bschmitt\Amqp\Core\Consumer($app->config);
         });
 
-        $this->app->bind('Amqp', 'Bschmitt\Amqp\Amqp');
+        $this->app->bind('Amqp', \Bschmitt\Amqp\Core\Amqp::class);
 
         if (!class_exists('Amqp')) {
             class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
         }
     }
 }
+

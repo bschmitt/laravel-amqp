@@ -3,8 +3,9 @@
 namespace Bschmitt\Amqp\Test;
 
 use Bschmitt\Amqp\Exception\Configuration;
+use Bschmitt\Amqp\Test\Support\BaseTestCase;
 use \Mockery;
-use Bschmitt\Amqp\Request;
+use Bschmitt\Amqp\Core\Request;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 
@@ -60,7 +61,7 @@ class RequestTest extends BaseTestCase
                 $this->defaultConfig['queue_exclusive'],
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
-                $this->defaultConfig['queue_properties']
+                \Mockery::any()
             )
             ->andReturn([$queueName, 4])
             ->once();
@@ -107,7 +108,7 @@ class RequestTest extends BaseTestCase
                 $this->defaultConfig['queue_exclusive'],
                 $this->defaultConfig['queue_auto_delete'],
                 $this->defaultConfig['queue_nowait'],
-                $this->defaultConfig['queue_properties']
+                \Mockery::any()
             )
             ->andReturn([$queueName, 4])
             ->once();

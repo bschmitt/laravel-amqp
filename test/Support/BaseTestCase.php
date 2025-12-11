@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Support;
 
 use \Mockery;
 use Illuminate\Config\Repository;
@@ -16,7 +16,7 @@ class BaseTestCase extends TestCase
 
     protected function setUp() : void
     {
-        $amqpConfig = include dirname(__FILE__).'/../config/amqp.php';
+        $amqpConfig = include dirname(__FILE__).'/../../config/amqp.php';
         $this->defaultConfig = $amqpConfig['properties'][$amqpConfig['use']];
 
         $config = Mockery::mock('\Illuminate\Config\Repository');
