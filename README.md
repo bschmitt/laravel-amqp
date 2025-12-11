@@ -86,28 +86,41 @@ Amqp::publish('routing-key', 'message', [
 ### Consuming Messages
 
 ```php
-// Consume and acknowledge
-Amqp::consume('queue-name', function ($message, $resolver) {
+use Bschmitt\Amqp\Facades\Amqp;
+
+// Consume and acknowledge (using dynamic call)
+$amqp = app('Amqp');
+$amqp->consume('queue-name', function ($message, $resolver) {
     echo $message->body;
     $resolver->acknowledge($message);
     $resolver->stopWhenProcessed();
 });
 
 // Consume forever
-Amqp::consume('queue-name', function ($message, $resolver) {
+$amqp = app('Amqp');
+$amqp->consume('queue-name', function ($message, $resolver) {
     processMessage($message->body);
     $resolver->acknowledge($message);
 }, ['persistent' => true]);
+
+// Alternative: Using resolve() helper
+$amqp = resolve('Amqp');
+$amqp->consume('queue-name', function ($message, $resolver) {
+    processMessage($message->body);
+    $resolver->acknowledge($message);
+});
 ```
 
 ### RPC Pattern
 
 ```php
-// Client side - Make RPC call
-$response = Amqp::rpc('rpc-queue', 'request-data', [], 30);
+// Client side - Make RPC call (using dynamic call)
+$amqp = app('Amqp');
+$response = $amqp->rpc('rpc-queue', 'request-data', [], 30);
 
-// Server side - Process and reply
-Amqp::consume('rpc-queue', function ($message, $resolver) {
+// Server side - Process and reply (using dynamic call)
+$amqp = app('Amqp');
+$amqp->consume('rpc-queue', function ($message, $resolver) {
     $result = processRequest($message->body);
     $resolver->reply($message, $result);
     $resolver->acknowledge($message);
@@ -117,7 +130,8 @@ Amqp::consume('rpc-queue', function ($message, $resolver) {
 ### Listen to Multiple Routing Keys
 
 ```php
-Amqp::listen(['key1', 'key2', 'key3'], function ($message, $resolver) {
+$amqp = app('Amqp');
+$amqp->listen(['key1', 'key2', 'key3'], function ($message, $resolver) {
     processMessage($message->body);
     $resolver->acknowledge($message);
 });
@@ -230,8 +244,9 @@ Amqp::publish('', 'message', [
     'exchange' => 'amq.fanout',
 ]);
 
-// Consuming
-Amqp::consume('', function ($message, $resolver) {
+// Consuming (using dynamic call)
+$amqp = app('Amqp');
+$amqp->consume('', function ($message, $resolver) {
     echo $message->body;
     $resolver->acknowledge($message);
 }, [
@@ -247,27 +262,33 @@ Amqp::consume('', function ($message, $resolver) {
 ### Queue Management
 
 ```php
+// Get Amqp instance
+$amqp = app('Amqp');
+
 // Purge queue
-Amqp::queuePurge('my-queue', ['queue' => 'my-queue']);
+$amqp->queuePurge('my-queue', ['queue' => 'my-queue']);
 
 // Delete queue
-Amqp::queueDelete('my-queue', ['queue' => 'my-queue']);
+$amqp->queueDelete('my-queue', ['queue' => 'my-queue']);
 
 // Get queue statistics
-$stats = Amqp::getQueueStats('my-queue', '/');
+$stats = $amqp->getQueueStats('my-queue', '/');
 ```
 
 ### Management API
 
 ```php
+// Get Amqp instance
+$amqp = app('Amqp');
+
 // Get queue statistics
-$stats = Amqp::getQueueStats('my-queue', '/');
+$stats = $amqp->getQueueStats('my-queue', '/');
 
 // List connections
-$connections = Amqp::getConnections();
+$connections = $amqp->getConnections();
 
 // Create policy
-Amqp::createPolicy('my-policy', [
+$amqp->createPolicy('my-policy', [
     'pattern' => '^my-queue$',
     'definition' => ['max-length' => 1000]
 ], '/');
@@ -299,31 +320,33 @@ See [Testing Guide](docs/laravel-amqp.wiki/Testing.md) for more information.
 ### New Methods
 
 **RPC:**
-- `Amqp::rpc($routingKey, $request, $properties, $timeout)` - Make RPC calls
+- `$amqp->rpc($routingKey, $request, $properties, $timeout)` - Make RPC calls (use `$amqp = app('Amqp')`)
 - `Consumer::reply($message, $response, $properties)` - Send RPC responses
-- `Amqp::listen($routingKeys, $callback, $properties)` - Auto-create queues with multiple bindings
+- `$amqp->listen($routingKeys, $callback, $properties)` - Auto-create queues with multiple bindings (use `$amqp = app('Amqp')`)
 
 **Management:**
-- `Amqp::queuePurge($queue, $properties)` - Purge queue
-- `Amqp::queueDelete($queue, $ifUnused, $ifEmpty, $properties)` - Delete queue
-- `Amqp::queueUnbind(...)` - Unbind queue
-- `Amqp::exchangeDelete(...)` - Delete exchange
-- `Amqp::exchangeUnbind(...)` - Unbind exchange
+- `$amqp->queuePurge($queue, $properties)` - Purge queue (use `$amqp = app('Amqp')`)
+- `$amqp->queueDelete($queue, $ifUnused, $ifEmpty, $properties)` - Delete queue
+- `$amqp->queueUnbind(...)` - Unbind queue
+- `$amqp->exchangeDelete(...)` - Delete exchange
+- `$amqp->exchangeUnbind(...)` - Unbind exchange
 
 **Management API:**
-- `Amqp::getQueueStats($queue, $vhost, $properties)` - Queue statistics
-- `Amqp::getConnections($connectionName, $properties)` - List connections
-- `Amqp::getChannels($channelName, $properties)` - List channels
-- `Amqp::getNodes($nodeName, $properties)` - Cluster nodes
-- `Amqp::getPolicies($properties)` - List policies
-- `Amqp::createPolicy(...)` - Create policy
-- `Amqp::updatePolicy(...)` - Update policy
-- `Amqp::deletePolicy(...)` - Delete policy
-- `Amqp::listFeatureFlags($properties)` - List feature flags
-- `Amqp::getFeatureFlag($name, $properties)` - Get feature flag
+- `$amqp->getQueueStats($queue, $vhost, $properties)` - Queue statistics (use `$amqp = app('Amqp')`)
+- `$amqp->getConnections($connectionName, $properties)` - List connections
+- `$amqp->getChannels($channelName, $properties)` - List channels
+- `$amqp->getNodes($nodeName, $properties)` - Cluster nodes
+- `$amqp->getPolicies($properties)` - List policies
+- `$amqp->createPolicy(...)` - Create policy
+- `$amqp->updatePolicy(...)` - Update policy
+- `$amqp->deletePolicy(...)` - Delete policy
+- `$amqp->listFeatureFlags($properties)` - List feature flags
+- `$amqp->getFeatureFlag($name, $properties)` - Get feature flag
 
 **Helpers:**
-- `Amqp::getConnectionConfig($connectionName)` - Get connection config
+- `$amqp->getConnectionConfig($connectionName)` - Get connection config (use `$amqp = app('Amqp')`)
+
+**Note:** For `consume()`, `listen()`, `rpc()`, and all management methods, you must resolve the Amqp instance from the container using `$amqp = app('Amqp')` or `$amqp = resolve('Amqp')`. The static facade `Amqp::` works for `publish()` but not for `consume()` and other instance methods.
 
 ## Backward Compatibility
 
