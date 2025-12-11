@@ -3,8 +3,9 @@
 namespace Bschmitt\Amqp\Test;
 
 use Illuminate\Support\Facades\App;
+use Bschmitt\Amqp\Test\Support\BaseTestCase;
 use \Mockery;
-use Bschmitt\Amqp\Publisher;
+use Bschmitt\Amqp\Core\Publisher;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 
