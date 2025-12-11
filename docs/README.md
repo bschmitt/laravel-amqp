@@ -76,6 +76,55 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
     - Coupling analysis
     - Scalability assessment
 
+### New Modules (Version 3.1.0)
+
+13. **[RPC Module](./modules/RPC_MODULE.md)**
+    - `rpc()` - Make RPC calls
+    - `reply()` - Send RPC responses
+    - `listen()` - Auto-create queues with multiple bindings
+    - Request-response pattern support
+
+14. **[Management Operations Module](./modules/MANAGEMENT_OPERATIONS.md)**
+    - `queuePurge()` - Remove all messages
+    - `queueDelete()` - Delete queues
+    - `queueUnbind()` - Unbind queues
+    - `exchangeDelete()` - Delete exchanges
+    - `exchangeUnbind()` - Unbind exchanges
+
+15. **[Management API Module](./modules/MANAGEMENT_API.md)**
+    - `getQueueStats()` - Queue statistics
+    - `getConnections()` - Connection information
+    - `getChannels()` - Channel information
+    - `getNodes()` - Node information
+    - `getPolicies()` - Policy management
+    - `createPolicy()` - Create policies
+    - `updatePolicy()` - Update policies
+    - `deletePolicy()` - Delete policies
+    - `listFeatureFlags()` - Feature flags
+    - `getFeatureFlag()` - Feature flag status
+
+16. **[Message Properties Module](./modules/MESSAGE_PROPERTIES_MODULE.md)**
+    - Full AMQP property support
+    - Priority, correlation_id, reply_to
+    - Application headers
+    - Content type and encoding
+    - Message expiration
+
+17. **[Listen Method Module](./modules/LISTEN_METHOD.md)**
+    - `listen()` - Auto-create queues
+    - Multiple routing key binding
+    - Simplified multi-key consumption
+
+18. **[Consumer Prefetch Module](./modules/CONSUMER_PREFETCH.md)**
+    - QoS prefetch configuration
+    - Dynamic prefetch adjustment
+    - Rate limiting control
+
+19. **[Connection Configuration Module](./modules/CONNECTION_CONFIG.md)**
+    - `getConnectionConfig()` - Retrieve connection configs
+    - Multi-connection support
+    - Dynamic configuration access
+
 ### Feature Status
 
 
@@ -102,6 +151,13 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
 | Stream Queues | Supported | [STREAM_QUEUES.md](./modules/STREAM_QUEUES.md) |
 | Publisher Confirms | Supported | [PUBLISHER_CONFIRMS.md](./modules/PUBLISHER_CONFIRMS.md) |
 | Master Locator | Supported (Deprecated) | [MASTER_LOCATOR.md](./modules/MASTER_LOCATOR.md) |
+| RPC Pattern | Supported | [RPC_MODULE.md](./modules/RPC_MODULE.md) |
+| Management Operations | Supported | [MANAGEMENT_OPERATIONS.md](./modules/MANAGEMENT_OPERATIONS.md) |
+| Management API | Supported | [MANAGEMENT_API.md](./modules/MANAGEMENT_API.md) |
+| Message Properties | Supported | [MESSAGE_PROPERTIES_MODULE.md](./modules/MESSAGE_PROPERTIES_MODULE.md) |
+| Listen Method | Supported | [LISTEN_METHOD.md](./modules/LISTEN_METHOD.md) |
+| Consumer Prefetch | Supported | [CONSUMER_PREFETCH.md](./modules/CONSUMER_PREFETCH.md) |
+| Connection Config | Supported | [CONNECTION_CONFIG.md](./modules/CONNECTION_CONFIG.md) |
 
 ## Getting Started
 

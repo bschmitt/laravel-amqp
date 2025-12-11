@@ -108,17 +108,17 @@ Integration tests require a real RabbitMQ instance. They test:
 
 | Feature | Unit Tests | Integration Tests |
 |---------|-----------|-------------------|
-| Maximum Queue Length | ✅ | ✅ |
-| Message TTL | ✅ | ✅ |
-| Queue Expires | ✅ | ✅ |
-| Dead Letter Exchange | ✅ | ✅ |
-| Message Priority | ✅ | ✅ |
-| Lazy Queues | ✅ | ✅ |
-| Queue Types | ✅ | ✅ |
-| Publisher | ✅ | ✅ |
-| Consumer | ✅ | ✅ |
-| Request | ✅ | - |
-| Backward Compatibility | ✅ | - |
+| Maximum Queue Length | Yes | Yes |
+| Message TTL | Yes | Yes |
+| Queue Expires | Yes | Yes |
+| Dead Letter Exchange | Yes | Yes |
+| Message Priority | Yes | Yes |
+| Lazy Queues | Yes | Yes |
+| Queue Types | Yes | Yes |
+| Publisher | Yes | Yes |
+| Consumer | Yes | Yes |
+| Request | Yes | - |
+| Backward Compatibility | Yes | - |
 
 ## Base Classes
 

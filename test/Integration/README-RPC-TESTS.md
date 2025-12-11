@@ -22,11 +22,11 @@ Some RPC integration tests may fail or be marked as incomplete in single-threade
 
 ### Test Status
 
-- ✅ `testRpcTimeout()` - Passes (tests timeout handling)
-- ✅ `testRpcMethodExists()` - Passes (verifies method exists)
-- ⚠️ `testRpcCallAndResponse()` - May fail due to blocking (works in production)
-- ⚠️ `testRpcWithReplyMethod()` - May fail due to blocking (works in production)
-- ⚠️ `testReplySendsResponseToReplyToQueue()` - May fail due to timing (works in production)
+- `testRpcTimeout()` - Passes (tests timeout handling)
+- `testRpcMethodExists()` - Passes (verifies method exists)
+- `testRpcCallAndResponse()` - May fail due to blocking (works in production)
+- `testRpcWithReplyMethod()` - May fail due to blocking (works in production)
+- `testReplySendsResponseToReplyToQueue()` - May fail due to timing (works in production)
 
 ## Running RPC Tests
 
