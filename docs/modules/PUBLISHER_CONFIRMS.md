@@ -4,11 +4,11 @@
 
 Publisher confirms provide a lightweight mechanism to ensure that messages have been successfully received and processed by the RabbitMQ broker. This feature is crucial for applications requiring reliable message delivery guarantees.
 
-**Status:** ✅ **Fully Supported**
+**Status:**  **Fully Supported**
 
 ## Key Features
 
-### ✅ Supported Features
+###  Supported Features
 
 - **Enable Publisher Confirms:** Enable confirms on the channel
 - **Ack Callback Registration:** Register callbacks for successful message delivery
@@ -442,13 +442,13 @@ php vendor/bin/phpunit test/Integration/PublisherConfirmsIntegrationTest.php
 
 Publisher confirms are **fully supported** in this package. Key features:
 
-✅ **Enable Publisher Confirms:** Via config or programmatically  
-✅ **Ack Callback Registration:** Handle successful confirmations  
-✅ **Nack Callback Registration:** Handle failed confirmations  
-✅ **Return Callback Registration:** Handle returned messages  
-✅ **Wait for Confirms API:** `waitForConfirms()` and `waitForConfirmsAndReturns()`  
-✅ **Configuration Support:** Enable via `publisher_confirms => true`  
-✅ **Mandatory Flag Integration:** Automatically enables confirms when `mandatory=true`  
+ **Enable Publisher Confirms:** Via config or programmatically  
+ **Ack Callback Registration:** Handle successful confirmations  
+ **Nack Callback Registration:** Handle failed confirmations  
+ **Return Callback Registration:** Handle returned messages  
+ **Wait for Confirms API:** `waitForConfirms()` and `waitForConfirmsAndReturns()`  
+ **Configuration Support:** Enable via `publisher_confirms => true`  
+ **Mandatory Flag Integration:** Automatically enables confirms when `mandatory=true`  
 
 **Important:** Publisher confirms provide delivery guarantees and are essential for reliable message publishing. Use them for critical messages that must be delivered.
 

@@ -6,7 +6,7 @@ RabbitMQ supports different queue types, each optimized for specific use cases. 
 
 ## Feature Support
 
-✅ **Fully Supported** - The `x-queue-type` property is supported through the `queue_properties` configuration.
+ **Fully Supported** - The `x-queue-type` property is supported through the `queue_properties` configuration.
 
 ## Queue Types
 
@@ -197,25 +197,25 @@ php vendor/bin/phpunit test/QueueTypeIntegrationTest.php
 ### Queue Type Constraints
 
 #### Quorum Queues
-- ✅ Must be durable
-- ❌ Cannot be exclusive
-- ❌ Cannot be auto-delete
-- ❌ Cannot use lazy mode
-- ✅ Supports most other queue properties
+-  Must be durable
+-  Cannot be exclusive
+-  Cannot be auto-delete
+-  Cannot use lazy mode
+-  Supports most other queue properties
 
 #### Stream Queues
-- ✅ Must be durable
-- ❌ Cannot be exclusive
-- ❌ Cannot be auto-delete
-- ✅ Different consumption model (offset-based)
-- ✅ Supports message replay
+-  Must be durable
+-  Cannot be exclusive
+-  Cannot be auto-delete
+-  Different consumption model (offset-based)
+-  Supports message replay
 
 #### Classic Queues
-- ✅ All properties supported
-- ✅ Can be non-durable
-- ✅ Can be exclusive
-- ✅ Can be auto-delete
-- ✅ Supports lazy mode
+-  All properties supported
+-  Can be non-durable
+-  Can be exclusive
+-  Can be auto-delete
+-  Supports lazy mode
 
 ## Best Practices
 
@@ -244,7 +244,7 @@ php vendor/bin/phpunit test/QueueTypeIntegrationTest.php
 
 ## Related Features
 
-- [Lazy Queues](./LAZY_QUEUES_DOCUMENTATION.md) - Keep messages on disk (classic queues only)
+- [Lazy Queues](./LAZY_QUEUES.md) - Keep messages on disk (classic queues only)
 - [Maximum Queue Length](./README.md#maximum-queue-length) - Limit queue size
 - [Message TTL](./README.md#message-ttl) - Set message expiration
 - [Dead Letter Exchange](./README.md#dead-letter-exchange) - Handle rejected messages

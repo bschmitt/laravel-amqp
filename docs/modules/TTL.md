@@ -168,10 +168,10 @@ php vendor/bin/phpunit test/QueueTTLTest.php
 ```
 
 **Test Coverage:**
-- ✅ `testQueueDeclareWithMessageTTL()` - Message TTL configuration
-- ✅ `testQueueDeclareWithQueueExpires()` - Queue expiration configuration
-- ✅ `testQueueDeclareWithBothTTLProperties()` - Both properties together
-- ✅ `testQueueDeclareWithTTLAndMaxLength()` - TTL with other properties
+-  `testQueueDeclareWithMessageTTL()` - Message TTL configuration
+-  `testQueueDeclareWithQueueExpires()` - Queue expiration configuration
+-  `testQueueDeclareWithBothTTLProperties()` - Both properties together
+-  `testQueueDeclareWithTTLAndMaxLength()` - TTL with other properties
 
 ### Integration Tests
 
@@ -186,10 +186,10 @@ php vendor/bin/phpunit test/QueueTTLIntegrationTest.php
 ```
 
 **Test Coverage:**
-- ✅ `testMessageTTLExpiration()` - Message expiration behavior
-- ✅ `testMessageTTLBeforeExpiration()` - Message consumption before TTL
-- ✅ `testQueueExpires()` - Queue expiration behavior
-- ✅ `testBothTTLPropertiesTogether()` - Combined TTL behavior
+-  `testMessageTTLExpiration()` - Message expiration behavior
+-  `testMessageTTLBeforeExpiration()` - Message consumption before TTL
+-  `testQueueExpires()` - Queue expiration behavior
+-  `testBothTTLPropertiesTogether()` - Combined TTL behavior
 
 ---
 
@@ -267,13 +267,13 @@ php vendor/bin/phpunit test/QueueTTLIntegrationTest.php
 ## Changelog
 
 **2024-12-10**: TTL feature fully implemented and tested
-- ✅ Added `x-message-ttl` support
-- ✅ Added `x-expires` support
-- ✅ Created comprehensive unit tests
-- ✅ Created comprehensive integration tests
-- ✅ Updated documentation
+-  Added `x-message-ttl` support
+-  Added `x-expires` support
+-  Created comprehensive unit tests
+-  Created comprehensive integration tests
+-  Updated documentation
 
 ---
 
-**Status:** ✅ Production Ready
+**Status:**  Production Ready
 

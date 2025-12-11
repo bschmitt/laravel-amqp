@@ -298,10 +298,10 @@ php vendor/bin/phpunit test/DeadLetterExchangeTest.php
 ```
 
 **Test Coverage:**
-- ✅ `testQueueDeclareWithDeadLetterExchange()` - DLX exchange configuration
-- ✅ `testQueueDeclareWithDeadLetterRoutingKey()` - DLX routing key configuration
-- ✅ `testQueueDeclareWithDLXAndOtherProperties()` - DLX with other properties
-- ✅ `testQueueDeclareWithDLXExchangeOnly()` - DLX without routing key
+-  `testQueueDeclareWithDeadLetterExchange()` - DLX exchange configuration
+-  `testQueueDeclareWithDeadLetterRoutingKey()` - DLX routing key configuration
+-  `testQueueDeclareWithDLXAndOtherProperties()` - DLX with other properties
+-  `testQueueDeclareWithDLXExchangeOnly()` - DLX without routing key
 
 ### Integration Tests
 
@@ -316,10 +316,10 @@ php vendor/bin/phpunit test/DeadLetterExchangeIntegrationTest.php
 ```
 
 **Test Coverage:**
-- ✅ `testRejectedMessagesGoToDLX()` - Rejected messages routing
-- ✅ `testExpiredMessagesGoToDLX()` - Expired messages routing
-- ✅ `testMaxLengthMessagesGoToDLX()` - Overflow messages routing
-- ✅ `testDLXWithCustomRoutingKey()` - Custom routing key behavior
+-  `testRejectedMessagesGoToDLX()` - Rejected messages routing
+-  `testExpiredMessagesGoToDLX()` - Expired messages routing
+-  `testMaxLengthMessagesGoToDLX()` - Overflow messages routing
+-  `testDLXWithCustomRoutingKey()` - Custom routing key behavior
 
 ---
 
@@ -457,13 +457,13 @@ $dlxConsumer->consume('dlx-queue', function ($message, $resolver) {
 ## Changelog
 
 **2024-12-10**: Dead Letter Exchange feature fully implemented and tested
-- ✅ Added `x-dead-letter-exchange` support
-- ✅ Added `x-dead-letter-routing-key` support
-- ✅ Created comprehensive unit tests
-- ✅ Created comprehensive integration tests
-- ✅ Updated documentation
+-  Added `x-dead-letter-exchange` support
+-  Added `x-dead-letter-routing-key` support
+-  Created comprehensive unit tests
+-  Created comprehensive integration tests
+-  Updated documentation
 
 ---
 
-**Status:** ✅ Production Ready
+**Status:**  Production Ready
 

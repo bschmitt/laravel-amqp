@@ -6,7 +6,7 @@ Lazy queues are a RabbitMQ feature that helps manage large message backlogs by k
 
 ## Feature Support
 
-✅ **Fully Supported** - The `x-queue-mode` property is supported through the `queue_properties` configuration.
+ **Fully Supported** - The `x-queue-mode` property is supported through the `queue_properties` configuration.
 
 ## Configuration
 

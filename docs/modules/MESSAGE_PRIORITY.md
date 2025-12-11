@@ -263,10 +263,10 @@ php vendor/bin/phpunit test/MessagePriorityTest.php
 ```
 
 **Test Coverage:**
-- ✅ `testQueueDeclareWithMaxPriority()` - Max priority configuration
-- ✅ `testQueueDeclareWithPriorityAlias()` - x-priority alias support
-- ✅ `testQueueDeclareWithPriorityAndOtherProperties()` - Priority with other properties
-- ✅ `testQueueDeclareWithDifferentPriorityLevels()` - Various priority levels
+-  `testQueueDeclareWithMaxPriority()` - Max priority configuration
+-  `testQueueDeclareWithPriorityAlias()` - x-priority alias support
+-  `testQueueDeclareWithPriorityAndOtherProperties()` - Priority with other properties
+-  `testQueueDeclareWithDifferentPriorityLevels()` - Various priority levels
 
 ### Integration Tests
 
@@ -281,10 +281,10 @@ php vendor/bin/phpunit test/MessagePriorityIntegrationTest.php
 ```
 
 **Test Coverage:**
-- ✅ `testHighPriorityMessagesConsumedFirst()` - Priority ordering
-- ✅ `testMessagesWithoutPriorityTreatedAsZero()` - Default priority behavior
-- ✅ `testPriorityExceedingMaxIsCapped()` - Priority capping
-- ✅ `testMultiplePriorityLevels()` - Multiple priority levels
+-  `testHighPriorityMessagesConsumedFirst()` - Priority ordering
+-  `testMessagesWithoutPriorityTreatedAsZero()` - Default priority behavior
+-  `testPriorityExceedingMaxIsCapped()` - Priority capping
+-  `testMultiplePriorityLevels()` - Multiple priority levels
 
 ---
 
@@ -473,13 +473,13 @@ $message = new Message('background-job', ['priority' => 1]);
 ## Changelog
 
 **2024-12-10**: Message Priority feature fully implemented and tested
-- ✅ Added `x-max-priority` support
-- ✅ Added message `priority` property support
-- ✅ Created comprehensive unit tests
-- ✅ Created comprehensive integration tests
-- ✅ Updated documentation
+-  Added `x-max-priority` support
+-  Added message `priority` property support
+-  Created comprehensive unit tests
+-  Created comprehensive integration tests
+-  Updated documentation
 
 ---
 
-**Status:** ✅ Production Ready
+**Status:**  Production Ready
 

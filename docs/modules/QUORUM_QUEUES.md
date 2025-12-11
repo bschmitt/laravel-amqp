@@ -4,11 +4,11 @@
 
 Quorum queues are a modern queue type in RabbitMQ that provide high availability, strong consistency, and better performance than mirrored classic queues. They use the Raft consensus algorithm for leader election and replication.
 
-**Status:** ✅ **Supported** via `x-queue-type: quorum`
+**Status:**  **Supported** via `x-queue-type: quorum`
 
 ## Key Features
 
-### ✅ Supported Features
+###  Supported Features
 
 - **Queue Type Selection:** Configure via `x-queue-type: quorum`
 - **Automatic Leader Election:** Handled by RabbitMQ automatically
@@ -350,12 +350,12 @@ rabbitmqctl node_health_check
 
 Quorum queues are **fully supported** in this package via the `x-queue-type: quorum` configuration. Key features:
 
-✅ **Queue Type Selection:** Configure via `x-queue-type: quorum`  
-✅ **Leader Election:** Automatic (handled by RabbitMQ)  
-✅ **Raft Consensus:** Automatic (built into RabbitMQ)  
-✅ **Replication:** Automatic across cluster nodes  
-✅ **High Availability:** Better than mirrored classic queues  
-✅ **Performance:** Improved over classic mirrored queues  
+ **Queue Type Selection:** Configure via `x-queue-type: quorum`  
+ **Leader Election:** Automatic (handled by RabbitMQ)  
+ **Raft Consensus:** Automatic (built into RabbitMQ)  
+ **Replication:** Automatic across cluster nodes  
+ **High Availability:** Better than mirrored classic queues  
+ **Performance:** Improved over classic mirrored queues  
 
 **Important:** Leader election and Raft consensus are handled automatically by RabbitMQ - you just need to configure `x-queue-type: quorum` and ensure your queue properties meet the requirements (durable, non-exclusive, non-auto-delete).
 

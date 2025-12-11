@@ -181,28 +181,28 @@ try {
 ## Choosing the Right Exchange Type
 
 ### Use Topic Exchange When:
-- ✅ You need pattern-based routing
-- ✅ Multiple consumers with different patterns
-- ✅ Complex routing scenarios
-- ✅ Event-driven architectures
+-  You need pattern-based routing
+-  Multiple consumers with different patterns
+-  Complex routing scenarios
+-  Event-driven architectures
 
 ### Use Direct Exchange When:
-- ✅ Simple point-to-point messaging
-- ✅ Exact routing key matching
-- ✅ Task queues
-- ✅ Request-response patterns
+-  Simple point-to-point messaging
+-  Exact routing key matching
+-  Task queues
+-  Request-response patterns
 
 ### Use Fanout Exchange When:
-- ✅ Broadcasting to all consumers
-- ✅ Pub/sub patterns
-- ✅ Event notifications
-- ✅ Log distribution
+-  Broadcasting to all consumers
+-  Pub/sub patterns
+-  Event notifications
+-  Log distribution
 
 ### Use Headers Exchange When:
-- ✅ Routing based on message attributes
-- ✅ Multi-criteria routing
-- ✅ Routing keys are not sufficient
-- ✅ Complex header-based matching
+-  Routing based on message attributes
+-  Multi-criteria routing
+-  Routing keys are not sufficient
+-  Complex header-based matching
 
 ## Routing Key Behavior by Exchange Type
 

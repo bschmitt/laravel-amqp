@@ -4,21 +4,21 @@
 
 Stream queues are a specialized queue type in RabbitMQ designed for high-throughput, append-only log data structures. They are ideal for event sourcing, message replay, and scenarios where you need to read messages multiple times.
 
-**Status:** ✅ **Partially Supported** via `x-queue-type: stream`
+**Status:**  **Partially Supported** via `x-queue-type: stream`
 
 **Important Note:** Stream queue **declaration** works via AMQP, but **consumption** requires the RabbitMQ Stream API, not standard AMQP `basic_consume`. This package uses the AMQP protocol, so while you can declare and publish to stream queues, consumption may require using RabbitMQ's Stream API directly or a Stream-specific client library.
 
 ## Key Features
 
-### ✅ Supported Features
+###  Supported Features
 
-- **Queue Type Selection:** Configure via `x-queue-type: stream` ✅
-- **Queue Declaration:** Declare stream queues via AMQP ✅
-- **Message Publishing:** Publish messages to stream queues ✅
+- **Queue Type Selection:** Configure via `x-queue-type: stream` 
+- **Queue Declaration:** Declare stream queues via AMQP 
+- **Message Publishing:** Publish messages to stream queues 
 
-### ⚠️ Limited Support
+###  Limited Support
 
-- **Message Consumption:** Stream queues require RabbitMQ Stream API, not standard AMQP `basic_consume` ⚠️
+- **Message Consumption:** Stream queues require RabbitMQ Stream API, not standard AMQP `basic_consume` 
   - Queue declaration and publishing work via AMQP
   - Consumption requires Stream API or Stream-specific client
   - This package uses AMQP protocol, so consumption may not work as expected
@@ -357,14 +357,14 @@ curl -u guest:guest http://localhost:15672/api/stream/consumers
 
 Stream queues are **partially supported** in this package via the `x-queue-type: stream` configuration. Key features:
 
-✅ **Queue Type Selection:** Configure via `x-queue-type: stream`  
-✅ **Queue Declaration:** Declare stream queues via AMQP  
-✅ **Message Publishing:** Publish messages to stream queues  
+ **Queue Type Selection:** Configure via `x-queue-type: stream`  
+ **Queue Declaration:** Declare stream queues via AMQP  
+ **Message Publishing:** Publish messages to stream queues  
 
-⚠️ **Consumption Limitation:** Stream queue consumption requires RabbitMQ Stream API, not standard AMQP `basic_consume`. This package uses AMQP protocol, so:
-- Queue declaration works ✅
-- Message publishing works ✅
-- Message consumption requires Stream API ⚠️
+ **Consumption Limitation:** Stream queue consumption requires RabbitMQ Stream API, not standard AMQP `basic_consume`. This package uses AMQP protocol, so:
+- Queue declaration works 
+- Message publishing works 
+- Message consumption requires Stream API 
 
 **Important:** 
 - Stream queues require RabbitMQ 3.9.0+ with stream plugin enabled

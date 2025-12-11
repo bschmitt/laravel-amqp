@@ -4,7 +4,7 @@
 
 The `x-queue-master-locator` property allows you to specify the strategy for selecting the master node when creating mirrored queues in a RabbitMQ cluster. This feature is part of RabbitMQ's High Availability (HA) functionality.
 
-**⚠️ Important Note:** This feature is **deprecated** in RabbitMQ. RabbitMQ recommends using **Quorum Queues** instead of mirrored queues for high availability, leader election, replication, and cluster resilience.
+** Important Note:** This feature is **deprecated** in RabbitMQ. RabbitMQ recommends using **Quorum Queues** instead of mirrored queues for high availability, leader election, replication, and cluster resilience.
 
 ## Deprecation Notice
 
@@ -131,11 +131,11 @@ Instead of using mirrored queues with master locator, RabbitMQ recommends using 
 
 ### Benefits of Quorum Queues
 
-- ✅ Better performance
-- ✅ Stronger consistency guarantees
-- ✅ Automatic leader election
-- ✅ Better resource utilization
-- ✅ Active development and support
+-  Better performance
+-  Stronger consistency guarantees
+-  Automatic leader election
+-  Better resource utilization
+-  Active development and support
 
 ## Testing
 
