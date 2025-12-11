@@ -69,7 +69,27 @@ class Amqp
 
         try {
             $applicationHeaders = $properties['application_headers'] ?? [];
-            $message = $this->messageFactory->create($message, $applicationHeaders);
+            
+            // Extract message-specific properties
+            $messageProperties = [];
+            $messagePropertyKeys = [
+                'priority', 'correlation_id', 'reply_to', 'message_id', 
+                'timestamp', 'type', 'user_id', 'app_id', 'expiration',
+                'content_type', 'content_encoding', 'delivery_mode'
+            ];
+            
+            foreach ($messagePropertyKeys as $key) {
+                if (isset($properties[$key])) {
+                    $messageProperties[$key] = $properties[$key];
+                }
+            }
+            
+            // Include application_headers in message properties if provided separately
+            if (!empty($applicationHeaders)) {
+                $messageProperties['application_headers'] = $applicationHeaders;
+            }
+            
+            $message = $this->messageFactory->create($message, $applicationHeaders, $messageProperties);
             $mandatory = (bool) ($properties['mandatory'] ?? false);
 
             return $publisher->publish($routing, $message, $mandatory);
