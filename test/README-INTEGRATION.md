@@ -30,31 +30,31 @@ These integration tests use **real RabbitMQ connections** with **no mocks**. The
 ### FullIntegrationTest.php
 Comprehensive integration tests covering all functionality:
 
-- ✅ **testBasicPublish** - Basic message publishing
-- ✅ **testBasicConsume** - Basic message consumption
-- ✅ **testBatchPublish** - Batch message publishing
-- ✅ **testMessageRejectionWithRequeue** - Reject and requeue messages
-- ✅ **testMessageRejectionWithoutRequeue** - Reject without requeue
-- ✅ **testAmqpFacadePublish** - Using Amqp facade to publish
-- ✅ **testAmqpFacadeConsume** - Using Amqp facade to consume
-- ✅ **testQueueMessageCount** - Check queue message count
-- ✅ **testMandatoryPublish** - Mandatory publishing
-- ✅ **testQoSConfiguration** - Quality of Service settings
-- ✅ **testMultipleRoutingKeys** - Multiple routing key bindings
+- **testBasicPublish** - Basic message publishing
+- **testBasicConsume** - Basic message consumption
+- **testBatchPublish** - Batch message publishing
+- **testMessageRejectionWithRequeue** - Reject and requeue messages
+- **testMessageRejectionWithoutRequeue** - Reject without requeue
+- **testAmqpFacadePublish** - Using Amqp facade to publish
+- **testAmqpFacadeConsume** - Using Amqp facade to consume
+- **testQueueMessageCount** - Check queue message count
+- **testMandatoryPublish** - Mandatory publishing
+- **testQoSConfiguration** - Quality of Service settings
+- **testMultipleRoutingKeys** - Multiple routing key bindings
 
 ### ConsumerVerificationTest.php
 Debug and verification tests with detailed output:
 
-- ✅ **testPublishAndConsumeImmediately** - Verify immediate consumption
-- ✅ **testConsumeWithTimeout** - Test with timeout settings
-- ✅ **testQueueStatusCheck** - Check queue status and message count
-- ✅ **testConsumeFromEmptyQueue** - Handle empty queue gracefully
+- **testPublishAndConsumeImmediately** - Verify immediate consumption
+- **testConsumeWithTimeout** - Test with timeout settings
+- **testQueueStatusCheck** - Check queue status and message count
+- **testConsumeFromEmptyQueue** - Handle empty queue gracefully
 
 ### QueueMaxLengthIntegrationTest.php
 Tests for queue max length feature:
 
-- ✅ **testQueueMaxLengthKeepsOnlyLatestMessage** - Max length = 1 behavior
-- ✅ **testQueueMaxLengthWithConsumption** - Max length with consumption
+- **testQueueMaxLengthKeepsOnlyLatestMessage** - Max length = 1 behavior
+- **testQueueMaxLengthWithConsumption** - Max length with consumption
 
 ## Troubleshooting
 
