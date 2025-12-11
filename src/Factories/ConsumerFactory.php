@@ -34,18 +34,84 @@ class ConsumerFactory implements ConsumerFactoryInterface
      */
     public function create(array $properties = []): ConsumerInterface
     {
-        // Create consumer with default config
-        if ($this->defaultConfig !== null) {
-            $consumer = new Consumer($this->defaultConfig);
+        // Check if properties contain full config (host, port, etc.) FIRST
+        // This avoids App facade issues in test environments
+        if (!empty($properties) && isset($properties['host'])) {
+            // Properties already have full config, use them directly
+            $config = new \Illuminate\Config\Repository([
+                'amqp' => [
+                    'use' => 'production',
+                    'properties' => [
+                        'production' => $properties,
+                    ],
+                ],
+            ]);
+            $consumer = new Consumer($config);
+        } elseif ($this->defaultConfig !== null) {
+            // Merge properties with default config if available
+            $defaultProperties = $this->defaultConfig->getProperties();
+            $mergedProperties = array_merge($defaultProperties, $properties);
+            
+            // If merged properties now have host, use them
+            if (isset($mergedProperties['host'])) {
+                $config = new \Illuminate\Config\Repository([
+                    'amqp' => [
+                        'use' => 'production',
+                        'properties' => [
+                            'production' => $mergedProperties,
+                        ],
+                    ],
+                ]);
+                $consumer = new Consumer($config);
+            } else {
+                // If defaultConfig is a ConfigurationProvider, get its Repository
+                if ($this->defaultConfig instanceof \Bschmitt\Amqp\Support\ConfigurationProvider) {
+                    // Get the original Repository from the ConfigurationProvider
+                    $originalConfig = $this->defaultConfig->getConfigRepository();
+                    // Create new config with merged properties
+                    $config = new \Illuminate\Config\Repository([
+                        'amqp' => [
+                            'use' => 'production',
+                            'properties' => [
+                                'production' => $mergedProperties,
+                            ],
+                        ],
+                    ]);
+                    $consumer = new Consumer($config);
+                } else {
+                    $consumer = new Consumer($this->defaultConfig);
+                    // Merge properties if provided
+                    if (!empty($properties)) {
+                        $consumer->mergeProperties($properties);
+                    }
+                }
+            }
         } else {
             // Fallback: create with Laravel config (for backward compatibility)
-            $config = \Illuminate\Support\Facades\App::make('config');
+            try {
+                $config = \Illuminate\Support\Facades\App::make('config');
+            } catch (\Exception $e) {
+                // If App facade not available, create minimal config from properties
+                $config = new \Illuminate\Config\Repository([
+                    'amqp' => [
+                        'use' => 'production',
+                        'properties' => [
+                            'production' => $properties ?: [
+                                'host' => 'localhost',
+                                'port' => 5672,
+                                'username' => 'guest',
+                                'password' => 'guest',
+                                'vhost' => '/',
+                            ],
+                        ],
+                    ],
+                ]);
+            }
             $consumer = new Consumer($config);
-        }
-
-        // Merge properties if provided
-        if (!empty($properties)) {
-            $consumer->mergeProperties($properties);
+            // Merge properties if provided
+            if (!empty($properties)) {
+                $consumer->mergeProperties($properties);
+            }
         }
 
         $consumer->setup();

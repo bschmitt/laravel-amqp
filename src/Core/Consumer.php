@@ -48,12 +48,21 @@ class Consumer extends Request implements ConsumerInterface
         ExchangeManager $exchangeManager = null,
         QueueManager $queueManager = null
     ) {
-        if ($config === null) {
-            $config = \Illuminate\Support\Facades\App::make('config');
-        }
-
-        if ($config === null || !($config instanceof \Illuminate\Contracts\Config\Repository)) {
-            $config = \Illuminate\Support\Facades\App::make('config');
+        // If config is a ConfigurationProviderInterface, use it directly
+        if ($config instanceof \Bschmitt\Amqp\Contracts\ConfigurationProviderInterface) {
+            // Use it as-is, parent will handle it
+        } elseif ($config === null) {
+            try {
+                $config = \Illuminate\Support\Facades\App::make('config');
+            } catch (\Exception $e) {
+                // App facade not available, will be handled by parent
+            }
+        } elseif (!($config instanceof \Illuminate\Contracts\Config\Repository)) {
+            try {
+                $config = \Illuminate\Support\Facades\App::make('config');
+            } catch (\Exception $e) {
+                // App facade not available, config will be null
+            }
         }
 
         parent::__construct($config);
@@ -246,6 +255,101 @@ class Consumer extends Request implements ConsumerInterface
     public function reject(AMQPMessage $message, bool $requeue = false): void
     {
         $message->getChannel()->basic_reject($message->getDeliveryTag(), $requeue);
+    }
+
+    /**
+     * Reply to an RPC request
+     * 
+     * This is a convenience method for RPC patterns. It publishes a response message
+     * to the reply_to queue specified in the original message, using the same
+     * correlation_id to match the request and response.
+     * 
+     * @param AMQPMessage $requestMessage The original request message
+     * @param mixed $response The response data to send back
+     * @param array $properties Additional properties for the response message
+     * @return bool|null
+     */
+    public function reply(AMQPMessage $requestMessage, $response, array $properties = []): ?bool
+    {
+        // Get properties from message
+        $messageProperties = $requestMessage->get_properties();
+        $replyTo = $messageProperties['reply_to'] ?? null;
+        $correlationId = $messageProperties['correlation_id'] ?? null;
+        
+        if (empty($replyTo)) {
+            throw new \RuntimeException('Cannot reply: original message has no reply_to property');
+        }
+        
+        if (empty($correlationId)) {
+            throw new \RuntimeException('Cannot reply: original message has no correlation_id property');
+        }
+        
+        // Merge properties with correlation_id and reply_to
+        // Use default exchange (empty string) to publish directly to queue
+        // For default exchange, we need to connect but not declare exchange
+        $responseProperties = array_merge($properties, [
+            'correlation_id' => $correlationId,
+            'exchange' => '',  // Default exchange - empty string
+            'exchange_type' => 'direct',  // Not used for default exchange but required
+            'routing' => [$replyTo],  // Queue name as routing key for default exchange
+        ]);
+        
+        // Use the consumer's channel to publish the reply
+        // The consumer's channel is more reliable than the message's channel
+        // which might be closed after message processing
+        $channel = $this->getChannel();
+        
+        // Verify channel is open
+        if (!$channel->is_open()) {
+            if (defined('APP_DEBUG') && APP_DEBUG) {
+                error_log('Reply failed: Consumer channel is not open');
+                fwrite(STDERR, "Reply failed: Consumer channel is not open\n");
+            }
+            return false;
+        }
+        
+        try {
+            // Don't try to declare the queue - just publish directly
+            // If the queue doesn't exist, the message will be silently dropped by RabbitMQ
+            // This is acceptable for RPC patterns where the reply queue is created by the caller
+            // The queue should already exist from the RPC caller's setup
+            
+            $messageFactory = new \Bschmitt\Amqp\Factories\MessageFactory();
+            $message = $messageFactory->create($response, [
+                'correlation_id' => $correlationId,
+            ]);
+            
+            // Publish to default exchange (empty string) with queue name as routing key
+            // Default exchange routes messages directly to queues by name
+            // Note: If queue doesn't exist, message will be silently dropped
+            // This is expected behavior for RPC - the caller creates the reply queue
+            $channel->basic_publish($message, '', $replyTo, false);
+            
+            return true;
+        } catch (\PhpAmqpLib\Exception\AMQPProtocolChannelException $e) {
+            // Protocol errors - queue might not exist or channel issue
+            if (defined('APP_DEBUG') && APP_DEBUG) {
+                error_log('Reply failed (Protocol): ' . $e->getMessage());
+                fwrite(STDERR, "Reply failed (Protocol): " . $e->getMessage() . "\n");
+            }
+            return false;
+        } catch (\PhpAmqpLib\Exception\AMQPConnectionException $e) {
+            // Connection errors
+            if (defined('APP_DEBUG') && APP_DEBUG) {
+                error_log('Reply failed (Connection): ' . $e->getMessage());
+                fwrite(STDERR, "Reply failed (Connection): " . $e->getMessage() . "\n");
+            }
+            return false;
+        } catch (\Exception $e) {
+            // Other errors
+            if (defined('APP_DEBUG') && APP_DEBUG) {
+                error_log('Reply failed: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+                error_log('Reply queue: ' . ($replyTo ?? 'null'));
+                error_log('Channel state: ' . ($channel->is_open() ? 'open' : 'closed'));
+                fwrite(STDERR, "Reply failed: " . $e->getMessage() . "\n");
+            }
+            return false;
+        }
     }
 
     /**

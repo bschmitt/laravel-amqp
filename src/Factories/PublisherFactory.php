@@ -34,22 +34,77 @@ class PublisherFactory implements PublisherFactoryInterface
      */
     public function create(array $properties = []): PublisherInterface
     {
-        // Create publisher with default config
+        // Merge properties with default config if available
+        $mergedProperties = $properties;
         if ($this->defaultConfig !== null) {
-            $publisher = new Publisher($this->defaultConfig);
+            $defaultProperties = $this->defaultConfig->getProperties();
+            $mergedProperties = array_merge($defaultProperties, $properties);
+        }
+        
+        // If merged properties contain full config (host, port, etc.), create Repository from them
+        // This avoids App facade issues in test environments
+        if (isset($mergedProperties['host'])) {
+            // Create a Repository from properties to avoid App facade issues
+            $config = new \Illuminate\Config\Repository([
+                'amqp' => [
+                    'use' => 'production',
+                    'properties' => [
+                        'production' => $mergedProperties,
+                    ],
+                ],
+            ]);
+            $publisher = new Publisher($config);
+        } elseif ($this->defaultConfig !== null) {
+            // If defaultConfig is a ConfigurationProvider, get its Repository
+            if ($this->defaultConfig instanceof \Bschmitt\Amqp\Support\ConfigurationProvider) {
+                // Get the original Repository from the ConfigurationProvider
+                $originalConfig = $this->defaultConfig->getConfigRepository();
+                // Create new config with merged properties
+                $config = new \Illuminate\Config\Repository([
+                    'amqp' => [
+                        'use' => 'production',
+                        'properties' => [
+                            'production' => $mergedProperties,
+                        ],
+                    ],
+                ]);
+                $publisher = new Publisher($config);
+            } else {
+                $publisher = new Publisher($this->defaultConfig);
+                // Merge properties if provided
+                if (!empty($properties)) {
+                    $publisher->mergeProperties($properties);
+                }
+            }
         } else {
             // Fallback: create with Laravel config (for backward compatibility)
-            $config = \Illuminate\Support\Facades\App::make('config');
+            try {
+                $config = \Illuminate\Support\Facades\App::make('config');
+            } catch (\Exception $e) {
+                // If App facade not available, create minimal config from properties
+                $config = new \Illuminate\Config\Repository([
+                    'amqp' => [
+                        'use' => 'production',
+                        'properties' => [
+                            'production' => $mergedProperties ?: [
+                                'host' => 'localhost',
+                                'port' => 5672,
+                                'username' => 'guest',
+                                'password' => 'guest',
+                                'vhost' => '/',
+                            ],
+                        ],
+                    ],
+                ]);
+            }
             $publisher = new Publisher($config);
-        }
-
-        // Merge properties if provided
-        if (!empty($properties)) {
-            $publisher->mergeProperties($properties);
+            // Merge properties if provided
+            if (!empty($properties)) {
+                $publisher->mergeProperties($properties);
+            }
         }
 
         $publisher->setup();
         return $publisher;
     }
 }
-

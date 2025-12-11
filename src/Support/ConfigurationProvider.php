@@ -83,5 +83,25 @@ class ConfigurationProvider implements ConfigurationProviderInterface
 
         return $options[$key] ?? $default;
     }
+
+    /**
+     * Get the original Repository instance
+     * This is needed for factories that need to create new Repository instances
+     *
+     * @return \Illuminate\Contracts\Config\Repository
+     */
+    public function getConfigRepository(): \Illuminate\Contracts\Config\Repository
+    {
+        // Return a new Repository with the current properties
+        // This allows factories to create new instances without App facade
+        return new \Illuminate\Config\Repository([
+            self::REPOSITORY_KEY => [
+                'use' => 'production',
+                'properties' => [
+                    'production' => $this->properties,
+                ],
+            ],
+        ]);
+    }
 }
 

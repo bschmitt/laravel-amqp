@@ -64,6 +64,14 @@ class Amqp
      */
     public function publish(string $routing, $message, array $properties = []): ?bool
     {
+        // If 'use' is specified, merge that connection's config
+        if (isset($properties['use'])) {
+            $connectionName = $properties['use'];
+            unset($properties['use']);
+            $connectionConfig = $this->getConnectionConfig($connectionName);
+            $properties = array_merge($connectionConfig, $properties);
+        }
+        
         $properties['routing'] = $routing;
         $publisher = $this->publisherFactory->create($properties);
 
@@ -145,6 +153,14 @@ class Amqp
      */
     public function consume(string $queue, Closure $callback, array $properties = []): bool
     {
+        // If 'use' is specified, merge that connection's config
+        if (isset($properties['use'])) {
+            $connectionName = $properties['use'];
+            unset($properties['use']);
+            $connectionConfig = $this->getConnectionConfig($connectionName);
+            $properties = array_merge($connectionConfig, $properties);
+        }
+        
         $properties['queue'] = $queue;
         $consumer = $this->consumerFactory->create($properties);
 
@@ -152,6 +168,188 @@ class Amqp
             return $consumer->consume($queue, $callback);
         } finally {
             $this->disconnectConsumer($consumer);
+        }
+    }
+
+    /**
+     * Listen to multiple routing keys with auto-generated queue
+     * 
+     * This is a convenience method that automatically creates a queue and binds it
+     * to multiple routing keys. It's equivalent to calling consume() with an
+     * auto-generated queue name and multiple routing keys.
+     * 
+     * @param string|array $routingKeys Comma-separated string or array of routing keys
+     * @param Closure $callback Message handler
+     * @param array $properties Additional configuration
+     * @return bool
+     */
+    public function listen($routingKeys, Closure $callback, array $properties = []): bool
+    {
+        // Convert comma-separated string to array
+        if (is_string($routingKeys)) {
+            $routingKeys = array_filter(array_map('trim', explode(',', $routingKeys)), function($key) {
+                return !empty($key);
+            });
+        }
+        
+        if (!is_array($routingKeys) || empty($routingKeys)) {
+            throw new \InvalidArgumentException('Routing keys must be a non-empty string or array');
+        }
+        
+        // Generate queue name if not provided
+        if (empty($properties['queue'])) {
+            $properties['queue'] = 'listener-' . uniqid('', true);
+        }
+        
+        // Set routing keys
+        $properties['routing'] = $routingKeys;
+        
+        // Set defaults for auto-generated queues if not specified
+        if (!isset($properties['queue_auto_delete'])) {
+            $properties['queue_auto_delete'] = true;
+        }
+        
+        // Ensure exchange is set (default to topic if not specified)
+        if (empty($properties['exchange_type'])) {
+            $properties['exchange_type'] = 'topic';
+        }
+        
+        return $this->consume($properties['queue'], $callback, $properties);
+    }
+
+    /**
+     * Make an RPC call and wait for response
+     * 
+     * This is a convenience method for RPC (Remote Procedure Call) patterns.
+     * It publishes a request with a correlation_id and reply_to queue, then
+     * waits for a response with the matching correlation_id.
+     * 
+     * @param string $routingKey Routing key for the request
+     * @param mixed $request Request data
+     * @param array $properties Additional configuration
+     * @param int $timeout Timeout in seconds (default: 30)
+     * @return mixed|null The response data, or null if timeout
+     */
+    public function rpc(string $routingKey, $request, array $properties = [], int $timeout = 30)
+    {
+        // Generate unique correlation ID
+        $correlationId = uniqid('rpc_', true);
+        
+        // Create a unique reply queue for this request
+        $replyQueue = 'rpc-reply-' . $correlationId;
+        
+        // Set up response storage
+        $responseReceived = false;
+        $response = null;
+        
+        // Set up response consumer BEFORE publishing
+        $consumerProperties = array_merge($properties, [
+            'queue' => $replyQueue,
+            'timeout' => $timeout,
+            'queue_auto_delete' => true,
+            'queue_exclusive' => true,
+        ]);
+        
+        // Start consumer in a way that allows timeout
+        $consumer = $this->consumerFactory->create($consumerProperties);
+        
+        try {
+            // Set up the consumer callback
+            $channel = $consumer->getChannel();
+            $channel->basic_consume(
+                $replyQueue,
+                '',
+                false,
+                false,
+                false,
+                false,
+                function ($message) use (&$responseReceived, &$response, $correlationId, $consumer) {
+                    // Check if this is the response we're waiting for
+                    // Get correlation_id from message properties
+                    $messageProperties = $message->get_properties();
+                    $msgCorrelationId = $messageProperties['correlation_id'] ?? null;
+                    
+                    if ($msgCorrelationId === $correlationId) {
+                        $response = $message->body;
+                        $responseReceived = true;
+                        $message->getChannel()->basic_ack($message->getDeliveryTag());
+                        // Cancel consumer to stop waiting
+                        $message->getChannel()->basic_cancel($message->getConsumerTag());
+                    } else {
+                        // Not our response, requeue it
+                        $message->getChannel()->basic_reject($message->getDeliveryTag(), true);
+                    }
+                }
+            );
+            
+            // Publish request
+            $requestProperties = array_merge($properties, [
+                'correlation_id' => $correlationId,
+                'reply_to' => $replyQueue,
+            ]);
+            
+            $this->publish($routingKey, $request, $requestProperties);
+            
+            // Wait for response with timeout
+            $startTime = time();
+            while (!$responseReceived && (time() - $startTime) < $timeout) {
+                try {
+                    $channel->wait(null, false, 1); // Wait 1 second at a time
+                    if ($responseReceived) {
+                        break;
+                    }
+                } catch (\PhpAmqpLib\Exception\AMQPTimeoutException $e) {
+                    // Timeout is expected, continue loop to check if response was received
+                    continue;
+                } catch (\Exception $e) {
+                    // Other exception, break
+                    break;
+                }
+            }
+            
+            return $responseReceived ? $response : null;
+        } finally {
+            $this->disconnectConsumer($consumer);
+        }
+    }
+
+    /**
+     * Get connection configuration for a specific connection name
+     * 
+     * This is a helper method that retrieves connection configuration from
+     * the config file. Use it with publish/consume by passing the returned
+     * config as the properties parameter.
+     * 
+     * @param string $connection Connection name from config
+     * @return array Connection configuration
+     */
+    public function getConnectionConfig(string $connection): array
+    {
+        // Try to get config from App container if available (Laravel context)
+        try {
+            $config = \Illuminate\Support\Facades\App::make('config');
+            $connectionConfig = $config->get("amqp.properties.{$connection}", []);
+            
+            if (empty($connectionConfig)) {
+                throw new \InvalidArgumentException("Connection '{$connection}' not found in config");
+            }
+            
+            return $connectionConfig;
+        } catch (\Exception $e) {
+            // If App facade is not available, try to load config directly
+            $configFile = __DIR__ . '/../../config/amqp.php';
+            if (file_exists($configFile)) {
+                $config = include $configFile;
+                $connectionConfig = $config['properties'][$connection] ?? [];
+                
+                if (empty($connectionConfig)) {
+                    throw new \InvalidArgumentException("Connection '{$connection}' not found in config");
+                }
+                
+                return $connectionConfig;
+            }
+            
+            throw new \RuntimeException("Cannot load connection '{$connection}': " . $e->getMessage());
         }
     }
 
