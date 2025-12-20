@@ -38,15 +38,27 @@ class ReplyMethodIntegrationTest extends TestCase
             ],
         ]);
 
-        // Use Repository directly to avoid App facade issues
-        $publisher = new Publisher($config);
-        $publisher->setup();
-        
         $replyQueue = 'reply-queue-' . uniqid();
         $correlationId = 'test-correlation-' . uniqid();
         
-        // Create reply queue FIRST so it exists when reply is published
-        // We'll keep a consumer active to ensure queue exists
+        // Create request queue and consumer FIRST so queue exists before publishing
+        $consumerConfig = new Repository([
+            'amqp' => [
+                'use' => 'production',
+                'properties' => [
+                    'production' => array_merge($config->get('amqp.properties.production'), [
+                        'queue' => 'test-request-queue',
+                        'exchange' => 'test-reply-exchange',
+                        'exchange_type' => 'direct',
+                        'routing' => ['test-request-queue'], // Explicit routing key to bind queue
+                    ]),
+                ],
+            ],
+        ]);
+        $consumer = new Consumer($consumerConfig);
+        $consumer->setup(); // This will create the queue and bind it to the exchange
+        
+        // Create reply queue so it exists when reply is published
         $replyQueueConfig = new Repository([
             'amqp' => [
                 'use' => 'production',
@@ -56,6 +68,9 @@ class ReplyMethodIntegrationTest extends TestCase
                         'queue_durable' => true,  // Durable so it persists
                         'queue_auto_delete' => false,  // Don't auto-delete so it persists
                         'queue_exclusive' => false, // Not exclusive so it persists
+                        'exchange' => 'amq.direct', // Use built-in exchange for reply queue
+                        'exchange_type' => 'direct',
+                        'exchange_passive' => true,
                     ]),
                 ],
             ],
@@ -66,7 +81,10 @@ class ReplyMethodIntegrationTest extends TestCase
         // Keep the channel open to ensure queue exists when reply is published
         $replyChannel = $replyQueueConsumer->getChannel();
         
-        // Publish a request with reply_to - need to create Message object
+        // Now publish a request with reply_to - need to create Message object
+        $publisher = new Publisher($config);
+        $publisher->setup();
+        
         $messageFactory = new \Bschmitt\Amqp\Factories\MessageFactory();
         $message = $messageFactory->create('request-data', [
             'correlation_id' => $correlationId,
@@ -74,35 +92,23 @@ class ReplyMethodIntegrationTest extends TestCase
         ]);
         $publisher->publish('test-request-queue', $message, false);
         
-        // Create consumer to receive the request - use Repository directly
-        $consumerConfig = new Repository([
-            'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => array_merge($config->get('amqp.properties.production'), [
-                        'queue' => 'test-request-queue',
-                        'exchange' => 'test-reply-exchange',
-                        'exchange_type' => 'direct',
-                    ]),
-                ],
-            ],
-        ]);
-        $consumer = new Consumer($consumerConfig);
-        $consumer->setup();
-        
         $requestReceived = false;
         $requestMessage = null;
         
-        // Consume the request
-        $consumer->consume('test-request-queue', function ($message, $resolver) use (&$requestReceived, &$requestMessage) {
-            $requestReceived = true;
-            $requestMessage = $message;
-            $resolver->acknowledge($message);
-            $resolver->stopWhenProcessed();
-        });
+        // Consume the request with timeout
+        try {
+            $consumer->consume('test-request-queue', function ($message, $resolver) use (&$requestReceived, &$requestMessage) {
+                $requestReceived = true;
+                $requestMessage = $message;
+                $resolver->acknowledge($message);
+                $resolver->stopWhenProcessed();
+            }, ['timeout' => 5, 'persistent' => true]);
+        } catch (\Exception $e) {
+            // Timeout or error - request might not have been received
+        }
         
-        // $this->assertTrue($requestReceived);
-        $this->assertNotNull($requestMessage);
+        $this->assertTrue($requestReceived, 'Request message should be received');
+        $this->assertNotNull($requestMessage, 'Request message should not be null');
         
         // Test reply method - reply queue now exists and channel is open
         if ($requestMessage) {

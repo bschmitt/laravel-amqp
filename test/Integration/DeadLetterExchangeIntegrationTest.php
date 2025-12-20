@@ -48,8 +48,12 @@ class DeadLetterExchangeIntegrationTest extends TestCase
     protected function tearDown(): void
     {
         // Clean up: delete test queues
-        $this->deleteQueue($this->testQueueName);
-        $this->deleteQueue($this->dlxQueue);
+        if ($this->testQueueName !== null) {
+            $this->deleteQueue($this->testQueueName);
+        }
+        if ($this->dlxQueue !== null) {
+            $this->deleteQueue($this->dlxQueue);
+        }
         parent::tearDown();
     }
     

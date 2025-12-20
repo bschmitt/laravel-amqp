@@ -48,8 +48,12 @@ class ExchangeTypeIntegrationTest extends IntegrationTestBase
     protected function tearDown(): void
     {
         // Clean up: delete test queue and exchange
-        $this->deleteQueue($this->testQueueName);
-        $this->deleteExchange($this->testExchange);
+        if ($this->testQueueName !== null) {
+            $this->deleteQueue($this->testQueueName);
+        }
+        if ($this->testExchange !== null) {
+            $this->deleteExchange($this->testExchange);
+        }
         parent::tearDown();
     }
 
