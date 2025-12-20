@@ -5,7 +5,8 @@ namespace Bschmitt\Amqp\Managers;
 use Bschmitt\Amqp\Contracts\ConnectionManagerInterface;
 use Bschmitt\Amqp\Contracts\ConfigurationProviderInterface;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
-use PhpAmqpLib\Connection\AMQPSSLConnection;
+use PhpAmqpLib\Connection\AMQPConnectionFactory;
+use PhpAmqpLib\Connection\AMQPConnectionConfig;
 use PhpAmqpLib\Channel\AMQPChannel;
 
 class ConnectionManager implements ConnectionManagerInterface
@@ -49,15 +50,50 @@ class ConnectionManager implements ConnectionManagerInterface
         $vhost = $this->config->getProperty('vhost', '/');
 
         if ($this->config->getProperty('ssl_options')) {
-            $this->connection = new AMQPSSLConnection(
-                $host,
-                $port,
-                $username,
-                $password,
-                $vhost,
-                $this->config->getProperty('ssl_options', []),
-                $this->config->getProperty('connect_options', [])
-            );
+            // Use new AMQPConnectionFactory API for SSL connections
+            $connectionConfig = new AMQPConnectionConfig();
+            $connectionConfig->setHost($host);
+            $connectionConfig->setPort($port);
+            $connectionConfig->setUser($username);
+            $connectionConfig->setPassword($password);
+            $connectionConfig->setVhost($vhost);
+            
+            // Set SSL options
+            $sslOptions = $this->config->getProperty('ssl_options', []);
+            $connectionConfig->setIsSecure(true);
+            
+            if (isset($sslOptions['cafile'])) {
+                $connectionConfig->setSslCaCert($sslOptions['cafile']);
+            }
+            if (isset($sslOptions['local_cert'])) {
+                $connectionConfig->setSslCert($sslOptions['local_cert']);
+            }
+            if (isset($sslOptions['local_key'])) {
+                $connectionConfig->setSslKey($sslOptions['local_key']);
+            }
+            if (isset($sslOptions['passphrase'])) {
+                $connectionConfig->setSslPassPhrase($sslOptions['passphrase']);
+            }
+            $connectionConfig->setSslVerify(isset($sslOptions['verify_peer']) ? (bool) $sslOptions['verify_peer'] : true);
+            $connectionConfig->setSslVerifyName(isset($sslOptions['verify_peer_name']) ? (bool) $sslOptions['verify_peer_name'] : true);
+            
+            // Apply connection options
+            $connectOptions = $this->config->getProperty('connect_options', []);
+            if (isset($connectOptions['connection_timeout'])) {
+                $connectionConfig->setConnectionTimeout($connectOptions['connection_timeout']);
+            }
+            if (isset($connectOptions['read_write_timeout'])) {
+                $connectionConfig->setReadTimeout($connectOptions['read_write_timeout']);
+                $connectionConfig->setWriteTimeout($connectOptions['read_write_timeout']);
+            }
+            if (isset($connectOptions['heartbeat'])) {
+                $connectionConfig->setHeartbeat($connectOptions['heartbeat']);
+            }
+            if (isset($connectOptions['keepalive'])) {
+                $connectionConfig->setKeepalive((bool) $connectOptions['keepalive']);
+            }
+            
+            $this->connection = AMQPConnectionFactory::create($connectionConfig);
         } else {
             $this->connection = new AMQPStreamConnection(
                 $host,
