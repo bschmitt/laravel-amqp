@@ -87,10 +87,12 @@ class ManagementApiIntegrationTest extends IntegrationTestBase
     protected function tearDown(): void
     {
         // Cleanup: try to delete test policy
-        try {
-            $this->apiClient->deletePolicy($this->testPolicyName);
-        } catch (\Exception $e) {
-            // Ignore cleanup errors
+        if ($this->apiClient !== null && $this->testPolicyName !== null) {
+            try {
+                $this->apiClient->deletePolicy($this->testPolicyName);
+            } catch (\Exception $e) {
+                // Ignore cleanup errors
+            }
         }
         parent::tearDown();
     }

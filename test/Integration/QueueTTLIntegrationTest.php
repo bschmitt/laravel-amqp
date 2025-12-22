@@ -41,7 +41,9 @@ class QueueTTLIntegrationTest extends TestCase
     protected function tearDown(): void
     {
         // Clean up: delete test queue
-        $this->deleteQueue($this->testQueueName);
+        if ($this->testQueueName !== null) {
+            $this->deleteQueue($this->testQueueName);
+        }
         parent::tearDown();
     }
     

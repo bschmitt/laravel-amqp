@@ -55,7 +55,9 @@ class ConsumerPrefetchIntegrationTest extends IntegrationTestBase
     protected function tearDown(): void
     {
         // Clean up: delete the test queue
-        $this->deleteQueue($this->testQueueName);
+        if ($this->testQueueName !== null) {
+            $this->deleteQueue($this->testQueueName);
+        }
         parent::tearDown();
     }
 
