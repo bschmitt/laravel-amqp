@@ -15,7 +15,7 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - Support for all RabbitMQ exchange types (topic, direct, fanout, headers)
 - Full AMQP message properties support
 
-### Version 3.1.0 New Features
+### Version 3.1.0+ New Features
 - **RPC Pattern Support** - Built-in request-response patterns with `rpc()` and `reply()` methods
 - **Queue Management** - Programmatic control (purge, delete, unbind)
 - **Management HTTP API** - Full integration with RabbitMQ Management API
@@ -206,7 +206,7 @@ return [
 ### Comprehensive Guides
 
 - **[User Manual](docs/USER_MANUAL.md)** - Complete usage guide
-- **[Release Notes](RELEASE_NOTES.md)** - Version 3.1.0 changelog
+- **[Release Notes](RELEASE_NOTES.md)** - Version 3.1.1 changelog (latest: 3.1.1 patch release)
 - **[FAQ](docs/laravel-amqp.wiki/FAQ.md)** - Common questions and answers
 
 ### Wiki Documentation
@@ -315,7 +315,7 @@ php vendor/bin/phpunit test/Integration/
 
 See [Testing Guide](docs/laravel-amqp.wiki/Testing.md) for more information.
 
-## Version 3.1.0 Highlights
+## Version 3.1.0+ Highlights
 
 ### New Methods
 
@@ -350,7 +350,7 @@ See [Testing Guide](docs/laravel-amqp.wiki/Testing.md) for more information.
 
 ## Backward Compatibility
 
-Version 3.1.0 is fully backward compatible with previous versions. All existing code will continue to work without modifications.
+Version 3.1.1 is fully backward compatible with previous versions. All existing code will continue to work without modifications.
 
 ## Contributing
 
@@ -374,5 +374,5 @@ For issues, questions, or contributions:
 
 ---
 
-**Version:** 3.1.0  
+**Version:** 3.1.1  
 **Status:** Ready

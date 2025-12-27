@@ -76,7 +76,7 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
     - Coupling analysis
     - Scalability assessment
 
-### New Modules (Version 3.1.0)
+### New Modules (Version 3.1.0+)
 
 13. **[RPC Module](./modules/RPC_MODULE.md)**
     - `rpc()` - Make RPC calls

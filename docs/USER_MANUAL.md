@@ -865,6 +865,6 @@ For issues, questions, or contributions:
 
 ---
 
-**Last Updated:** 2024
-**Package Version:** 3.1.0
+**Last Updated:** December 2025
+**Package Version:** 3.1.1
 

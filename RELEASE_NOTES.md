@@ -1,5 +1,43 @@
 # Release Notes
 
+## Version 3.1.1 - Patch Release
+
+This patch release fixes critical issues that caused fatal errors and prepares the package for future php-amqplib versions.
+
+### Bug Fixes
+
+1. **Fixed #127: Removed Duplicate Class Files**
+   - Removed duplicate class files (`src/Amqp.php`, `src/Consumer.php`, `src/Publisher.php`)
+   - Fixed "Cannot declare class" fatal error
+   - All classes now properly located in `src/Core/` directory per PSR-4 standards
+   - This issue was introduced in commit 887a1e7 during namespace refactoring
+
+2. **Fixed #128: Replaced Deprecated AMQPSSLConnection**
+   - Updated `src/Core/Request.php` to use `AMQPConnectionFactory` and `AMQPConnectionConfig`
+   - Updated `src/Managers/ConnectionManager.php` to use new API
+   - Maps `ssl_options` to new `setSsl*` methods (`setSslCaCert`, `setSslCert`, `setSslKey`, etc.)
+   - Maps `connect_options` to new timeout/heartbeat/keepalive methods
+   - Maintains backward compatibility with existing configuration
+   - Eliminates deprecation warnings, ready for php-amqplib v4
+
+3. **Fixed Test Errors: Added Null Checks in tearDown() Methods**
+   - Fixed TypeError issues when tests are skipped or setup fails
+   - Added null checks for `testQueueName`, `alternateQueue`, `dlxQueue`, etc.
+   - Fixed `ManagementApiIntegrationTest` `deletePolicy()` null check
+   - Improved test reliability and error handling
+
+### Impact
+
+- **Critical**: Fixes fatal errors caused by duplicate class declarations
+- **Important**: Eliminates deprecation warnings and prepares for php-amqplib v4
+- **Improvement**: Better test reliability and error handling
+
+### Migration
+
+No migration required. This is a bug fix release that maintains full backward compatibility.
+
+---
+
 ## Version 3.1.0 - Major Feature Release
 
 This release introduces significant new features, improvements, and bug fixes to the Laravel AMQP package. The package now provides comprehensive support for RabbitMQ management operations, RPC patterns, message properties, and enhanced testing capabilities.
@@ -398,5 +436,13 @@ For issues, questions, or contributions, please visit:
 
 **Release Date:** 2024
 **Version:** 3.1.0
+**Status:** Production Ready
+
+---
+
+## Version 3.1.1 - Patch Release
+
+**Release Date:** December 2025
+**Version:** 3.1.1
 **Status:** Production Ready
 
