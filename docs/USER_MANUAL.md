@@ -78,14 +78,14 @@ Edit `config/amqp.php`:
 
 ```php
 return [
-    'use' => env('AMQP_USE', 'production'),
-    
+    'use' => env('AMQP_ENV', 'production'),
+
     'properties' => [
         'production' => [
             'host' => env('AMQP_HOST', 'localhost'),
             'port' => env('AMQP_PORT', 5672),
-            'username' => env('AMQP_USERNAME', 'guest'),
-            'password' => env('AMQP_PASSWORD', 'guest'),
+            'username' => env('AMQP_USER', ''),
+            'password' => env('AMQP_PASSWORD', ''),
             'vhost' => env('AMQP_VHOST', '/'),
             'exchange' => env('AMQP_EXCHANGE', 'amq.topic'),
             'exchange_type' => env('AMQP_EXCHANGE_TYPE', 'topic'),
@@ -104,7 +104,7 @@ Add to your `.env` file:
 ```env
 AMQP_HOST=localhost
 AMQP_PORT=5672
-AMQP_USERNAME=guest
+AMQP_USER=guest
 AMQP_PASSWORD=guest
 AMQP_VHOST=/
 AMQP_EXCHANGE=amq.topic
