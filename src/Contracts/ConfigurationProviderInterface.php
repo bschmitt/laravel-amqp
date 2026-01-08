@@ -26,7 +26,7 @@ interface ConfigurationProviderInterface
      * @param array $properties
      * @return self
      */
-    public function mergeProperties(array $properties): self;
+    public function mergeProperties(array $properties): ConfigurationProviderInterface;
 }
 
 
