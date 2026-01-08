@@ -1,4 +1,4 @@
-name: 'CI/CD'
+name: "CI/CD"
 on:
   push:
 
@@ -9,33 +9,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-18.04, ubuntu-20.04 ]
-        php: [ 7.3, 7.4, 8.0, 8.1 ]
+        os: [ubuntu-latest]
+        php: ["7.3", "7.4", "8.0", "8.1", "8.2", "8.3"]
     name: ${{ matrix.os }} - PHP${{ matrix.php }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Installing PHP
-        if: github.ref != 'refs/heads/master'
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          coverage: none
 
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
-          echo "::set-output name=dir::$(composer config cache-files-dir)"
+          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ matrix.os }}-PHP${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ matrix.os }}-PHP${{ matrix.php }}-composer-
 
       - name: Composer Install
         run: composer update --prefer-dist --optimize-autoloader --no-progress --ansi --no-interaction
 
       - name: Unit Tests
-        if: github.ref != 'refs/heads/master'
         run: ./vendor/bin/phpunit

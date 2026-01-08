@@ -176,7 +176,7 @@ $app->withFacades(true, [
 
 ```php
 return [
-    'use' => 'production',
+    'use' => env('AMQP_ENV', 'production'),
 
     'properties' => [
         'production' => [
