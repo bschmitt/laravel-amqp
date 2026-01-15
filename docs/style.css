@@ -156,6 +156,42 @@ body {
   background: var(--primary-color);
 }
 
+.search-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.search-trigger:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.search-trigger svg {
+  flex-shrink: 0;
+}
+
+.search-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.search-hint kbd {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
+  min-width: auto;
+}
+
 .github-link {
   display: flex;
   align-items: center;
@@ -484,6 +520,146 @@ body {
   font-size: 0.9rem;
   line-height: 1.6;
 }
+
+/* Contributors Section */
+.contributors {
+  padding: 6rem 0;
+  background: var(--bg-secondary);
+}
+
+.contributors-subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  margin-bottom: 3rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.contributors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.contributor-card {
+  background: var(--bg-primary);
+  padding: 2rem 1.5rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  text-align: center;
+  transition: var(--transition);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.contributor-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
+  transform: scaleX(0);
+  transition: var(--transition);
+}
+
+.contributor-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--primary-color);
+}
+
+.contributor-card:hover::before {
+  transform: scaleX(1);
+}
+
+.contributor-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--border-color);
+  transition: var(--transition);
+  object-fit: cover;
+}
+
+.contributor-card:hover .contributor-avatar {
+  border-color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.contributor-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.contributor-role {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.github-link-card {
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.1),
+    rgba(236, 72, 153, 0.1)
+  );
+  border: 2px dashed var(--border-color);
+  cursor: pointer;
+}
+
+.github-link-card:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.2),
+    rgba(236, 72, 153, 0.2)
+  );
+  border-color: var(--primary-color);
+}
+
+.view-all-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-decoration: none;
+  color: var(--text-secondary);
+  width: 100%;
+}
+
+.view-all-link svg {
+  opacity: 0.6;
+  transition: var(--transition);
+}
+
+.github-link-card:hover .view-all-link svg {
+  opacity: 1;
+  color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.view-all-text {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
 
 /* Documentation Page */
 .doc-page {

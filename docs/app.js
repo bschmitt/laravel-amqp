@@ -12,6 +12,8 @@ createApp({
       searchOpen: false,
       searchResults: [],
       selectedResultIndex: 0,
+      contributors: [],
+      loadingContributors: true,
     };
   },
   computed: {
@@ -123,11 +125,14 @@ createApp({
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         this.toggleSearch();
+        return;
       }
 
       // Escape to close search
       if (e.key === "Escape" && this.searchOpen) {
+        e.preventDefault();
         this.closeSearch();
+        return;
       }
 
       // Arrow keys to navigate results
@@ -143,7 +148,9 @@ createApp({
           this.selectedResultIndex = Math.max(this.selectedResultIndex - 1, 0);
         } else if (e.key === "Enter") {
           e.preventDefault();
-          this.selectResult(this.filteredSearchResults[this.selectedResultIndex]);
+          if (this.filteredSearchResults[this.selectedResultIndex]) {
+            this.selectResult(this.filteredSearchResults[this.selectedResultIndex]);
+          }
         }
       }
     },
