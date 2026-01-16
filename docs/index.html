@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Laravel AMQP - A powerful AMQP wrapper for Laravel and Lumen to publish and consume messages from RabbitMQ"
+    />
+    <meta
+      name="keywords"
+      content="Laravel, AMQP, RabbitMQ, Queue, Message Queue, PHP, Laravel Package"
+    />
+    <meta name="author" content="Björn Schmitt" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Laravel AMQP - RabbitMQ for Laravel" />
+    <meta
+      property="og:description"
+      content="A powerful AMQP wrapper for Laravel and Lumen to publish and consume messages from RabbitMQ"
+    />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta
+      property="twitter:title"
+      content="Laravel AMQP - RabbitMQ for Laravel"
+    />
+    <meta
+      property="twitter:description"
+      content="A powerful AMQP wrapper for Laravel and Lumen to publish and consume messages from RabbitMQ"
+    />
+
+    <title>Laravel AMQP - RabbitMQ for Laravel</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js for syntax highlighting -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+    />
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Navigation -->
+      <nav class="navbar">
+        <div class="container">
+          <div class="nav-brand">
+            <a href="#home" @click.prevent="currentPage = 'home'" class="nav-brand-link" style="text-decoration: none;color: inherit;display: flex;vertical-align: center;align-content: center;align-items: center;">
+            <img
+              src="mascot.png"
+              alt="Laravel AMQP"
+              class="logo"
+            />
+            <span class="brand-name">Laravel AMQP</span>
+          </a>
+          </div>
+
+          <div class="nav-links">
+            <a
+              href="#home"
+              @click.prevent="currentPage = 'home'"
+              :class="{active: currentPage === 'home'}"
+              >Home</a
+            >
+            <a
+              href="#guide"
+              @click.prevent="currentPage = 'guide'"
+              :class="{active: currentPage === 'guide'}"
+              >Guide</a
+            >
+            <a href="https://github.com/bschmitt/laravel-amqp/issues" target="_blank" rel="noopener noreferrer"
+              >Issues</a
+            >
+            <button class="search-trigger" @click="toggleSearch" title="Search documentation (Ctrl+K)">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span clas="search-hint">Search...</span>
+              <!-- <span class="search-hint">
+                <kbd>Ctrl</kbd>
+                <kbd>K</kbd>
+              </span> -->
+            </button>
+            <button
+              class="theme-toggle"
+              @click="toggleTheme"
+              :title="isDark ? 'Light mode' : 'Dark mode'"
+            >
+              <span v-if="isDark">☀️</span>
+              <span v-else>🌙</span>
+            </button>
+            <a
+              href="https://github.com/bschmitt/laravel-amqp"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="github-link"
+            >
+              <svg
+                height="24"
+                viewBox="0 0 16 16"
+                width="24"
+                fill="currentColor"
+              >
+                <path
+                  d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+                ></path>
+              </svg>
+            </a>
+          </div>
+
+          <button
+            class="mobile-menu-toggle"
+            @click="mobileMenuOpen = !mobileMenuOpen"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Mobile Menu -->
+      <div class="mobile-menu" :class="{open: mobileMenuOpen}">
+        <a
+          href="#home"
+          @click.prevent="currentPage = 'home'; mobileMenuOpen = false"
+          >Home</a
+        >
+        <a
+          href="#guide"
+          @click.prevent="currentPage = 'guide'; mobileMenuOpen = false"
+          >Guide</a
+        >
+        <a href="#issues" target="_blank" rel="noopener noreferrer">Issues</a>
+        <a
+          href="#discussions"
+          @click.prevent="currentPage = 'discussions'; mobileMenuOpen = false"
+          >Discussions</a
+        >
+      </div>
+
+      <!-- Command Palette Search -->
+      <div class="command-palette" v-if="searchOpen" @click.self="closeSearch">
+        <div class="command-palette-content">
+          <div class="command-palette-header">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="Search documentation..."
+              class="command-palette-input"
+              @keydown.esc="closeSearch"
+            />
+            <div class="command-palette-shortcuts">
+              <kbd>ESC</kbd>
+            </div>
+          </div>
+
+          <div class="command-palette-body" v-if="filteredSearchResults.length > 0">
+            <div class="command-palette-results">
+              <div
+                v-for="(result, index) in filteredSearchResults"
+                :key="index"
+                class="search-result"
+                :class="{selected: index === selectedResultIndex}"
+                @click="selectResult(result)"
+                @mouseenter="selectedResultIndex = index"
+              >
+                <div class="result-title">{{ result.title }}</div>
+                <div class="result-snippet">{{ result.snippet }}</div>
+              </div>
+            </div>
+            <div class="command-palette-footer">
+              <div class="footer-hint">
+                <kbd>↑</kbd><kbd>↓</kbd> to navigate
+                <kbd>↵</kbd> to select
+                <kbd>ESC</kbd> to close
+              </div>
+            </div>
+          </div>
+
+          <div class="command-palette-empty" v-else-if="searchQuery.trim()">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-text">No results found</div>
+            <div class="empty-hint">Try different keywords</div>
+          </div>
+
+          <div class="command-palette-empty" v-else>
+            <div class="empty-icon">⌨️</div>
+            <div class="empty-text">Start typing to search</div>
+            <div class="empty-hint">Search across all documentation</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <main>
+        <!-- Home Page -->
+        <div v-if="currentPage === 'home'" class="page home-page">
+          <!-- Hero Section -->
+          <section class="hero">
+            <div class="container">
+              <div class="hero-content">
+                <div class="hero-text">
+                  <h1 class="hero-title">
+                    Laravel AMQP<br />
+                    <span class="gradient-text">It's simple!</span>
+                  </h1>
+                  <p class="hero-subtitle">
+                    It's easy to work with RabbitMQ message queues
+                  </p>
+                  <div class="hero-buttons">
+                    <button
+                      class="btn btn-primary"
+                      @click="currentPage = 'getting-started'"
+                    >
+                      Getting Started
+                    </button>
+                    <button
+                      class="btn btn-secondary"
+                      @click="currentPage = 'guide'"
+                    >
+                      Documentation
+                    </button>
+                  </div>
+                </div>
+                <div class="hero-image">
+                  <div class="glow-effect"></div>
+                  <img
+                    src="mascot.png"
+                    alt="Laravel AMQP Mascot"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Features Section -->
+          <section class="features">
+            <div class="container">
+              <div class="features-grid">
+                <div class="feature-card">
+                  <div class="feature-icon">📦</div>
+                  <h3>Simple Publishing</h3>
+                  <p>
+                    Publish messages to RabbitMQ with a clean, intuitive API. No
+                    complexity, just results.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">🔄</div>
+                  <h3>RPC Pattern</h3>
+                  <p>
+                    Built-in request-response patterns with rpc() and reply()
+                    methods for seamless communication.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">⚙️</div>
+                  <h3>Queue Management</h3>
+                  <p>
+                    Programmatic control over queues and exchanges. Purge,
+                    delete, and manage with ease.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">🔌</div>
+                  <h3>Management API</h3>
+                  <p>
+                    Full integration with RabbitMQ Management HTTP API for
+                    advanced monitoring and control.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">📝</div>
+                  <h3>Message Properties</h3>
+                  <p>
+                    Support for all standard AMQP message properties including
+                    priority, TTL, and custom headers.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">🚀</div>
+                  <h3>Advanced Features</h3>
+                  <p>
+                    Publisher confirms, consumer prefetch, quorum queues, stream
+                    queues, and dead letter exchanges.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Quick Start Section -->
+          <section class="quick-start">
+            <div class="container">
+              <h2 class="section-title">Quick Start</h2>
+              <div class="code-example">
+                <div class="code-tabs">
+                  <button
+                    :class="{active: activeTab === 'install'}"
+                    @click="activeTab = 'install'"
+                  >
+                    Installation
+                  </button>
+                  <button
+                    :class="{active: activeTab === 'publish'}"
+                    @click="activeTab = 'publish'"
+                  >
+                    Publishing
+                  </button>
+                  <button
+                    :class="{active: activeTab === 'consume'}"
+                    @click="activeTab = 'consume'"
+                  >
+                    Consuming
+                  </button>
+                </div>
+                <div class="code-content">
+                  <div v-if="activeTab === 'install'">
+                    <pre><code class="language-bash"># Install via Composer
+composer require bschmitt/laravel-amqp
+
+# Publish configuration
+php artisan vendor:publish --provider="Bschmitt\\Amqp\\Providers\\AmqpServiceProvider"</code></pre>
+                  </div>
+                  <div v-if="activeTab === 'publish'">
+                    <pre><code class="language-php">use Bschmitt\Amqp\Facades\Amqp;
+
+// Simple publish
+Amqp::publish('routing-key', 'Hello World');
+
+// Publish with properties
+Amqp::publish('routing-key', 'Message', [
+    'priority' => 10,
+    'correlation_id' => 'unique-id',
+    'application_headers' => [
+        'X-Custom-Header' => 'value'
+    ]
+]);</code></pre>
+                  </div>
+                  <div v-if="activeTab === 'consume'">
+                    <pre><code class="language-php">use Bschmitt\Amqp\Facades\Amqp;
+
+$amqp = app('Amqp');
+$amqp->consume('queue-name', function ($message, $resolver) {
+    // Process message
+    echo $message->body;
+    
+    // Acknowledge
+    $resolver->acknowledge($message);
+    $resolver->stopWhenProcessed();
+});</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Contributors Section -->
+          <section class="contributors">
+            <div class="container">
+              <h2 class="section-title">Contributors</h2>
+              <p class="contributors-subtitle">
+                Thanks to all the amazing people who have contributed to this project!
+              </p>
+              
+              <div v-if="loadingContributors" class="contributors-grid">
+                <div v-for="i in 3" :key="i" class="contributor-card skeleton-card">
+                  <div class="skeleton-avatar"></div>
+                  <div class="skeleton-text name"></div>
+                  <div class="skeleton-text role"></div>
+                </div>
+              </div>
+
+              <div v-else class="contributors-grid">
+                <a
+                  v-for="contributor in contributors"
+                  :key="contributor.login"
+                  :href="contributor.html_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="contributor-card"
+                  :title="contributor.login + ' - ' + contributor.contributions + ' contributions'"
+                >
+                  <img
+                    :src="contributor.avatar_url"
+                    :alt="contributor.login"
+                    class="contributor-avatar"
+                  />
+                  
+                  <div class="contributor-name">@{{ contributor.login }}</div>
+                  <div cclass="contributor-role">{{ contributor.location }}</div>
+                </a>
+
+                <!-- View All Contributors Card -->
+                <div class="contributor-card github-link-card">
+                  <a
+                    href="https://github.com/bschmitt/laravel-amqp/graphs/contributors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="view-all-link"
+                  >
+                    <svg width="48" height="48" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    <div class="view-all-text">View All Contributors</div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Documentation Pages -->
+        <div v-else class="page doc-page">
+          <div class="container">
+            <div class="doc-layout">
+              <!-- Sidebar -->
+              <aside class="doc-sidebar">
+                <div class="sidebar-search">
+                          <button class="search-trigger" @click="toggleSearch" title="Search documentation (Ctrl+K)" style="width:100%">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span clas="search-hint">Search Documentation</span>
+            </button>
+                </div>
+                <nav class="doc-nav">
+                  <div class="nav-section">
+                    <h4>Getting Started</h4>
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'getting-started'"
+                      :class="{active: currentPage === 'getting-started'}"
+                      >Quick Start</a
+                    >
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'installation'"
+                      :class="{active: currentPage === 'installation'}"
+                      >Installation</a
+                    >
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'configuration'"
+                      :class="{active: currentPage === 'configuration'}"
+                      >Configuration</a
+                    >
+                  </div>
+
+                  <div class="nav-section">
+                    <h4>Core Features</h4>
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'publishing'"
+                      :class="{active: currentPage === 'publishing'}"
+                      >Publishing Messages</a
+                    >
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'consuming'"
+                      :class="{active: currentPage === 'consuming'}"
+                      >Consuming Messages</a
+                    >
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'rpc'"
+                      :class="{active: currentPage === 'rpc'}"
+                      >RPC Pattern</a
+                    >
+                  </div>
+
+                  <div class="nav-section">
+                    <h4>Management</h4>
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'queue-management'"
+                      :class="{active: currentPage === 'queue-management'}"
+                      >Queue Management</a
+                    >
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'management-api'"
+                      :class="{active: currentPage === 'management-api'}"
+                      >Management API</a
+                    >
+                  </div>
+
+                  <div class="nav-section">
+                    <h4>Advanced</h4>
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'message-properties'"
+                      :class="{active: currentPage === 'message-properties'}"
+                      >Message Properties</a
+                    >
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'advanced'"
+                      :class="{active: currentPage === 'advanced'}"
+                      >Advanced Features</a
+                    >
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'best-practices'"
+                      :class="{active: currentPage === 'best-practices'}"
+                      >Best Practices</a
+                    >
+                  </div>
+
+                  <div class="nav-section">
+                    <h4>Reference</h4>
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'faq'"
+                      :class="{active: currentPage === 'faq'}"
+                      >FAQ</a
+                    >
+                    <a
+                      href="#"
+                      @click.prevent="currentPage = 'troubleshooting'"
+                      :class="{active: currentPage === 'troubleshooting'}"
+                      >Troubleshooting</a
+                    >
+                  </div>
+                </nav>
+              </aside>
+
+              <!-- Content -->
+              <div class="doc-content" v-html="currentContent"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="container">
+          <div class="footer-content">
+            <div class="footer-section">
+              <h4>Laravel AMQP</h4>
+              <p>Laravel AMQP is a powerful, lightweight AMQP wrapper for Laravel and Lumen, designed for building scalable, event-driven, and asynchronous PHP applications.</p>
+            </div>
+            <div class="footer-section">
+              <h4>Documentation</h4>
+              <a href="#" @click.prevent="currentPage = 'getting-started'"
+                >Getting Started</a
+              >
+              <a href="#" @click.prevent="currentPage = 'guide'">Guide</a>
+              <a href="#" @click.prevent="currentPage = 'faq'">FAQ</a>
+            </div>
+            <div class="footer-section">
+              <h4>Community</h4>
+              <a href="https://github.com/bschmitt/laravel-amqp" target="_blank"
+                >GitHub</a
+              >
+              <a
+                href="https://github.com/bschmitt/laravel-amqp/issues"
+                target="_blank"
+                >Issues</a
+              >
+              <a
+                href="https://packagist.org/packages/bschmitt/laravel-amqp"
+                target="_blank"
+                >Packagist</a
+              >
+            </div>
+          </div>
+          <div class="footer-bottom">
+            <p>&copy; 2015 Laravel AMQP. Licensed under MIT.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- Prism.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup-templating.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- App -->
+    <script src="app.js"></script>
+  </body>
+</html>
