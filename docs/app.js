@@ -250,6 +250,7 @@ createApp({
             name: "Bernd Schmitt",
             avatar_url: "https://avatars.githubusercontent.com/u/239644?v=4",
             html_url: "https://github.com/bschmitt",
+            location: 'Berlin',
             contributions: 55,
           },
           {
@@ -257,6 +258,7 @@ createApp({
             name: "Hassaan",
             avatar_url: "https://avatars.githubusercontent.com/u/17079656?v=4",
             html_url: "https://github.com/zfhassaan",
+            location: 'Pakistan',
             contributions: 53,
           },
           {
@@ -264,6 +266,7 @@ createApp({
             name: "Pete Kelly",
             avatar_url: "https://avatars.githubusercontent.com/u/1177933?v=4",
             html_url: "https://github.com/petekelly",
+            location: 'UK',
             contributions: 6,
           },
         ];
