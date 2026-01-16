@@ -90,31 +90,40 @@ createApp({
     },
   },
   mounted() {
-    // Load documentation content
-    this.loadDocumentation();
+    try {
+      // Load documentation content
+      this.loadDocumentation();
 
-    // Check for dark mode preference
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
-    this.isDark =
-      localStorage.getItem("theme") === "dark" ||
-      (prefersDark && !localStorage.getItem("theme"));
-    this.applyTheme();
+      // Check for dark mode preference
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      this.isDark =
+        localStorage.getItem("theme") === "dark" ||
+        (prefersDark && !localStorage.getItem("theme"));
+      this.applyTheme();
 
-    // Highlight code blocks
-    Prism.highlightAll();
-
-    // Handle hash navigation
-    if (window.location.hash) {
-      const page = window.location.hash.substring(1);
-      if (page && page !== "home") {
-        this.currentPage = page;
+      // Highlight code blocks
+      if (typeof Prism !== "undefined") {
+        Prism.highlightAll();
       }
-    }
 
-    // Add keyboard shortcuts
-    document.addEventListener("keydown", this.handleKeyboard);
+      // Handle hash navigation
+      if (window.location.hash) {
+        const page = window.location.hash.substring(1);
+        if (page && page !== "home" && this.documentation[page]) {
+          this.currentPage = page;
+        }
+      }
+
+      // Add keyboard shortcuts
+      document.addEventListener("keydown", this.handleKeyboard);
+
+      // Fetch contributors
+      this.fetchContributors();
+    } catch (error) {
+      console.error("Error in mounted hook:", error);
+      // Ensure we still try to fetch contributors even if something else fails
+      this.fetchContributors();
+    }
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this.handleKeyboard);
@@ -184,6 +193,49 @@ createApp({
         document.documentElement.setAttribute("data-theme", "dark");
       } else {
         document.documentElement.removeAttribute("data-theme");
+      }
+    },
+    async fetchContributors() {
+      try {
+        const response = await fetch(
+          "https://api.github.com/repos/bschmitt/laravel-amqp/contributors?per_page=3"
+        );
+        if (response.ok) {
+          const data = await response.json();
+          this.contributors = data.map((c) => ({
+            login: c.login,
+            avatar_url: c.avatar_url,
+            html_url: c.html_url,
+            contributions: c.contributions,
+          }));
+        } else {
+          throw new Error("Failed to fetch");
+        }
+      } catch (error) {
+        console.error("Failed to fetch contributors:", error);
+        // Fallback to static data
+        this.contributors = [
+          {
+            login: "bschmitt",
+            avatar_url: "https://avatars.githubusercontent.com/u/239644?v=4",
+            html_url: "https://github.com/bschmitt",
+            contributions: 55,
+          },
+          {
+            login: "zfhassaan",
+            avatar_url: "https://avatars.githubusercontent.com/u/17079656?v=4",
+            html_url: "https://github.com/zfhassaan",
+            contributions: 53,
+          },
+          {
+            login: "petekelly",
+            avatar_url: "https://avatars.githubusercontent.com/u/1177933?v=4",
+            html_url: "https://github.com/petekelly",
+            contributions: 6,
+          },
+        ];
+      } finally {
+        this.loadingContributors = false;
       }
     },
     loadDocumentation() {
@@ -1506,17 +1558,17 @@ Welcome to the Laravel AMQP package documentation. This guide will help you get 
 
 ## Package Features
 
-- ✅ Simple API for publishing and consuming
-- ✅ RPC pattern support
-- ✅ Queue management operations
-- ✅ RabbitMQ Management API integration
-- ✅ Full message properties support
-- ✅ Publisher confirms
-- ✅ Consumer prefetch (QoS)
-- ✅ Multiple queue types (classic, quorum, stream)
-- ✅ Dead letter exchanges
-- ✅ Message priority
-- ✅ TTL support
+-   Simple API for publishing and consuming
+-   RPC pattern support
+-   Queue management operations
+-   RabbitMQ Management API integration
+-   Full message properties support
+-   Publisher confirms
+-   Consumer prefetch (QoS)
+-   Multiple queue types (classic, quorum, stream)
+-   Dead letter exchanges
+-   Message priority
+-   TTL support
 
 ## Quick Example
 

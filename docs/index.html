@@ -383,53 +383,32 @@ $amqp->consume('queue-name', function ($message, $resolver) {
               <p class="contributors-subtitle">
                 Thanks to all the amazing people who have contributed to this project!
               </p>
-              <div class="contributors-grid">
+              
+              <div v-if="loadingContributors" class="contributors-grid">
+                <div v-for="i in 3" :key="i" class="contributor-card skeleton-card">
+                  <div class="skeleton-avatar"></div>
+                  <div class="skeleton-text name"></div>
+                  <div class="skeleton-text role"></div>
+                </div>
+              </div>
+
+              <div v-else class="contributors-grid">
                 <a
-                  href="https://github.com/bschmitt"
+                  v-for="contributor in contributors"
+                  :key="contributor.login"
+                  :href="contributor.html_url"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="contributor-card"
-                  title="Björn Schmitt - 55 contributions"
+                  :title="contributor.login + ' - ' + contributor.contributions + ' contributions'"
                 >
                   <img
-                    src="https://avatars.githubusercontent.com/u/239644?v=4"
-                    alt="Björn Schmitt"
+                    :src="contributor.avatar_url"
+                    :alt="contributor.login"
                     class="contributor-avatar"
                   />
-                  <div class="contributor-name">Björn Schmitt</div>
-                  <div class="contributor-role">55 contributions</div>
-                </a>
-                
-                <a
-                  href="https://github.com/zfhassaan"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="contributor-card"
-                  title="zfhassaan - 53 contributions"
-                >
-                  <img
-                    src="https://avatars.githubusercontent.com/u/17079656?v=4"
-                    alt="zfhassaan"
-                    class="contributor-avatar"
-                  />
-                  <div class="contributor-name">zfhassaan</div>
-                  <div class="contributor-role">53 contributions</div>
-                </a>
-                
-                <a
-                  href="https://github.com/petekelly"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="contributor-card"
-                  title="Pete Kelly - 6 contributions"
-                >
-                  <img
-                    src="https://avatars.githubusercontent.com/u/1177933?v=4"
-                    alt="Pete Kelly"
-                    class="contributor-avatar"
-                  />
-                  <div class="contributor-name">Pete Kelly</div>
-                  <div class="contributor-role">6 contributions</div>
+                  <div class="contributor-name">{{ contributor.login }}</div>
+                  <div class="contributor-role">{{ contributor.contributions }} contributions</div>
                 </a>
 
                 <!-- View All Contributors Card -->
@@ -618,6 +597,7 @@ $amqp->consume('queue-name', function ($message, $resolver) {
 
     <!-- Prism.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup-templating.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>

@@ -622,6 +622,7 @@ body {
   );
   border: 2px dashed var(--border-color);
   cursor: pointer;
+  padding: 4rem 0;
 }
 
 .github-link-card:hover {
@@ -658,6 +659,60 @@ body {
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--text-primary);
+}
+
+/* Skeleton Loader */
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-text {
+  height: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-text.name {
+  width: 100px;
+  margin-top: 0.5rem;
+}
+
+.skeleton-text.role {
+  width: 80px;
+  height: 0.75rem;
+}
+
+.skeleton-avatar::after,
+.skeleton-text::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 
