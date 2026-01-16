@@ -201,15 +201,45 @@ createApp({
           "https://api.github.com/repos/bschmitt/laravel-amqp/contributors?per_page=3"
         );
         if (response.ok) {
-          const data = await response.json();
-          this.contributors = data.map((c) => ({
-            login: c.login,
-            avatar_url: c.avatar_url,
-            html_url: c.html_url,
-            contributions: c.contributions,
-          }));
+          const contributorsList = await response.json();
+          
+          // Fetch detailed information for each user concurrently
+          const detailedContributors = await Promise.all(
+            contributorsList.map(async (c) => {
+              try {
+                const userResponse = await fetch(`https://api.github.com/users/${c.login}`);
+                if (userResponse.ok) {
+                  const userData = await userResponse.json();
+                  return {
+                    login: c.login,
+                    avatar_url: c.avatar_url,
+                    html_url: c.html_url,
+                    contributions: c.contributions,
+                    name: userData.name || c.login,
+                    bio: userData.bio,
+                    location: userData.location,
+                    blog: userData.blog,
+                    twitter: userData.twitter_username,
+                    followers: userData.followers,
+                    public_repos: userData.public_repos
+                  };
+                }
+              } catch (e) {
+                console.warn(`Failed to fetch details for ${c.login}:`, e);
+              }
+              // Return original data if detail fetch fails
+              return {
+                login: c.login,
+                avatar_url: c.avatar_url,
+                html_url: c.html_url,
+                contributions: c.contributions,
+              };
+            })
+          );
+          
+          this.contributors = detailedContributors;
         } else {
-          throw new Error("Failed to fetch");
+          throw new Error("Failed to fetch contributors list");
         }
       } catch (error) {
         console.error("Failed to fetch contributors:", error);
@@ -217,18 +247,21 @@ createApp({
         this.contributors = [
           {
             login: "bschmitt",
+            name: "Bernd Schmitt",
             avatar_url: "https://avatars.githubusercontent.com/u/239644?v=4",
             html_url: "https://github.com/bschmitt",
             contributions: 55,
           },
           {
             login: "zfhassaan",
+            name: "Hassaan",
             avatar_url: "https://avatars.githubusercontent.com/u/17079656?v=4",
             html_url: "https://github.com/zfhassaan",
             contributions: 53,
           },
           {
             login: "petekelly",
+            name: "Pete Kelly",
             avatar_url: "https://avatars.githubusercontent.com/u/1177933?v=4",
             html_url: "https://github.com/petekelly",
             contributions: 6,

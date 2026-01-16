@@ -57,7 +57,7 @@
       <nav class="navbar">
         <div class="container">
           <div class="nav-brand">
-            <a href="#home" class="nav-brand-link" style="text-decoration: none;color: inherit;display: flex;vertical-align: center;align-content: center;align-items: center;">
+            <a href="#home" @click.prevent="currentPage = 'home'" class="nav-brand-link" style="text-decoration: none;color: inherit;display: flex;vertical-align: center;align-content: center;align-items: center;">
             <img
               src="mascot.png"
               alt="Laravel AMQP"
@@ -407,8 +407,9 @@ $amqp->consume('queue-name', function ($message, $resolver) {
                     :alt="contributor.login"
                     class="contributor-avatar"
                   />
-                  <div class="contributor-name">{{ contributor.login }}</div>
-                  <div class="contributor-role">{{ contributor.contributions }} contributions</div>
+                  
+                  <div class="contributor-name">@{{ contributor.login }}</div>
+                  <div cclass="contributor-role">{{ contributor.location }}</div>
                 </a>
 
                 <!-- View All Contributors Card -->
