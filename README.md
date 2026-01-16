@@ -5,6 +5,8 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 [![Build Status](https://travis-ci.org/bschmitt/laravel-amqp.svg?branch=master)](https://travis-ci.org/bschmitt/laravel-amqp)
 [![Latest Stable Version](https://poser.pugx.org/bschmitt/laravel-amqp/v/stable.svg)](https://packagist.org/packages/bschmitt/laravel-amqp)
 [![License](https://poser.pugx.org/bschmitt/laravel-amqp/license.svg)](https://packagist.org/packages/bschmitt/laravel-amqp)
+[![Total Downloads](https://img.shields.io/packagist/dt/bschmitt/laravel-amqp.svg?style=flat-square)](https://packagist.org/packages/bschmitt/laravel-amqp)
+
 
 ## Features
 
