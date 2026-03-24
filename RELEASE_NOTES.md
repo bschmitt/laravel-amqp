@@ -1,5 +1,30 @@
 # Release Notes
 
+## Version 3.1.2 - Patch Release
+
+This patch release finalizes Laravel 13 compatibility and fixes RPC reply correlation handling in integration scenarios.
+
+### Updates
+
+1. **Laravel 13 Compatibility**
+   - Verified package behavior and test suite with Laravel 13.
+   - Updated package documentation to include Laravel 13 support.
+
+2. **RPC Reliability Fix**
+   - Fixed `Consumer::reply()` to publish `correlation_id` as an AMQP message property.
+   - This ensures RPC clients can correctly match responses by correlation id.
+
+3. **Integration Test Fixes**
+   - Corrected `ReplyMethodIntegrationTest` usage of `consume()` to match the method signature.
+   - Applied timeout/persistent behavior via consumer configuration.
+
+### Validation
+
+- Unit suite passes.
+- Integration suite passes (with existing skips/warnings/deprecations as expected for environment-dependent tests).
+
+---
+
 ## Version 3.1.1 - Patch Release
 
 This patch release fixes critical issues that caused fatal errors and prepares the package for future php-amqplib versions.

@@ -209,7 +209,7 @@ return [
 ### Comprehensive Guides
 
 - **[User Manual](docs/USER_MANUAL.md)** - Complete usage guide
-- **[Release Notes](RELEASE_NOTES.md)** - Version 3.1.1 changelog (latest: 3.1.1 patch release)
+- **[Release Notes](RELEASE_NOTES.md)** - Version 3.1.2 changelog (latest: 3.1.2 patch release)
 - **[FAQ](docs/laravel-amqp.wiki/FAQ.md)** - Common questions and answers
 
 ### Wiki Documentation
@@ -353,7 +353,7 @@ See [Testing Guide](docs/laravel-amqp.wiki/Testing.md) for more information.
 
 ## Backward Compatibility
 
-Version 3.1.1 is fully backward compatible with previous versions. All existing code will continue to work without modifications.
+Version 3.1.2 is fully backward compatible with previous versions. All existing code will continue to work without modifications.
 
 ## Contributing
 
@@ -377,5 +377,5 @@ For issues, questions, or contributions:
 
 ---
 
-**Version:** 3.1.1  
+**Version:** 3.1.2  
 **Status:** Ready
