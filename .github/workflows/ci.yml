@@ -1,17 +1,30 @@
 name: "CI/CD"
 on:
   push:
+  pull_request:
 
 jobs:
   unit-tests:
-    timeout-minutes: 5
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        php: ["7.3", "7.4", "8.0", "8.1", "8.2", "8.3"]
-    name: ${{ matrix.os }} - PHP${{ matrix.php }}
+        include:
+          - php: "8.1"
+            laravel: "10.*"
+          - php: "8.2"
+            laravel: "10.*"
+          - php: "8.2"
+            laravel: "11.*"
+          - php: "8.2"
+            laravel: "12.*"
+          - php: "8.3"
+            laravel: "12.*"
+          - php: "8.3"
+            laravel: "13.*"
+    name: ${{ matrix.os }} - PHP${{ matrix.php }} - Laravel${{ matrix.laravel }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -36,7 +49,11 @@ jobs:
             ${{ matrix.os }}-PHP${{ matrix.php }}-composer-
 
       - name: Composer Install
-        run: composer update --prefer-dist --optimize-autoloader --no-progress --ansi --no-interaction
+        run: |
+          composer require --dev --no-update \
+            "illuminate/support:${{ matrix.laravel }}" \
+            "illuminate/config:${{ matrix.laravel }}"
+          composer update --prefer-dist --optimize-autoloader --no-progress --ansi --no-interaction
 
       - name: Unit Tests
         run: ./vendor/bin/phpunit
