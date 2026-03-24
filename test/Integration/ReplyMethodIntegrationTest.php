@@ -51,6 +51,8 @@ class ReplyMethodIntegrationTest extends TestCase
                         'exchange' => 'test-reply-exchange',
                         'exchange_type' => 'direct',
                         'routing' => ['test-request-queue'], // Explicit routing key to bind queue
+                        'timeout' => 5,
+                        'persistent' => true,
                     ]),
                 ],
             ],
@@ -102,7 +104,7 @@ class ReplyMethodIntegrationTest extends TestCase
                 $requestMessage = $message;
                 $resolver->acknowledge($message);
                 $resolver->stopWhenProcessed();
-            }, ['timeout' => 5, 'persistent' => true]);
+            });
         } catch (\Exception $e) {
             // Timeout or error - request might not have been received
         }

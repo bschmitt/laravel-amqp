@@ -4,6 +4,7 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 
 [![Build Status](https://travis-ci.org/bschmitt/laravel-amqp.svg?branch=master)](https://travis-ci.org/bschmitt/laravel-amqp)
 [![Latest Stable Version](https://poser.pugx.org/bschmitt/laravel-amqp/v/stable.svg)](https://packagist.org/packages/bschmitt/laravel-amqp)
+[![Laravel](https://img.shields.io/badge/Laravel-10%20%7C%2011%20%7C%2012%20%7C%2013-FF2D20?logo=laravel&logoColor=white)](#requirements)
 [![License](https://poser.pugx.org/bschmitt/laravel-amqp/license.svg)](https://packagist.org/packages/bschmitt/laravel-amqp)
 [![Total Downloads](https://img.shields.io/packagist/dt/bschmitt/laravel-amqp.svg?style=flat-square)](https://packagist.org/packages/bschmitt/laravel-amqp)
 
@@ -40,7 +41,7 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 ## Requirements
 
 - PHP 8.1 or higher
-- Laravel 8.x / 9.x / 10.x / 11.x or Lumen 8.x / 9.x / 10.x
+- Laravel 10.x / 11.x / 12.x / 13.x or Lumen 10.x+
 - RabbitMQ 3.x (tested with `rabbitmq:3-management` Docker image)
 
 ## Installation
@@ -208,7 +209,7 @@ return [
 ### Comprehensive Guides
 
 - **[User Manual](docs/USER_MANUAL.md)** - Complete usage guide
-- **[Release Notes](RELEASE_NOTES.md)** - Version 3.1.1 changelog (latest: 3.1.1 patch release)
+- **[Release Notes](RELEASE_NOTES.md)** - Version 3.1.2 changelog (latest: 3.1.2 patch release)
 - **[FAQ](docs/laravel-amqp.wiki/FAQ.md)** - Common questions and answers
 
 ### Wiki Documentation
@@ -352,7 +353,7 @@ See [Testing Guide](docs/laravel-amqp.wiki/Testing.md) for more information.
 
 ## Backward Compatibility
 
-Version 3.1.1 is fully backward compatible with previous versions. All existing code will continue to work without modifications.
+Version 3.1.2 is fully backward compatible with previous versions. All existing code will continue to work without modifications.
 
 ## Contributing
 
@@ -376,5 +377,5 @@ For issues, questions, or contributions:
 
 ---
 
-**Version:** 3.1.1  
+**Version:** 3.1.2  
 **Status:** Ready

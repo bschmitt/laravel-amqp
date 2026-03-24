@@ -315,7 +315,9 @@ class Consumer extends Request implements ConsumerInterface
             // The queue should already exist from the RPC caller's setup
             
             $messageFactory = new \Bschmitt\Amqp\Factories\MessageFactory();
-            $message = $messageFactory->create($response, [
+            // correlation_id must be a message property (3rd argument),
+            // not an application header, so RPC clients can match replies.
+            $message = $messageFactory->create($response, [], [
                 'correlation_id' => $correlationId,
             ]);
             
