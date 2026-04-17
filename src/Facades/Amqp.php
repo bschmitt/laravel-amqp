@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static void batchPublish(array $properties = [])
  * @method static void batchBasicPublish(string $routing, mixed $message)
  *
- * @see \Bschmitt\Amqp\Amqp
+ * @see Bschmitt\Amqp\Core\Amqp
  */
 class Amqp extends Facade
 {
