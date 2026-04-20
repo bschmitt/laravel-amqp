@@ -6,10 +6,10 @@ Edit `config/amqp.php`:
 
 ```php
 return [
-    'use' => env('AMQP_ENV', 'production'),
+    'default' => env('AMQP_CONNECTION', 'rabbitmq'),
 
-    'properties' => [
-        'production' => [
+    'connections' => [
+        'rabbitmq' => [
             'host' => env('AMQP_HOST', 'localhost'),
             'port' => env('AMQP_PORT', 5672),
             'username' => env('AMQP_USER', ''),
@@ -44,8 +44,8 @@ AMQP_EXCHANGE_TYPE=topic
 To use Management API features, add:
 
 ```php
-'properties' => [
-    'production' => [
+'connections' => [
+    'rabbitmq' => [
         // ... existing config ...
         'management_api_url' => env('AMQP_MANAGEMENT_URL', 'http://localhost:15672'),
         'management_api_user' => env('AMQP_MANAGEMENT_USER', 'guest'),
@@ -59,8 +59,8 @@ To use Management API features, add:
 You can configure multiple environments:
 
 ```php
-'properties' => [
-    'production' => [
+'connections' => [
+    'rabbitmq' => [
         'host' => 'prod-rabbitmq.example.com',
         // ...
     ],

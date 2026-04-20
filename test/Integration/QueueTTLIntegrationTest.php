@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -63,8 +63,8 @@ class QueueTTLIntegrationTest extends TestCase
             ];
             $config = new Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             
@@ -128,8 +128,8 @@ class QueueTTLIntegrationTest extends TestCase
 
         $config = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => $defaultProperties
                 ]
             ]

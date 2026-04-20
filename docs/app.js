@@ -400,10 +400,10 @@ Edit \`config/amqp.php\`:
 
 \`\`\`php
 return [
-    'use' => env('AMQP_ENV', 'production'),
+    'default' => env('AMQP_CONNECTION', 'rabbitmq'),
 
-    'properties' => [
-        'production' => [
+    'connnections' => [
+        'rabbitmq' => [
             'host' => env('AMQP_HOST', 'localhost'),
             'port' => env('AMQP_PORT', 5672),
             'username' => env('AMQP_USER', ''),
@@ -438,8 +438,8 @@ AMQP_EXCHANGE_TYPE=topic
 To use Management API features, add:
 
 \`\`\`php
-'properties' => [
-    'production' => [
+'connections' => [
+    'rabbitmq' => [
         // ... existing config ...
         'management_api_url' => env('AMQP_MANAGEMENT_URL', 'http://localhost:15672'),
         'management_api_user' => env('AMQP_MANAGEMENT_USER', 'guest'),
@@ -453,8 +453,8 @@ To use Management API features, add:
 You can configure multiple environments:
 
 \`\`\`php
-'properties' => [
-    'production' => [
+'connections' => [
+    'rabbitmq' => [
         'host' => 'prod-rabbitmq.example.com',
         // ...
     ],
@@ -742,7 +742,7 @@ $amqp->consume('rpc-queue', function ($message, $resolver) {
 });
 \`\`\`
 
-## Production RPC Server
+## Rabbitmq RPC Server
 
 \`\`\`php
 // app/Console/Commands/RpcServer.php
@@ -1319,7 +1319,7 @@ $amqp->consume('queue', function ($message, $resolver) {
 ]);
 \`\`\`
 
-## 4. Production Consumers
+## 4. Rabbitmq Consumers
 
 Use Artisan commands with process managers:
 
@@ -1586,7 +1586,7 @@ Welcome to the Laravel AMQP package documentation. This guide will help you get 
 ### Advanced
 - [Message Properties](#message-properties) - Work with message metadata
 - [Advanced Features](#advanced) - Publisher confirms, QoS, queue types
-- [Best Practices](#best-practices) - Production-ready patterns
+- [Best Practices](#best-practices) - Rabbitmq-ready patterns
 
 ### Reference
 - [FAQ](#faq) - Common questions

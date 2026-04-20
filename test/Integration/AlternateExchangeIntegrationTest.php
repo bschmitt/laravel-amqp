@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -47,9 +47,9 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
         
         // Update config with test queue and exchange
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
         $this->configRepository->set('amqp', $config);
     }
 
@@ -84,12 +84,12 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
 
         // Now create the main exchange with alternate-exchange property
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['exchange_type'] = 'topic'; // Explicitly set exchange type
-        $config['properties']['test']['exchange_properties'] = [
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['exchange_type'] = 'topic'; // Explicitly set exchange type
+        $config['connections']['test']['exchange_properties'] = [
             'alternate-exchange' => $this->alternateExchange
         ];
-        $config['properties']['test']['exchange_force_declare'] = true;
+        $config['connections']['test']['exchange_force_declare'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -131,12 +131,12 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
 
         // Create main exchange with alternate-exchange
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['exchange_type'] = 'topic';
-        $config['properties']['test']['exchange_properties'] = [
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['exchange_type'] = 'topic';
+        $config['connections']['test']['exchange_properties'] = [
             'alternate-exchange' => $this->alternateExchange
         ];
-        $config['properties']['test']['exchange_force_declare'] = true;
+        $config['connections']['test']['exchange_force_declare'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -154,13 +154,13 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
         // Consume from alternate queue
         $consumedMessages = [];
         $alternateConfig = $this->configRepository->get('amqp');
-        $alternateConfig['properties']['test']['queue'] = $this->alternateQueue;
-        $alternateConfig['properties']['test']['exchange'] = $this->alternateExchange;
-        $alternateConfig['properties']['test']['exchange_type'] = 'fanout'; // Must match the alternate exchange type
-        $alternateConfig['properties']['test']['exchange_passive'] = true; // Use passive to check existence without redeclaring
-        $alternateConfig['properties']['test']['exchange_force_declare'] = false;
-        $alternateConfig['properties']['test']['queue_force_declare'] = false; // Don't redeclare queue either
-        $alternateConfig['properties']['test']['routing'] = '#'; // Consume all messages
+        $alternateConfig['connections']['test']['queue'] = $this->alternateQueue;
+        $alternateConfig['connections']['test']['exchange'] = $this->alternateExchange;
+        $alternateConfig['connections']['test']['exchange_type'] = 'fanout'; // Must match the alternate exchange type
+        $alternateConfig['connections']['test']['exchange_passive'] = true; // Use passive to check existence without redeclaring
+        $alternateConfig['connections']['test']['exchange_force_declare'] = false;
+        $alternateConfig['connections']['test']['queue_force_declare'] = false; // Don't redeclare queue either
+        $alternateConfig['connections']['test']['routing'] = '#'; // Consume all messages
         $this->configRepository->set('amqp', $alternateConfig);
         
         $consumer = new Consumer($this->configRepository);
@@ -201,15 +201,15 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
 
         // Create main exchange with alternate-exchange
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['exchange_type'] = 'topic';
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
-        $config['properties']['test']['exchange_properties'] = [
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['exchange_type'] = 'topic';
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['exchange_properties'] = [
             'alternate-exchange' => $this->alternateExchange
         ];
-        $config['properties']['test']['exchange_force_declare'] = true;
-        $config['properties']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['exchange_force_declare'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -249,13 +249,13 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
         // Verify alternate queue is empty
         // Use passive exchange declaration to avoid redeclaring with different properties
         $alternateConfig = $this->configRepository->get('amqp');
-        $alternateConfig['properties']['test']['queue'] = $this->alternateQueue;
-        $alternateConfig['properties']['test']['exchange'] = $this->alternateExchange;
-        $alternateConfig['properties']['test']['exchange_type'] = 'fanout'; // Must match the alternate exchange type
-        $alternateConfig['properties']['test']['exchange_passive'] = true; // Use passive to check existence without redeclaring
-        $alternateConfig['properties']['test']['exchange_force_declare'] = false;
-        $alternateConfig['properties']['test']['queue_force_declare'] = false; // Don't redeclare queue either
-        $alternateConfig['properties']['test']['routing'] = '#';
+        $alternateConfig['connections']['test']['queue'] = $this->alternateQueue;
+        $alternateConfig['connections']['test']['exchange'] = $this->alternateExchange;
+        $alternateConfig['connections']['test']['exchange_type'] = 'fanout'; // Must match the alternate exchange type
+        $alternateConfig['connections']['test']['exchange_passive'] = true; // Use passive to check existence without redeclaring
+        $alternateConfig['connections']['test']['exchange_force_declare'] = false;
+        $alternateConfig['connections']['test']['queue_force_declare'] = false; // Don't redeclare queue either
+        $alternateConfig['connections']['test']['routing'] = '#';
         $this->configRepository->set('amqp', $alternateConfig);
         
         $alternateConsumer = new Consumer($this->configRepository);
@@ -298,13 +298,13 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
         // Create alternate exchange (fanout type is common for alternate exchanges)
         // Note: Alternate exchange should NOT have alternate-exchange property itself
         $alternateConfig = $this->configRepository->get('amqp');
-        $alternateConfig['properties']['test']['exchange'] = $this->alternateExchange;
-        $alternateConfig['properties']['test']['exchange_type'] = 'fanout';
-        $alternateConfig['properties']['test']['exchange_properties'] = []; // No alternate-exchange on alternate exchange
-        $alternateConfig['properties']['test']['exchange_force_declare'] = true;
-        $alternateConfig['properties']['test']['queue'] = $this->alternateQueue;
-        $alternateConfig['properties']['test']['routing'] = '';
-        $alternateConfig['properties']['test']['queue_force_declare'] = true;
+        $alternateConfig['connections']['test']['exchange'] = $this->alternateExchange;
+        $alternateConfig['connections']['test']['exchange_type'] = 'fanout';
+        $alternateConfig['connections']['test']['exchange_properties'] = []; // No alternate-exchange on alternate exchange
+        $alternateConfig['connections']['test']['exchange_force_declare'] = true;
+        $alternateConfig['connections']['test']['queue'] = $this->alternateQueue;
+        $alternateConfig['connections']['test']['routing'] = '';
+        $alternateConfig['connections']['test']['queue_force_declare'] = true;
         
         $this->configRepository->set('amqp', $alternateConfig);
         
@@ -328,8 +328,8 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
             ];
             $config = new Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             
@@ -358,8 +358,8 @@ class AlternateExchangeIntegrationTest extends IntegrationTestBase
             ];
             $config = new Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             

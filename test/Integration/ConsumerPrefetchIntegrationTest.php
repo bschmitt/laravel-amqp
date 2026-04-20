@@ -45,10 +45,10 @@ class ConsumerPrefetchIntegrationTest extends IntegrationTestBase
         
         // Update config with test queue and exchange
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
-        $config['properties']['test']['queue_properties'] = []; // No max-length for prefetch tests
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['queue_properties'] = []; // No max-length for prefetch tests
         $this->configRepository->set('amqp', $config);
     }
 
@@ -67,10 +67,10 @@ class ConsumerPrefetchIntegrationTest extends IntegrationTestBase
     public function testGetPrefetch()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['qos'] = true;
-        $config['properties']['test']['qos_prefetch_count'] = 5;
-        $config['properties']['test']['qos_prefetch_size'] = 1024;
-        $config['properties']['test']['qos_a_global'] = false;
+        $config['connections']['test']['qos'] = true;
+        $config['connections']['test']['qos_prefetch_count'] = 5;
+        $config['connections']['test']['qos_prefetch_size'] = 1024;
+        $config['connections']['test']['qos_a_global'] = false;
         $this->configRepository->set('amqp', $config);
 
         $consumer = new Consumer($this->configRepository);
@@ -124,8 +124,8 @@ class ConsumerPrefetchIntegrationTest extends IntegrationTestBase
 
         // Setup consumer with prefetch count of 2
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['qos'] = true;
-        $config['properties']['test']['qos_prefetch_count'] = 2;
+        $config['connections']['test']['qos'] = true;
+        $config['connections']['test']['qos_prefetch_count'] = 2;
         $this->configRepository->set('amqp', $config);
 
         $consumer = new Consumer($this->configRepository);
@@ -190,8 +190,8 @@ class ConsumerPrefetchIntegrationTest extends IntegrationTestBase
 
         // Setup consumer with initial prefetch of 1
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['qos'] = true;
-        $config['properties']['test']['qos_prefetch_count'] = 1;
+        $config['connections']['test']['qos'] = true;
+        $config['connections']['test']['qos_prefetch_count'] = 1;
         $this->configRepository->set('amqp', $config);
 
         $consumer = new Consumer($this->configRepository);
@@ -275,7 +275,7 @@ class ConsumerPrefetchIntegrationTest extends IntegrationTestBase
         try {
             $consumer->setPrefetch(1, 1024, false);
             
-            // If it succeeds, verify properties were set
+            // If it succeeds, verify  were set
             $prefetch = $consumer->getPrefetch();
             $this->assertEquals(1, $prefetch['prefetch_count']);
             $this->assertEquals(1024, $prefetch['prefetch_size']);
@@ -334,8 +334,8 @@ class ConsumerPrefetchIntegrationTest extends IntegrationTestBase
             ];
             $config = new Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             

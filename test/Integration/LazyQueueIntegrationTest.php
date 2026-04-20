@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -37,10 +37,10 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
         
         // Update config with test queue and exchange
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
-        $config['properties']['test']['queue_durable'] = true; // Lazy queues should be durable
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['queue_durable'] = true; // Lazy queues should be durable
         $this->configRepository->set('amqp', $config);
     }
 
@@ -59,13 +59,13 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
     public function testQueueDeclareWithLazyMode()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-mode' => 'lazy'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true; // Lazy queues should be durable
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true; // Lazy queues should be durable
         
         $this->configRepository->set('amqp', $config);
 
@@ -88,13 +88,13 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
     public function testPublishAndConsumeWithLazyMode()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-mode' => 'lazy'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -140,14 +140,14 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
     public function testLazyModeWithMaxLength()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-mode' => 'lazy',
             'x-max-length' => 2
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -191,13 +191,13 @@ class LazyQueueIntegrationTest extends IntegrationTestBase
     public function testDefaultModeQueue()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-mode' => 'default'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 

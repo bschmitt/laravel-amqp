@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -43,8 +43,8 @@ class QueueMaxLengthIntegrationTest extends TestCase
         // Create config with max length = 1
         $config = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => [
                         'host' => env('AMQP_HOST', 'localhost'),
                         'port' => (int) env('AMQP_PORT', 5672),

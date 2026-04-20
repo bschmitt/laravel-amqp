@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Unit;
 
 use Bschmitt\Amqp\Core\Amqp;
 use Bschmitt\Amqp\Core\Consumer;
@@ -23,9 +23,9 @@ class ListenMethodTest extends \PHPUnit\Framework\TestCase
     {
         $config = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => [
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => [
                         'host' => 'localhost',
                         'port' => 5672,
                         'username' => 'guest',

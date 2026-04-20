@@ -79,7 +79,7 @@ $amqp->consume('queue', function ($message, $resolver) {
 ]);
 ```
 
-## 4. Production Consumers
+## 4. Rabbitmq Consumers
 
 Use Artisan commands with process managers:
 

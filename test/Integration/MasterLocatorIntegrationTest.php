@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -43,10 +43,10 @@ class MasterLocatorIntegrationTest extends IntegrationTestBase
         
         // Update config with test queue and exchange
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
-        $config['properties']['test']['queue_durable'] = true; // Mirrored queues should be durable
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['queue_durable'] = true; // Mirrored queues should be durable
         $this->configRepository->set('amqp', $config);
     }
 
@@ -75,8 +75,8 @@ class MasterLocatorIntegrationTest extends IntegrationTestBase
             ];
             $config = new Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             
@@ -97,13 +97,13 @@ class MasterLocatorIntegrationTest extends IntegrationTestBase
     public function testQueueDeclareWithMinMastersLocator()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-master-locator' => 'min-masters'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -127,13 +127,13 @@ class MasterLocatorIntegrationTest extends IntegrationTestBase
     public function testQueueDeclareWithClientLocalLocator()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-master-locator' => 'client-local'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -156,13 +156,13 @@ class MasterLocatorIntegrationTest extends IntegrationTestBase
     public function testQueueDeclareWithRandomLocator()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-master-locator' => 'random'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -185,14 +185,14 @@ class MasterLocatorIntegrationTest extends IntegrationTestBase
     public function testMasterLocatorWithOtherProperties()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-master-locator' => 'min-masters',
             'x-max-length' => 100
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -215,13 +215,13 @@ class MasterLocatorIntegrationTest extends IntegrationTestBase
     public function testPublishAndConsumeWithMasterLocator()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-master-locator' => 'min-masters'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 

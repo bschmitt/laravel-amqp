@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -73,8 +73,8 @@ class DeadLetterExchangeIntegrationTest extends TestCase
             ];
             $config = new Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             
@@ -138,8 +138,8 @@ class DeadLetterExchangeIntegrationTest extends TestCase
 
         $config = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => $defaultProperties
                 ]
             ]
@@ -164,7 +164,7 @@ class DeadLetterExchangeIntegrationTest extends TestCase
         
         // Override routing key for DLX queue
         $configData = $dlxQueueConfig->get('amqp');
-        $configData['properties']['test']['routing'] = $this->dlxRoutingKey;
+        $configData['connections']['test']['routing'] = $this->dlxRoutingKey;
         $dlxQueueConfig = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
         // This will create both the exchange and queue
@@ -241,9 +241,9 @@ class DeadLetterExchangeIntegrationTest extends TestCase
         
         // Override routing key and ensure exchange durability matches
         $configData = $dlxQueueConfig->get('amqp');
-        $configData['properties']['test']['routing'] = $this->dlxRoutingKey;
-        $configData['properties']['test']['exchange_durable'] = true;  // Match setupDLX
-        $configData['properties']['test']['queue_force_declare'] = false;  // Don't recreate
+        $configData['connections']['test']['routing'] = $this->dlxRoutingKey;
+        $configData['connections']['test']['exchange_durable'] = true;  // Match setupDLX
+        $configData['connections']['test']['queue_force_declare'] = false;  // Don't recreate
         $dlxQueueConfig = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
         $dlxConsumer = new Consumer($dlxQueueConfig);
@@ -310,9 +310,9 @@ class DeadLetterExchangeIntegrationTest extends TestCase
         
         // Override routing key and ensure exchange durability matches
         $configData = $dlxQueueConfig->get('amqp');
-        $configData['properties']['test']['routing'] = $this->dlxRoutingKey;
-        $configData['properties']['test']['exchange_durable'] = true;  // Match setupDLX
-        $configData['properties']['test']['queue_force_declare'] = false;  // Don't recreate
+        $configData['connections']['test']['routing'] = $this->dlxRoutingKey;
+        $configData['connections']['test']['exchange_durable'] = true;  // Match setupDLX
+        $configData['connections']['test']['queue_force_declare'] = false;  // Don't recreate
         $dlxQueueConfig = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
         $dlxConsumer = new Consumer($dlxQueueConfig);
@@ -389,9 +389,9 @@ class DeadLetterExchangeIntegrationTest extends TestCase
         
         // Override routing key and ensure exchange durability matches
         $configData = $dlxQueueConfig->get('amqp');
-        $configData['properties']['test']['routing'] = $this->dlxRoutingKey;
-        $configData['properties']['test']['exchange_durable'] = true;  // Match setupDLX
-        $configData['properties']['test']['queue_force_declare'] = false;  // Don't recreate
+        $configData['connections']['test']['routing'] = $this->dlxRoutingKey;
+        $configData['connections']['test']['exchange_durable'] = true;  // Match setupDLX
+        $configData['connections']['test']['queue_force_declare'] = false;  // Don't recreate
         $dlxQueueConfig = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
         $dlxConsumer = new Consumer($dlxQueueConfig);

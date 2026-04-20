@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -86,8 +86,8 @@ class ConsumerVerificationTest extends IntegrationTestBase
     {
         // Update config to have a timeout
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['timeout'] = 5;
-        $config['properties']['test']['persistent'] = true; // Don't stop when queue is empty
+        $config['connections']['test']['timeout'] = 5;
+        $config['connections']['test']['persistent'] = true; // Don't stop when queue is empty
         
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         
@@ -138,7 +138,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
     {
         // Override queue_properties to remove max-length for this test
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue_properties'] = []; // No max-length
+        $config['connections']['test']['queue_properties'] = []; // No max-length
         
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         
@@ -199,7 +199,7 @@ class ConsumerVerificationTest extends IntegrationTestBase
     public function testConsumeFromEmptyQueue()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['persistent'] = false; // Stop when empty
+        $config['connections']['test']['persistent'] = false; // Stop when empty
         
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         

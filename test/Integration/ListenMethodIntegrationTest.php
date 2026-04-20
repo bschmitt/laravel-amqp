@@ -27,9 +27,9 @@ class ListenMethodIntegrationTest extends TestCase
     {
         $config = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => [
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => [
                         'host' => 'localhost',
                         'port' => 5672,
                         'username' => 'guest',
@@ -50,7 +50,7 @@ class ListenMethodIntegrationTest extends TestCase
 
         $amqp = new Amqp($publisherFactory, $consumerFactory, $messageFactory, $batchManager);
 
-        $baseConfig = $config->get('amqp.properties.production');
+        $baseConfig = $config->get('amqp.connections.rabbitmq');
         
         // Generate a queue name and pass it explicitly to listen()
         // This allows us to create the queue beforehand
@@ -108,9 +108,9 @@ class ListenMethodIntegrationTest extends TestCase
     {
         $config = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => [
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => [
                         'host' => 'localhost',
                         'port' => 5672,
                         'username' => 'guest',
@@ -131,7 +131,7 @@ class ListenMethodIntegrationTest extends TestCase
 
         $amqp = new Amqp($publisherFactory, $consumerFactory, $messageFactory, $batchManager);
 
-        $baseConfig = $config->get('amqp.properties.production');
+        $baseConfig = $config->get('amqp.connections.rabbitmq');
         
         // Generate a queue name and pass it explicitly to listen()
         $queueName = 'listener-' . uniqid('', true);

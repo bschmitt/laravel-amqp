@@ -61,9 +61,9 @@ class QueueRpcFunctionTest extends TestCase
 
         $config = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => $baseConfig,
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => $baseConfig,
                 ],
             ],
         ]);
@@ -76,9 +76,9 @@ class QueueRpcFunctionTest extends TestCase
         // Use exchange_passive for built-in amq.direct exchange
         $serverConfig = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => array_merge($baseConfig, [
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => array_merge($baseConfig, [
                         'queue' => $queue,
                         'routing' => [$queue],
                         'exchange_passive' => true, // Built-in exchange already exists

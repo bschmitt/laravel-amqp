@@ -23,9 +23,9 @@ class ReplyMethodIntegrationTest extends TestCase
     {
         $config = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => [
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => [
                         'host' => 'localhost',
                         'port' => 5672,
                         'username' => 'guest',
@@ -44,9 +44,9 @@ class ReplyMethodIntegrationTest extends TestCase
         // Create request queue and consumer FIRST so queue exists before publishing
         $consumerConfig = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => array_merge($config->get('amqp.properties.production'), [
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => array_merge($config->get('amqp.properties.production'), [
                         'queue' => 'test-request-queue',
                         'exchange' => 'test-reply-exchange',
                         'exchange_type' => 'direct',
@@ -63,9 +63,9 @@ class ReplyMethodIntegrationTest extends TestCase
         // Create reply queue so it exists when reply is published
         $replyQueueConfig = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => array_merge($config->get('amqp.properties.production'), [
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => array_merge($config->get('amqp.properties.production'), [
                         'queue' => $replyQueue,
                         'queue_durable' => true,  // Durable so it persists
                         'queue_auto_delete' => false,  // Don't auto-delete so it persists
@@ -132,9 +132,9 @@ class ReplyMethodIntegrationTest extends TestCase
                 // Create a separate consumer to verify the reply
                 $replyVerificationConfig = new Repository([
                     'amqp' => [
-                        'use' => 'production',
-                        'properties' => [
-                            'production' => array_merge($config->get('amqp.properties.production'), [
+                        'default' => 'rabbitmq',
+                        'connections' => [
+                            'rabbitmq' => array_merge($config->get('amqp.properties.production'), [
                                 'queue' => $replyQueue,
                             ]),
                         ],

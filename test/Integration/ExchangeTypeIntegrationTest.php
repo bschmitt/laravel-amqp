@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -63,12 +63,12 @@ class ExchangeTypeIntegrationTest extends IntegrationTestBase
     public function testTopicExchangeType()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['exchange_type'] = 'topic';
-        $config['properties']['test']['exchange_force_declare'] = true;
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
-        $config['properties']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['exchange_type'] = 'topic';
+        $config['connections']['test']['exchange_force_declare'] = true;
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['queue_force_declare'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -104,12 +104,12 @@ class ExchangeTypeIntegrationTest extends IntegrationTestBase
         $this->deleteExchange($this->testExchange);
         
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['exchange_type'] = 'direct';
-        $config['properties']['test']['exchange_force_declare'] = true;
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
-        $config['properties']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['exchange_type'] = 'direct';
+        $config['connections']['test']['exchange_force_declare'] = true;
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['queue_force_declare'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -145,12 +145,12 @@ class ExchangeTypeIntegrationTest extends IntegrationTestBase
         $this->deleteExchange($this->testExchange);
         
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['exchange_type'] = 'fanout';
-        $config['properties']['test']['exchange_force_declare'] = true;
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['routing'] = ''; // Fanout ignores routing key
-        $config['properties']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['exchange_type'] = 'fanout';
+        $config['connections']['test']['exchange_force_declare'] = true;
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['routing'] = ''; // Fanout ignores routing key
+        $config['connections']['test']['queue_force_declare'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -186,12 +186,12 @@ class ExchangeTypeIntegrationTest extends IntegrationTestBase
         $this->deleteExchange($this->testExchange);
         
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['exchange_type'] = 'headers';
-        $config['properties']['test']['exchange_force_declare'] = true;
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['routing'] = ''; // Headers uses message headers, not routing key
-        $config['properties']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['exchange_type'] = 'headers';
+        $config['connections']['test']['exchange_force_declare'] = true;
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['routing'] = ''; // Headers uses message headers, not routing key
+        $config['connections']['test']['queue_force_declare'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -228,12 +228,12 @@ class ExchangeTypeIntegrationTest extends IntegrationTestBase
         $this->deleteQueue($this->testQueueName);
         
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['exchange_type'] = 'topic';
-        $config['properties']['test']['exchange_force_declare'] = true;
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
-        $config['properties']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['exchange_type'] = 'topic';
+        $config['connections']['test']['exchange_force_declare'] = true;
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['queue_force_declare'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -282,12 +282,12 @@ class ExchangeTypeIntegrationTest extends IntegrationTestBase
         $this->deleteQueue($this->testQueueName);
         
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['exchange_type'] = 'fanout';
-        $config['properties']['test']['exchange_force_declare'] = true;
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['routing'] = ''; // Fanout ignores routing key
-        $config['properties']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['exchange_type'] = 'fanout';
+        $config['connections']['test']['exchange_force_declare'] = true;
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['routing'] = ''; // Fanout ignores routing key
+        $config['connections']['test']['queue_force_declare'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -342,8 +342,8 @@ class ExchangeTypeIntegrationTest extends IntegrationTestBase
             ];
             $config = new Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             
@@ -372,8 +372,8 @@ class ExchangeTypeIntegrationTest extends IntegrationTestBase
             ];
             $config = new Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             

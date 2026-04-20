@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -142,9 +142,9 @@ class FullIntegrationTest extends IntegrationTestBase
         // Use a fixed queue name for this test (without max-length)
         $uniqueQueueName = 'test-queue-requeue';
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $uniqueQueueName;
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_properties'] = []; // No max-length
+        $config['connections']['test']['queue'] = $uniqueQueueName;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_properties'] = []; // No max-length
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         
         // Publish a message
@@ -339,9 +339,9 @@ class FullIntegrationTest extends IntegrationTestBase
         $this->deleteQueue($uniqueQueueName);
         
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $uniqueQueueName;
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_properties'] = []; // No max-length
+        $config['connections']['test']['queue'] = $uniqueQueueName;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_properties'] = []; // No max-length
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         
         $publisher = new Publisher($configRepo);
@@ -387,8 +387,8 @@ class FullIntegrationTest extends IntegrationTestBase
             ];
             $config = new \Illuminate\Config\Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             
@@ -426,11 +426,11 @@ class FullIntegrationTest extends IntegrationTestBase
         // Use a unique queue name to avoid conflicts
         $uniqueQueueName = 'test-queue-qos';
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $uniqueQueueName;
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['qos'] = true;
-        $config['properties']['test']['qos_prefetch_count'] = 1;
-        $config['properties']['test']['queue_properties'] = []; // Remove max-length for this test
+        $config['connections']['test']['queue'] = $uniqueQueueName;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['qos'] = true;
+        $config['connections']['test']['qos_prefetch_count'] = 1;
+        $config['connections']['test']['queue_properties'] = []; // Remove max-length for this test
         
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         
@@ -474,14 +474,14 @@ class FullIntegrationTest extends IntegrationTestBase
         // Use a unique queue name to avoid conflicts
         $uniqueQueueName = 'test-queue-routing';
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $uniqueQueueName;
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['routing'] = [
+        $config['connections']['test']['queue'] = $uniqueQueueName;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['routing'] = [
             'routing.key.1',
             'routing.key.2',
             'routing.key.3'
         ];
-        $config['properties']['test']['queue_properties'] = []; // Remove max-length for this test
+        $config['connections']['test']['queue_properties'] = []; // Remove max-length for this test
         
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         
