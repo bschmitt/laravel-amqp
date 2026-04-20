@@ -260,7 +260,7 @@ New method to retrieve connection configurations programmatically.
 #### Example Usage
 
 ```php
-$config = Amqp::getConnectionConfig('production');
+$config = Amqp::getConnectionConfig('rabbitmq');
 // Returns: ['host' => 'localhost', 'port' => 5672, ...]
 ```
 

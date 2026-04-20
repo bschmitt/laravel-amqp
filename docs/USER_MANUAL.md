@@ -78,10 +78,10 @@ Edit `config/amqp.php`:
 
 ```php
 return [
-    'use' => env('AMQP_ENV', 'production'),
+    'default' => env('AMQP_CONNECTION', 'rabbitmq'),
 
-    'properties' => [
-        'production' => [
+    'connections' => [
+        'rabbitmq' => [
             'host' => env('AMQP_HOST', 'localhost'),
             'port' => env('AMQP_PORT', 5672),
             'username' => env('AMQP_USER', ''),
@@ -116,8 +116,8 @@ AMQP_EXCHANGE_TYPE=topic
 To use Management API features, add:
 
 ```php
-'properties' => [
-    'production' => [
+'connections' => [
+    'rabbitmq' => [
         // ... existing config ...
         'management_api_url' => env('AMQP_MANAGEMENT_URL', 'http://localhost:15672'),
         'management_api_user' => env('AMQP_MANAGEMENT_USER', 'guest'),
@@ -542,7 +542,7 @@ Amqp::listen(['key1', 'key2', 'key3'], function ($message, $resolver) {
 Get configuration for a specific connection:
 
 ```php
-$config = Amqp::getConnectionConfig('production');
+$config = Amqp::getConnectionConfig('rabbitmq');
 // Returns: ['host' => 'localhost', 'port' => 5672, ...]
 ```
 
@@ -551,7 +551,7 @@ $config = Amqp::getConnectionConfig('production');
 Use different connections for different operations:
 
 ```php
-// Use production connection
+// Use rabbitmq connection
 Amqp::publish('key', 'message', [
     'host' => 'prod-rabbitmq.example.com',
     'port' => 5672,
@@ -779,7 +779,7 @@ Amqp::consume('queue', function ($message, $resolver) {
 ]);
 ```
 
-### 4. Production Consumers
+### 4. Rabbitmq Consumers
 
 Use Artisan commands with process managers:
 

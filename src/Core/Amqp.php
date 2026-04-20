@@ -64,10 +64,10 @@ class Amqp
      */
     public function publish(string $routing, $message, array $properties = []): ?bool
     {
-        // If 'use' is specified, merge that connection's config
-        if (isset($properties['use'])) {
-            $connectionName = $properties['use'];
-            unset($properties['use']);
+        // If 'default' is specified, merge that connection's config
+        if (isset($properties['default'])) {
+            $connectionName = $properties['default'];
+            unset($properties['default']);
             $connectionConfig = $this->getConnectionConfig($connectionName);
             $properties = array_merge($connectionConfig, $properties);
         }
@@ -153,10 +153,10 @@ class Amqp
      */
     public function consume(string $queue, Closure $callback, array $properties = []): bool
     {
-        // If 'use' is specified, merge that connection's config
-        if (isset($properties['use'])) {
-            $connectionName = $properties['use'];
-            unset($properties['use']);
+        // If 'default' is specified, merge that connection's config
+        if (isset($properties['default'])) {
+            $connectionName = $properties['default'];
+            unset($properties['default']);
             $connectionConfig = $this->getConnectionConfig($connectionName);
             $properties = array_merge($connectionConfig, $properties);
         }
@@ -328,7 +328,7 @@ class Amqp
         // Try to get config from App container if available (Laravel context)
         try {
             $config = \Illuminate\Support\Facades\App::make('config');
-            $connectionConfig = $config->get("amqp.properties.{$connection}", []);
+            $connectionConfig = $config->get("amqp.connections.{$connection}", []);
             
             if (empty($connectionConfig)) {
                 throw new \InvalidArgumentException("Connection '{$connection}' not found in config");
@@ -340,7 +340,7 @@ class Amqp
             $configFile = __DIR__ . '/../../config/amqp.php';
             if (file_exists($configFile)) {
                 $config = include $configFile;
-                $connectionConfig = $config['properties'][$connection] ?? [];
+                $connectionConfig = $config['connections'][$connection] ?? [];
                 
                 if (empty($connectionConfig)) {
                     throw new \InvalidArgumentException("Connection '{$connection}' not found in config");
@@ -474,14 +474,14 @@ class Amqp
         } catch (\Exception $e) {
             // If App facade is not available (e.g., in tests), create config from properties
             $defaultConfig = include __DIR__ . '/../../config/amqp.php';
-            $defaultProperties = $defaultConfig['properties'][$defaultConfig['use']] ?? [];
+            $defaultProperties = $defaultConfig['connections'][$defaultConfig['default']] ?? [];
             $mergedProperties = array_merge($defaultProperties, $properties);
             
             $configArray = [
                 'amqp' => [
-                    'use' => $defaultConfig['use'] ?? 'production',
-                    'properties' => [
-                        $defaultConfig['use'] ?? 'production' => $mergedProperties
+                    'default' => $defaultConfig['default'] ?? 'rabbitmq',
+                    'connections' => [
+                        $defaultConfig['default'] ?? 'rabbitmq' => $mergedProperties
                     ]
                 ]
             ];
@@ -661,14 +661,14 @@ class Amqp
         } catch (\Exception $e) {
             // If App facade is not available (e.g., in tests), create config from properties
             $defaultConfig = include __DIR__ . '/../../config/amqp.php';
-            $defaultProperties = $defaultConfig['properties'][$defaultConfig['use']] ?? [];
+            $defaultProperties = $defaultConfig['connections'][$defaultConfig['default']] ?? [];
             $mergedProperties = array_merge($defaultProperties, $properties);
             
             $configArray = [
                 'amqp' => [
-                    'use' => $defaultConfig['use'] ?? 'production',
-                    'properties' => [
-                        $defaultConfig['use'] ?? 'production' => $mergedProperties
+                    'default' => $defaultConfig['default'] ?? 'rabbitmq',
+                    'connections' => [
+                        $defaultConfig['default'] ?? 'rabbitmq' => $mergedProperties
                     ]
                 ]
             ];

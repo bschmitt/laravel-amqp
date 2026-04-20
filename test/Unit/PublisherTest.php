@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Unit;
 
 use Illuminate\Support\Facades\App;
 use Bschmitt\Amqp\Test\Support\BaseTestCase;

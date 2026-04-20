@@ -46,9 +46,9 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
         
         // Update config with test queue and exchange
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
         $this->configRepository->set('amqp', $config);
     }
 
@@ -67,8 +67,8 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
     public function testPublisherConfirmsEnabled()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['publisher_confirms'] = true;
-        $config['properties']['test']['wait_for_confirms'] = true;
+        $config['connections']['test']['publisher_confirms'] = true;
+        $config['connections']['test']['wait_for_confirms'] = true;
         $this->configRepository->set('amqp', $config);
 
         $publisher = new Publisher($this->configRepository);
@@ -101,8 +101,8 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
     public function testAckHandlerCalled()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['publisher_confirms'] = true;
-        $config['properties']['test']['wait_for_confirms'] = true;
+        $config['connections']['test']['publisher_confirms'] = true;
+        $config['connections']['test']['wait_for_confirms'] = true;
         $this->configRepository->set('amqp', $config);
 
         $publisher = new Publisher($this->configRepository);
@@ -137,8 +137,8 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
     public function testWaitForConfirms()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['publisher_confirms'] = true;
-        $config['properties']['test']['wait_for_confirms'] = false; // Don't wait automatically
+        $config['connections']['test']['publisher_confirms'] = true;
+        $config['connections']['test']['wait_for_confirms'] = false; // Don't wait automatically
         $this->configRepository->set('amqp', $config);
 
         $publisher = new Publisher($this->configRepository);
@@ -169,8 +169,8 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
     public function testWaitForConfirmsAndReturns()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['publisher_confirms'] = true;
-        $config['properties']['test']['wait_for_confirms'] = false;
+        $config['connections']['test']['publisher_confirms'] = true;
+        $config['connections']['test']['wait_for_confirms'] = false;
         $this->configRepository->set('amqp', $config);
 
         $publisher = new Publisher($this->configRepository);
@@ -201,7 +201,7 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
     public function testPublisherConfirmsWithMandatory()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['publisher_confirms'] = false; // Not enabled via config
+        $config['connections']['test']['publisher_confirms'] = false; // Not enabled via config
         $this->configRepository->set('amqp', $config);
 
         $publisher = new Publisher($this->configRepository);
@@ -225,13 +225,13 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
     public function testMultipleMessagesWithConfirms()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['publisher_confirms'] = true;
-        $config['properties']['test']['wait_for_confirms'] = false;
+        $config['connections']['test']['publisher_confirms'] = true;
+        $config['connections']['test']['wait_for_confirms'] = false;
         
         // Remove x-max-length to allow all messages to be queued
         // Default config has x-max-length=1 which only keeps the latest message
-        if (isset($config['properties']['test']['queue_properties']['x-max-length'])) {
-            unset($config['properties']['test']['queue_properties']['x-max-length']);
+        if (isset($config['connections']['test']['queue_properties']['x-max-length'])) {
+            unset($config['connections']['test']['queue_properties']['x-max-length']);
         }
         
         $this->configRepository->set('amqp', $config);
@@ -306,8 +306,8 @@ class PublisherConfirmsIntegrationTest extends IntegrationTestBase
             ];
             $config = new Repository([
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => ['test' => $defaultProperties]
+                    'default' => 'test',
+                    'connections' => ['test' => $defaultProperties]
                 ]
             ]);
             

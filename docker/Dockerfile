@@ -1,4 +1,4 @@
-FROM php:8.0-fpm
+FROM php:8.1-fpm
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -15,7 +15,7 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN docker-php-ext-install sockets
 
 # Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 
 # Create system user to run Composer and Artisan Commands
 RUN useradd -G www-data,root -d /home/ubuntu ubuntu

@@ -33,7 +33,7 @@ class IntegrationTestBase extends TestCase
 
         // Load real configuration from .env
         $amqpConfig = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $amqpConfig['properties'][$amqpConfig['use']];
+        $defaultProperties = $amqpConfig['connections'][$amqpConfig['default']];
 
         // Load .env file if it exists
         $this->loadEnvFile();
@@ -41,8 +41,8 @@ class IntegrationTestBase extends TestCase
         // Override with environment variables if set
         $config = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', $defaultProperties['host'] ?? 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', $defaultProperties['port'] ?? 5672),

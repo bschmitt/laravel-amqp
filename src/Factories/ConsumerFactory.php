@@ -40,9 +40,9 @@ class ConsumerFactory implements ConsumerFactoryInterface
             // Properties already have full config, use them directly
             $config = new \Illuminate\Config\Repository([
                 'amqp' => [
-                    'use' => 'production',
-                    'properties' => [
-                        'production' => $properties,
+                    'default' => 'rabbitmq',
+                    'connections' => [
+                        'rabbitmq' => $properties,
                     ],
                 ],
             ]);
@@ -56,9 +56,9 @@ class ConsumerFactory implements ConsumerFactoryInterface
             if (isset($mergedProperties['host'])) {
                 $config = new \Illuminate\Config\Repository([
                     'amqp' => [
-                        'use' => 'production',
-                        'properties' => [
-                            'production' => $mergedProperties,
+                        'default' => 'rabbitmq',
+                        'connections' => [
+                            'rabbitmq' => $mergedProperties,
                         ],
                     ],
                 ]);
@@ -71,9 +71,9 @@ class ConsumerFactory implements ConsumerFactoryInterface
                     // Create new config with merged properties
                     $config = new \Illuminate\Config\Repository([
                         'amqp' => [
-                            'use' => 'production',
-                            'properties' => [
-                                'production' => $mergedProperties,
+                            'default' => 'rabbitmq',
+                            'connections' => [
+                                'rabbitmq' => $mergedProperties,
                             ],
                         ],
                     ]);
@@ -94,9 +94,9 @@ class ConsumerFactory implements ConsumerFactoryInterface
                 // If App facade not available, create minimal config from properties
                 $config = new \Illuminate\Config\Repository([
                     'amqp' => [
-                        'use' => 'production',
-                        'properties' => [
-                            'production' => $properties ?: [
+                        'default' => 'rabbitmq',
+                        'connections' => [
+                            'rabbitmq' => $properties ?: [
                                 'host' => 'localhost',
                                 'port' => 5672,
                                 'username' => 'guest',

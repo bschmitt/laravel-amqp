@@ -4,21 +4,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Define which configuration should be used
+    | Default AMQP Connection
     |--------------------------------------------------------------------------
     */
 
-    'use' => env('AMQP_ENV', 'production'),
+    'default' => env('AMQP_CONNECTION', 'rabbitmq'),
 
     /*
     |--------------------------------------------------------------------------
-    | AMQP properties separated by key
+    | AMQP connections
     |--------------------------------------------------------------------------
     */
 
-    'properties' => [
+    'connections' => [
 
-        'production' => [
+        'rabbitmq' => [
             'host'                  => env('AMQP_HOST', 'localhost'),
             'port'                  => env('AMQP_PORT', 5672),
             'username'              => env('AMQP_USER', ''),

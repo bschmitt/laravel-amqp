@@ -51,9 +51,9 @@ class RpcMethodIntegrationTest extends TestCase
 
         $config = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => $baseConfig,
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => $baseConfig,
                 ],
             ],
         ]);
@@ -99,9 +99,9 @@ class RpcMethodIntegrationTest extends TestCase
 
         $config = new Repository([
             'amqp' => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => $baseConfig,
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => $baseConfig,
                 ],
             ],
         ]);

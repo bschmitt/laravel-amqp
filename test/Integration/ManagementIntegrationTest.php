@@ -40,14 +40,14 @@ class ManagementIntegrationTest extends IntegrationTestBase
 
         // Create Amqp instance
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $this->loadEnvFile();
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', $defaultProperties['host'] ?? 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', $defaultProperties['port'] ?? 5672),
@@ -86,12 +86,12 @@ class ManagementIntegrationTest extends IntegrationTestBase
     {
         try {
             $config = include dirname(__FILE__) . '/../../config/amqp.php';
-            $defaultProperties = $config['properties'][$config['use']];
+            $defaultProperties = $config['connections'][$config['default']];
             
             $configArray = [
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => [
+                    'default' => 'test',
+                    'connections' => [
                         'test' => array_merge($defaultProperties, [
                             'host' => $this->getEnv('AMQP_HOST', 'localhost'),
                             'port' => (int) $this->getEnv('AMQP_PORT', 5672),
@@ -138,7 +138,7 @@ class ManagementIntegrationTest extends IntegrationTestBase
     protected function getTestProperties(): array
     {
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         return array_merge($defaultProperties, [
             'host' => $this->getEnv('AMQP_HOST', 'localhost'),
@@ -153,12 +153,12 @@ class ManagementIntegrationTest extends IntegrationTestBase
     {
         // Create exchange and queue
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', 5672),
@@ -202,8 +202,8 @@ class ManagementIntegrationTest extends IntegrationTestBase
         // Publish a message directly using channel to verify binding works
         $configRepository = new \Illuminate\Config\Repository([
             'amqp' => [
-                'use' => 'test',
-                'properties' => ['test' => $testProperties]
+                'default' => 'test',
+                'connections' => ['test' => $testProperties]
             ]
         ]);
         $configProvider = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
@@ -253,12 +253,12 @@ class ManagementIntegrationTest extends IntegrationTestBase
     {
         // Create two exchanges
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', 5672),
@@ -304,8 +304,8 @@ class ManagementIntegrationTest extends IntegrationTestBase
         // Publish multiple messages directly using channel
         $configRepository = new \Illuminate\Config\Repository([
             'amqp' => [
-                'use' => 'test',
-                'properties' => ['test' => $testProperties]
+                'default' => 'test',
+                'connections' => ['test' => $testProperties]
             ]
         ]);
         $configProvider = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
@@ -357,8 +357,8 @@ class ManagementIntegrationTest extends IntegrationTestBase
         // Publish a message directly using channel
         $configRepository = new \Illuminate\Config\Repository([
             'amqp' => [
-                'use' => 'test',
-                'properties' => ['test' => $testProperties]
+                'default' => 'test',
+                'connections' => ['test' => $testProperties]
             ]
         ]);
         $configProvider = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
@@ -379,12 +379,12 @@ class ManagementIntegrationTest extends IntegrationTestBase
 
         // Try to declare the queue again - should succeed (queue doesn't exist)
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', 5672),
@@ -442,12 +442,12 @@ class ManagementIntegrationTest extends IntegrationTestBase
     {
         // Create an exchange
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', 5672),
@@ -494,12 +494,12 @@ class ManagementIntegrationTest extends IntegrationTestBase
     {
         // Create an exchange
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', 5672),

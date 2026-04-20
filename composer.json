@@ -29,13 +29,13 @@
     "php-amqplib/php-amqplib": "^3.0"
   },
   "require-dev": {
-    "illuminate/config": "13.*",
+    "illuminate/config": "^10.0",
     "mockery/mockery": "^1.2",
     "phpoption/phpoption": "1.7.x-dev",
     "phpunit/phpunit": ">=6.0",
     "squizlabs/php_codesniffer": "^3.0@dev",
     "vlucas/phpdotenv": "^5.3",
-    "illuminate/support": "13.*"
+    "illuminate/support": "^10.0"
   },
   "autoload": {
     "psr-4": {

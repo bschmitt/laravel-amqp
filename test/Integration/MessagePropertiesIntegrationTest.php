@@ -35,14 +35,14 @@ class MessagePropertiesIntegrationTest extends IntegrationTestBase
 
         // Create Amqp instance
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $this->loadEnvFile();
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', $defaultProperties['host'] ?? 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', $defaultProperties['port'] ?? 5672),
@@ -84,12 +84,12 @@ class MessagePropertiesIntegrationTest extends IntegrationTestBase
     {
         try {
             $config = include dirname(__FILE__) . '/../../config/amqp.php';
-            $defaultProperties = $config['properties'][$config['use']];
+            $defaultProperties = $config['connections'][$config['default']];
             
             $configArray = [
                 'amqp' => [
-                    'use' => 'test',
-                    'properties' => [
+                    'default' => 'test',
+                    'connections' => [
                         'test' => array_merge($defaultProperties, [
                             'host' => $this->getEnv('AMQP_HOST', 'localhost'),
                             'port' => (int) $this->getEnv('AMQP_PORT', 5672),
@@ -128,12 +128,12 @@ class MessagePropertiesIntegrationTest extends IntegrationTestBase
     protected function setupTestQueueAndExchange(): void
     {
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', 5672),
@@ -181,8 +181,8 @@ class MessagePropertiesIntegrationTest extends IntegrationTestBase
         // Publish message with priority directly using channel
         $configRepository = new \Illuminate\Config\Repository([
             'amqp' => [
-                'use' => 'test',
-                'properties' => ['test' => $testProperties]
+                'default' => 'test',
+                'connections' => ['test' => $testProperties]
             ]
         ]);
         $configProvider = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
@@ -228,8 +228,8 @@ class MessagePropertiesIntegrationTest extends IntegrationTestBase
         // Publish message with correlation ID directly using channel
         $configRepository = new \Illuminate\Config\Repository([
             'amqp' => [
-                'use' => 'test',
-                'properties' => ['test' => $testProperties]
+                'default' => 'test',
+                'connections' => ['test' => $testProperties]
             ]
         ]);
         $configProvider = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
@@ -275,8 +275,8 @@ class MessagePropertiesIntegrationTest extends IntegrationTestBase
         // Publish message with reply-to directly using channel
         $configRepository = new \Illuminate\Config\Repository([
             'amqp' => [
-                'use' => 'test',
-                'properties' => ['test' => $testProperties]
+                'default' => 'test',
+                'connections' => ['test' => $testProperties]
             ]
         ]);
         $configProvider = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
@@ -321,8 +321,8 @@ class MessagePropertiesIntegrationTest extends IntegrationTestBase
         // Publish message with custom headers directly using channel
         $configRepository = new \Illuminate\Config\Repository([
             'amqp' => [
-                'use' => 'test',
-                'properties' => ['test' => $testProperties]
+                'default' => 'test',
+                'connections' => ['test' => $testProperties]
             ]
         ]);
         $configProvider = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
@@ -382,8 +382,8 @@ class MessagePropertiesIntegrationTest extends IntegrationTestBase
         // Publish message with all properties directly using channel
         $configRepository = new \Illuminate\Config\Repository([
             'amqp' => [
-                'use' => 'test',
-                'properties' => ['test' => $testProperties]
+                'default' => 'test',
+                'connections' => ['test' => $testProperties]
             ]
         ]);
         $configProvider = new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
@@ -435,7 +435,7 @@ class MessagePropertiesIntegrationTest extends IntegrationTestBase
     protected function getTestProperties(): array
     {
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         return array_merge($defaultProperties, [
             'host' => $this->getEnv('AMQP_HOST', 'localhost'),

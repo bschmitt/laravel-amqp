@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Unit;
 
 use Bschmitt\Amqp\Exception\Configuration;
 use Bschmitt\Amqp\Test\Support\BaseTestCase;

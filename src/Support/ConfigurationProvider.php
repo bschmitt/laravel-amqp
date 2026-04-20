@@ -35,7 +35,7 @@ class ConfigurationProvider implements ConfigurationProviderInterface
     {
         if ($config->has(self::REPOSITORY_KEY)) {
             $data = $config->get(self::REPOSITORY_KEY);
-            $this->originalProperties = $data['properties'][$data['use']] ?? [];
+            $this->originalProperties = $data['connections'][$data['default']] ?? [];
             $this->properties = $this->originalProperties;
         }
     }
@@ -96,9 +96,9 @@ class ConfigurationProvider implements ConfigurationProviderInterface
         // This allows factories to create new instances without App facade
         return new \Illuminate\Config\Repository([
             self::REPOSITORY_KEY => [
-                'use' => 'production',
-                'properties' => [
-                    'production' => $this->properties,
+                'default' => 'rabbitmq',
+                'connections' => [
+                    'rabbitmq' => $this->properties,
                 ],
             ],
         ]);

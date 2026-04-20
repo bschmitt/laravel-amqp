@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -88,8 +88,8 @@ class QueueMaxLengthCompleteTest extends TestCase
 
         $config = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => $defaultProperties
                 ]
             ]
@@ -245,8 +245,8 @@ class QueueMaxLengthCompleteTest extends TestCase
         
         // Override queue name
         $configData = $config->get('amqp');
-        $configData['properties']['test']['queue'] = $uniqueQueueName;
-        $configData['properties']['test']['queue_force_declare'] = true;
+        $configData['connections']['test']['queue'] = $uniqueQueueName;
+        $configData['connections']['test']['queue_force_declare'] = true;
         $config = new \Illuminate\Config\Repository(['amqp' => $configData]);
 
         $publisher = new Publisher($config);

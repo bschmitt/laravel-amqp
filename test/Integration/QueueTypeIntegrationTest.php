@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -43,10 +43,10 @@ class QueueTypeIntegrationTest extends IntegrationTestBase
         
         // Update config with test queue and exchange
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['routing'] = $this->testRoutingKey;
-        $config['properties']['test']['queue_durable'] = true; // Quorum and stream queues must be durable
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['routing'] = $this->testRoutingKey;
+        $config['connections']['test']['queue_durable'] = true; // Quorum and stream queues must be durable
         $this->configRepository->set('amqp', $config);
     }
 
@@ -65,13 +65,13 @@ class QueueTypeIntegrationTest extends IntegrationTestBase
     public function testQueueDeclareWithClassicType()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-type' => 'classic'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -94,13 +94,13 @@ class QueueTypeIntegrationTest extends IntegrationTestBase
     public function testPublishAndConsumeWithClassicType()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-type' => 'classic'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 
@@ -147,15 +147,15 @@ class QueueTypeIntegrationTest extends IntegrationTestBase
     public function testQueueDeclareWithQuorumType()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-type' => 'quorum'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true; // Quorum queues must be durable
-        $config['properties']['test']['queue_auto_delete'] = false; // Quorum queues cannot be auto-delete
-        $config['properties']['test']['queue_exclusive'] = false; // Quorum queues cannot be exclusive
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true; // Quorum queues must be durable
+        $config['connections']['test']['queue_auto_delete'] = false; // Quorum queues cannot be auto-delete
+        $config['connections']['test']['queue_exclusive'] = false; // Quorum queues cannot be exclusive
         
         $this->configRepository->set('amqp', $config);
 
@@ -187,15 +187,15 @@ class QueueTypeIntegrationTest extends IntegrationTestBase
     public function testPublishAndConsumeWithQuorumType()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-type' => 'quorum'
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
-        $config['properties']['test']['queue_auto_delete'] = false; // Quorum queues cannot be auto-delete
-        $config['properties']['test']['queue_exclusive'] = false; // Quorum queues cannot be exclusive
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_auto_delete'] = false; // Quorum queues cannot be auto-delete
+        $config['connections']['test']['queue_exclusive'] = false; // Quorum queues cannot be exclusive
         
         $this->configRepository->set('amqp', $config);
 
@@ -249,14 +249,14 @@ class QueueTypeIntegrationTest extends IntegrationTestBase
     public function testQueueTypeWithOtherProperties()
     {
         $config = $this->configRepository->get('amqp');
-        $config['properties']['test']['queue'] = $this->testQueueName;
-        $config['properties']['test']['exchange'] = $this->testExchange;
-        $config['properties']['test']['queue_properties'] = [
+        $config['connections']['test']['queue'] = $this->testQueueName;
+        $config['connections']['test']['exchange'] = $this->testExchange;
+        $config['connections']['test']['queue_properties'] = [
             'x-queue-type' => 'classic',
             'x-max-length' => 2
         ];
-        $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_durable'] = true;
+        $config['connections']['test']['queue_force_declare'] = true;
+        $config['connections']['test']['queue_durable'] = true;
         
         $this->configRepository->set('amqp', $config);
 

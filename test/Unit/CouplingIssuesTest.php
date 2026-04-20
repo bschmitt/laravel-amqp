@@ -25,8 +25,8 @@ class CouplingIssuesTest extends TestCase
         // Create config without using App facade
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => [
                         'host' => 'localhost',
                         'port' => 5672,
@@ -60,8 +60,8 @@ class CouplingIssuesTest extends TestCase
         // Create config without using App facade
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => [
                         'host' => 'localhost',
                         'port' => 5672,
@@ -100,8 +100,8 @@ class CouplingIssuesTest extends TestCase
     {
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => [
                         'host' => 'localhost',
                         'port' => 5672,
@@ -133,8 +133,8 @@ class CouplingIssuesTest extends TestCase
     {
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => [
                         'host' => 'localhost',
                         'port' => 5672,
@@ -185,8 +185,8 @@ class CouplingIssuesTest extends TestCase
     {
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => [
                         'host' => 'localhost',
                         'port' => 5672,

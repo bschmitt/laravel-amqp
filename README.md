@@ -177,10 +177,10 @@ $app->withFacades(true, [
 
 ```php
 return [
-    'use' => env('AMQP_ENV', 'production'),
+    'default' => env('AMQP_ENV', 'rabbitmq'),
 
-    'properties' => [
-        'production' => [
+    'connections' => [
+        'rabbitmq' => [
             'host'                => env('AMQP_HOST', 'localhost'),
             'port'                => env('AMQP_PORT', 5672),
             'username'            => env('AMQP_USER', 'guest'),

@@ -47,9 +47,9 @@ class PublisherFactory implements PublisherFactoryInterface
             // Create a Repository from properties to avoid App facade issues
             $config = new \Illuminate\Config\Repository([
                 'amqp' => [
-                    'use' => 'production',
-                    'properties' => [
-                        'production' => $mergedProperties,
+                    'default' => 'rabbitmq',
+                    'connections' => [
+                        'rabbitmq' => $mergedProperties,
                     ],
                 ],
             ]);
@@ -62,9 +62,9 @@ class PublisherFactory implements PublisherFactoryInterface
                 // Create new config with merged properties
                 $config = new \Illuminate\Config\Repository([
                     'amqp' => [
-                        'use' => 'production',
-                        'properties' => [
-                            'production' => $mergedProperties,
+                        'default' => 'rabbitmq',
+                        'connections' => [
+                            'rabbitmq' => $mergedProperties,
                         ],
                     ],
                 ]);
@@ -84,9 +84,9 @@ class PublisherFactory implements PublisherFactoryInterface
                 // If App facade not available, create minimal config from properties
                 $config = new \Illuminate\Config\Repository([
                     'amqp' => [
-                        'use' => 'production',
-                        'properties' => [
-                            'production' => $mergedProperties ?: [
+                        'default' => 'rabbitmq',
+                        'connections' => [
+                            'rabbitmq' => $mergedProperties ?: [
                                 'host' => 'localhost',
                                 'port' => 5672,
                                 'username' => 'guest',

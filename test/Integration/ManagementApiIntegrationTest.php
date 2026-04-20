@@ -45,14 +45,14 @@ class ManagementApiIntegrationTest extends IntegrationTestBase
 
         // Create Amqp instance
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $this->loadEnvFile();
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', $defaultProperties['host'] ?? 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', $defaultProperties['port'] ?? 5672),
@@ -118,12 +118,12 @@ class ManagementApiIntegrationTest extends IntegrationTestBase
     {
         // Create a test queue first
         $config = include dirname(__FILE__) . '/../../config/amqp.php';
-        $defaultProperties = $config['properties'][$config['use']];
+        $defaultProperties = $config['connections'][$config['default']];
         
         $configArray = [
             'amqp' => [
-                'use' => 'test',
-                'properties' => [
+                'default' => 'test',
+                'connections' => [
                     'test' => array_merge($defaultProperties, [
                         'host' => $this->getEnv('AMQP_HOST', 'localhost'),
                         'port' => (int) $this->getEnv('AMQP_PORT', 5672),

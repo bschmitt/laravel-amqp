@@ -17,7 +17,7 @@ class BaseTestCase extends TestCase
     protected function setUp() : void
     {
         $amqpConfig = include dirname(__FILE__).'/../../config/amqp.php';
-        $this->defaultConfig = $amqpConfig['properties'][$amqpConfig['use']];
+        $this->defaultConfig = $amqpConfig['connections'][$amqpConfig['default']];
 
         $config = Mockery::mock('\Illuminate\Config\Repository');
         $config->shouldReceive('has')->with(self::REPOSITORY_KEY)->andReturn(true);
