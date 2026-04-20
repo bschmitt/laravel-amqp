@@ -1,9 +1,17 @@
 {
-  "name": "wangchengtao/laravel-amqp",
-  "description": "AMQP wrapper for Laravel to publish and consume messages",
+  "name": "bschmitt/laravel-amqp",
+  "description": "AMQP wrapper for Laravel and Lumen to publish and consume messages",
   "keywords": [
     "laravel",
-    "rabbitmq"
+    "lumen",
+    "laravel5",
+    "rabbitmq",
+    "amqp",
+    "queue",
+    "package",
+    "message queue",
+    "Björn Schmitt",
+    "bschmitt"
   ],
   "license": "MIT",
   "support": {
