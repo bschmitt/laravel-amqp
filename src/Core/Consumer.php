@@ -44,9 +44,9 @@ class Consumer extends Request implements ConsumerInterface
      */
     public function __construct(
         $config = null,
-        ConnectionManagerInterface $connectionManager = null,
-        ExchangeManager $exchangeManager = null,
-        QueueManager $queueManager = null
+        ?ConnectionManagerInterface $connectionManager = null,
+        ?ExchangeManager $exchangeManager = null,
+        ?QueueManager $queueManager = null
     ) {
         // If config is a ConfigurationProviderInterface, use it directly
         if ($config instanceof \Bschmitt\Amqp\Contracts\ConfigurationProviderInterface) {
