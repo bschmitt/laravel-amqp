@@ -5,12 +5,12 @@ on:
 
 jobs:
   unit-tests:
-    timeout-minutes: 10
-    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Each include row = one job (do not mix top-level os + include-only php/laravel).
       matrix:
-        os: [ubuntu-latest]
         include:
           - php: "7.4"
             laravel: "8.*"
@@ -34,7 +34,7 @@ jobs:
             laravel: "13.*"
           - php: "8.5"
             laravel: "13.*"
-    name: ${{ matrix.os }} - PHP${{ matrix.php }} - Laravel${{ matrix.laravel }}
+    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -43,6 +43,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          extensions: sockets
           coverage: none
 
       - name: Get Composer Cache Directory
@@ -54,12 +55,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ matrix.os }}-PHP${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ubuntu-PHP${{ matrix.php }}-Laravel${{ matrix.laravel }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ matrix.os }}-PHP${{ matrix.php }}-composer-
+            ubuntu-PHP${{ matrix.php }}-Laravel${{ matrix.laravel }}-composer-
+            ubuntu-PHP${{ matrix.php }}-composer-
 
       - name: Composer Install
         run: |
+          composer config platform.php "${{ matrix.php == '7.4' && '7.4.33' || matrix.php }}"
           composer require --dev --no-update \
             "illuminate/support:${{ matrix.laravel }}" \
             "illuminate/config:${{ matrix.laravel }}"
