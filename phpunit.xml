@@ -1,12 +1,12 @@
-<phpunit backupGlobals="false" bootstrap="vendor/autoload.php" colors="true" processIsolation="false" stopOnFailure="false">
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit backupGlobals="false"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         processIsolation="false"
+         stopOnFailure="false">
   <testsuites>
     <testsuite name="Package Test Suite">
       <directory suffix="Test.php">./test/</directory>
     </testsuite>
   </testsuites>
-  <filter>
-    <whitelist processUncoveredFilesFromWhitelist="true">
-      <directory suffix=".php">src/</directory>
-    </whitelist>
-  </filter>
 </phpunit>

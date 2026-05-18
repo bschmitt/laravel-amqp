@@ -122,7 +122,6 @@ class CouplingIssuesTest extends TestCase
         // Verify factory has the injected config
         $reflection = new \ReflectionClass($factory);
         $property = $reflection->getProperty('defaultConfig');
-        $property->setAccessible(true);
         $injectedConfig = $property->getValue($factory);
         
         $this->assertSame($configProvider, $injectedConfig);
@@ -155,7 +154,6 @@ class CouplingIssuesTest extends TestCase
         // Verify factory has the injected config
         $reflection = new \ReflectionClass($factory);
         $property = $reflection->getProperty('defaultConfig');
-        $property->setAccessible(true);
         $injectedConfig = $property->getValue($factory);
         
         $this->assertSame($configProvider, $injectedConfig);

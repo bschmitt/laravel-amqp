@@ -107,7 +107,6 @@ class PublisherConfirmsTest extends BaseTestCase
         // Use reflection to verify handler was set
         $reflection = new \ReflectionClass($publisher);
         $property = $reflection->getProperty('ackHandler');
-        $property->setAccessible(true);
         $handler = $property->getValue($publisher);
 
         $this->assertSame($callback, $handler);
@@ -130,7 +129,6 @@ class PublisherConfirmsTest extends BaseTestCase
         // Use reflection to verify handler was set
         $reflection = new \ReflectionClass($publisher);
         $property = $reflection->getProperty('nackHandler');
-        $property->setAccessible(true);
         $handler = $property->getValue($publisher);
 
         $this->assertSame($callback, $handler);
@@ -153,7 +151,6 @@ class PublisherConfirmsTest extends BaseTestCase
         // Use reflection to verify handler was set
         $reflection = new \ReflectionClass($publisher);
         $property = $reflection->getProperty('returnHandler');
-        $property->setAccessible(true);
         $handler = $property->getValue($publisher);
 
         $this->assertSame($callback, $handler);
@@ -285,7 +282,6 @@ class PublisherConfirmsTest extends BaseTestCase
         // Verify publishResult was set to false using reflection
         $reflection = new \ReflectionClass($publisher);
         $property = $reflection->getProperty('publishResult');
-        $property->setAccessible(true);
         $publishResult = $property->getValue($publisher);
         $this->assertFalse($publishResult);
     }
@@ -314,7 +310,6 @@ class PublisherConfirmsTest extends BaseTestCase
         // Verify publishResult was set to false using reflection
         $reflection = new \ReflectionClass($publisher);
         $property = $reflection->getProperty('publishResult');
-        $property->setAccessible(true);
         $publishResult = $property->getValue($publisher);
         $this->assertFalse($publishResult);
     }

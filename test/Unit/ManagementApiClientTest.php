@@ -286,7 +286,6 @@ class ManagementApiClientTest extends TestCase
         // Use reflection to test protected method
         $reflection = new \ReflectionClass($apiClient);
         $method = $reflection->getMethod('makeRequest');
-        $method->setAccessible(true);
 
         // Mock curl to return error
         $this->expectException(\RuntimeException::class);

@@ -37,9 +37,7 @@ class BaseTestCase extends TestCase
     {
         $reflectionClass = new \ReflectionClass($class);
         $channelProperty = $reflectionClass->getProperty($propertyName);
-        $channelProperty->setAccessible(true);
         $channelProperty->setValue($mock, $value);
-        $channelProperty->setAccessible(false);
     }
 
 }

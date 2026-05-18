@@ -343,8 +343,8 @@ That's it! You're ready to use Laravel AMQP.
 
 ## Requirements
 
-- PHP 7.3+ or PHP 8.0+
-- Laravel 6.20+ / Lumen 6.20+
+- PHP 7.3+ through 8.5 (Laravel 13 requires PHP 8.3+)
+- Laravel 8.x through 13.x / Lumen 8.x+
 - RabbitMQ 3.x server
 - php-amqplib/php-amqplib ^3.0
 
@@ -1377,7 +1377,7 @@ Laravel AMQP provides:
 
 ### What PHP versions are supported?
 
-PHP 7.3+ and PHP 8.0+ are supported.
+PHP 7.3 through 8.5 are supported. Use Laravel 8–9 on PHP 7.4–8.0, Laravel 10–12 on PHP 8.1+, and Laravel 13 on PHP 8.3+.
 
 ## Installation & Configuration
 
