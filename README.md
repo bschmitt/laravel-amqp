@@ -3,6 +3,7 @@
 A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, especially from RabbitMQ. This package provides full support for RabbitMQ features including RPC patterns, management operations, message properties, and more.
 
 [![Build Status](https://travis-ci.org/bschmitt/laravel-amqp.svg?branch=master)](https://travis-ci.org/bschmitt/laravel-amqp)
+[![CI](https://github.com/zfhassaan/laravel-amqp/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/zfhassaan/laravel-amqp/actions/workflows/ci.yml)
 [![Latest Stable Version](https://poser.pugx.org/bschmitt/laravel-amqp/v/stable.svg)](https://packagist.org/packages/bschmitt/laravel-amqp)
 [![PHP](https://img.shields.io/badge/PHP-7.3%20to%208.5-777BB4?logo=php&logoColor=white)](#requirements)
 [![Laravel](https://img.shields.io/badge/Laravel-8%20to%2013-FF2D20?logo=laravel&logoColor=white)](#requirements)
