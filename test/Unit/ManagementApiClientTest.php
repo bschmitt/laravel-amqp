@@ -4,12 +4,15 @@ namespace Bschmitt\Amqp\Test\Unit;
 
 use Bschmitt\Amqp\Managers\ManagementApiClient;
 use Bschmitt\Amqp\Support\ConfigurationProvider;
+use Bschmitt\Amqp\Test\Support\ReflectionTestTrait;
 use Illuminate\Config\Repository;
 use Mockery as m;
 use PHPUnit\Framework\TestCase;
 
 class ManagementApiClientTest extends TestCase
 {
+    use ReflectionTestTrait;
+
     protected $configRepository;
     protected $config;
     protected $apiClient;
@@ -282,19 +285,15 @@ class ManagementApiClientTest extends TestCase
     public function testMakeRequestHandlesHttpError()
     {
         $apiClient = new ManagementApiClient($this->config);
-        
-        // Use reflection to test protected method
-        $reflection = new \ReflectionClass($apiClient);
-        $method = $reflection->getMethod('makeRequest');
-        $method->setAccessible(true);
 
-        // Mock curl to return error
         $this->expectException(\RuntimeException::class);
-        
-        // This will fail because we can't easily mock curl, but we test the error handling structure
-        // In real tests, we'd use a proper HTTP mocking library or test with real API
+
         try {
-            $method->invoke($apiClient, 'GET', 'http://invalid-host:15672/api/queues');
+            $this->invokeProtectedMethod(
+                $apiClient,
+                'makeRequest',
+                ['GET', 'http://invalid-host:15672/api/queues']
+            );
         } catch (\RuntimeException $e) {
             $this->assertStringContainsString('Management API', $e->getMessage());
             throw $e;

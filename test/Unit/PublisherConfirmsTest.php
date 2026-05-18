@@ -104,11 +104,7 @@ class PublisherConfirmsTest extends BaseTestCase
 
         $publisher->setAckHandler($callback);
 
-        // Use reflection to verify handler was set
-        $reflection = new \ReflectionClass($publisher);
-        $property = $reflection->getProperty('ackHandler');
-        $property->setAccessible(true);
-        $handler = $property->getValue($publisher);
+        $handler = $this->getProtectedProperty($publisher, 'ackHandler');
 
         $this->assertSame($callback, $handler);
     }
@@ -127,11 +123,7 @@ class PublisherConfirmsTest extends BaseTestCase
 
         $publisher->setNackHandler($callback);
 
-        // Use reflection to verify handler was set
-        $reflection = new \ReflectionClass($publisher);
-        $property = $reflection->getProperty('nackHandler');
-        $property->setAccessible(true);
-        $handler = $property->getValue($publisher);
+        $handler = $this->getProtectedProperty($publisher, 'nackHandler');
 
         $this->assertSame($callback, $handler);
     }
@@ -150,11 +142,7 @@ class PublisherConfirmsTest extends BaseTestCase
 
         $publisher->setReturnHandler($callback);
 
-        // Use reflection to verify handler was set
-        $reflection = new \ReflectionClass($publisher);
-        $property = $reflection->getProperty('returnHandler');
-        $property->setAccessible(true);
-        $handler = $property->getValue($publisher);
+        $handler = $this->getProtectedProperty($publisher, 'returnHandler');
 
         $this->assertSame($callback, $handler);
     }
@@ -282,12 +270,7 @@ class PublisherConfirmsTest extends BaseTestCase
 
         $this->assertTrue($nackCalled);
         
-        // Verify publishResult was set to false using reflection
-        $reflection = new \ReflectionClass($publisher);
-        $property = $reflection->getProperty('publishResult');
-        $property->setAccessible(true);
-        $publishResult = $property->getValue($publisher);
-        $this->assertFalse($publishResult);
+        $this->assertFalse($this->getProtectedProperty($publisher, 'publishResult'));
     }
 
     /**
@@ -311,11 +294,6 @@ class PublisherConfirmsTest extends BaseTestCase
 
         $this->assertTrue($returnCalled);
         
-        // Verify publishResult was set to false using reflection
-        $reflection = new \ReflectionClass($publisher);
-        $property = $reflection->getProperty('publishResult');
-        $property->setAccessible(true);
-        $publishResult = $property->getValue($publisher);
-        $this->assertFalse($publishResult);
+        $this->assertFalse($this->getProtectedProperty($publisher, 'publishResult'));
     }
 }

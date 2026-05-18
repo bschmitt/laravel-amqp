@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 class BaseTestCase extends TestCase
 {
+    use ReflectionTestTrait;
 
     const REPOSITORY_KEY = 'amqp';
 
@@ -32,14 +33,5 @@ class BaseTestCase extends TestCase
         Mockery::close();
     }
 
-
-    protected function setProtectedProperty($class, $mock, $propertyName, $value)
-    {
-        $reflectionClass = new \ReflectionClass($class);
-        $channelProperty = $reflectionClass->getProperty($propertyName);
-        $channelProperty->setAccessible(true);
-        $channelProperty->setValue($mock, $value);
-        $channelProperty->setAccessible(false);
-    }
 
 }

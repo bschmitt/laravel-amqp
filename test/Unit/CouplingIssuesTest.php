@@ -7,6 +7,7 @@ use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Factories\ConsumerFactory;
 use Bschmitt\Amqp\Factories\PublisherFactory;
 use Bschmitt\Amqp\Support\ConfigurationProvider;
+use Bschmitt\Amqp\Test\Support\ReflectionTestTrait;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\TestCase;
 
@@ -20,6 +21,8 @@ use PHPUnit\Framework\TestCase;
  */
 class CouplingIssuesTest extends TestCase
 {
+    use ReflectionTestTrait;
+
     public function testConsumerCanBeCreatedWithoutAppFacade()
     {
         // Create config without using App facade
@@ -119,12 +122,8 @@ class CouplingIssuesTest extends TestCase
         // Factory should use injected config, not App facade
         $factory = new ConsumerFactory($configProvider);
         
-        // Verify factory has the injected config
-        $reflection = new \ReflectionClass($factory);
-        $property = $reflection->getProperty('defaultConfig');
-        $property->setAccessible(true);
-        $injectedConfig = $property->getValue($factory);
-        
+        $injectedConfig = $this->getProtectedProperty($factory, 'defaultConfig');
+
         $this->assertSame($configProvider, $injectedConfig);
         $this->assertInstanceOf(ConfigurationProvider::class, $injectedConfig);
     }
@@ -152,12 +151,8 @@ class CouplingIssuesTest extends TestCase
         // Factory should use injected config, not App facade
         $factory = new PublisherFactory($configProvider);
         
-        // Verify factory has the injected config
-        $reflection = new \ReflectionClass($factory);
-        $property = $reflection->getProperty('defaultConfig');
-        $property->setAccessible(true);
-        $injectedConfig = $property->getValue($factory);
-        
+        $injectedConfig = $this->getProtectedProperty($factory, 'defaultConfig');
+
         $this->assertSame($configProvider, $injectedConfig);
         $this->assertInstanceOf(ConfigurationProvider::class, $injectedConfig);
     }
