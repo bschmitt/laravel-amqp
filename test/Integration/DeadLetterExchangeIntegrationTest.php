@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Publisher;
 use Bschmitt\Amqp\Core\Consumer;
@@ -91,7 +91,7 @@ class DeadLetterExchangeIntegrationTest extends TestCase
     /**
      * Create a test configuration with DLX properties
      */
-    private function createConfig(array $queueProperties = [], string $exchange = null, string $queue = null): Repository
+    private function createConfig(array $queueProperties = [], ?string $exchange = null, ?string $queue = null): Repository
     {
         $defaultProperties = [
             'host' => env('AMQP_HOST', 'localhost'),

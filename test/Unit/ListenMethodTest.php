@@ -1,6 +1,6 @@
 <?php
 
-namespace Bschmitt\Amqp\Test;
+namespace Bschmitt\Amqp\Test\Unit;
 
 use Bschmitt\Amqp\Core\Amqp;
 use Bschmitt\Amqp\Core\Consumer;

@@ -69,9 +69,9 @@ class Publisher extends Request implements PublisherInterface
      */
     public function __construct(
         $config = null,
-        ConnectionManagerInterface $connectionManager = null,
-        ExchangeManager $exchangeManager = null,
-        QueueManager $queueManager = null
+        ?ConnectionManagerInterface $connectionManager = null,
+        ?ExchangeManager $exchangeManager = null,
+        ?QueueManager $queueManager = null
     ) {
         if ($config === null) {
             $config = \Illuminate\Support\Facades\App::make('config');

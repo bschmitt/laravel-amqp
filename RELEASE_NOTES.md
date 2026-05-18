@@ -1,5 +1,15 @@
 # Release Notes
 
+## Unreleased
+
+### Compatibility
+
+- **PHP**: 7.3 through 8.5 (`composer.json`: `^7.3|^8.0`)
+- **Laravel**: 8.x through 13.x; CI covers legacy (7.4/8.0) and current (8.4/8.5 + Laravel 13) matrix rows
+- Dev dependencies resolve PHPUnit 9–12 per PHP version (`^9.6|^10.5|^11.5|^12.0`)
+
+---
+
 ## Version 3.1.2 - Patch Release
 
 This patch release finalizes Laravel 13 compatibility and fixes RPC reply correlation handling in integration scenarios.

@@ -21,7 +21,7 @@ class PublisherFactory implements PublisherFactoryInterface
     /**
      * @param ConfigurationProviderInterface|null $defaultConfig
      */
-    public function __construct(ConfigurationProviderInterface $defaultConfig = null)
+    public function __construct(?ConfigurationProviderInterface $defaultConfig = null)
     {
         $this->defaultConfig = $defaultConfig;
     }
