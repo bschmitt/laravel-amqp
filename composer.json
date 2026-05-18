@@ -29,13 +29,13 @@
     "php-amqplib/php-amqplib": "^3.0"
   },
   "require-dev": {
-    "illuminate/config": "13.*",
-    "mockery/mockery": "^1.2",
-    "phpoption/phpoption": "1.7.x-dev",
-    "phpunit/phpunit": ">=6.0",
-    "squizlabs/php_codesniffer": "^3.0@dev",
-    "vlucas/phpdotenv": "^5.3",
-    "illuminate/support": "13.*"
+    "illuminate/config": "^8|^9|^10|^11|^12|^13",
+    "illuminate/support": "^8|^9|^10|^11|^12|^13",
+    "mockery/mockery": "^1.3",
+    "phpoption/phpoption": "^1.7",
+    "phpunit/phpunit": "^9.6|^10.5|^11.5|^12.0",
+    "squizlabs/php_codesniffer": "^3.5",
+    "vlucas/phpdotenv": "^5.3"
   },
   "autoload": {
     "psr-4": {
@@ -44,7 +44,9 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Bschmitt\\Amqp\\Test\\": "test/"
+      "Bschmitt\\Amqp\\Test\\Unit\\": "test/Unit/",
+      "Bschmitt\\Amqp\\Test\\Integration\\": "test/Integration/",
+      "Bschmitt\\Amqp\\Test\\Support\\": "test/Support/"
     }
   },
     "extra": {
