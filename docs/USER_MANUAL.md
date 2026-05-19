@@ -35,7 +35,7 @@ The Laravel AMQP package provides a simple and elegant way to work with RabbitMQ
 
 ### Requirements
 
-- PHP 7.3+ through 8.5 (Laravel 13 requires PHP 8.3+)
+- PHP 7.3+ through 8.5 (Laravel 8 on PHP 7.3–7.4; Laravel 9 requires PHP 8.0.2+; Laravel 13 requires PHP 8.3+)
 - Laravel 8.x through 13.x / Lumen 8.x+
 - RabbitMQ 3.x server
 - php-amqplib/php-amqplib ^3.0

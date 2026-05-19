@@ -5,8 +5,12 @@
 ### Compatibility
 
 - **PHP**: 7.3 through 8.5 (`composer.json`: `^7.3|^8.0`)
-- **Laravel**: 8.x through 13.x; CI covers legacy (7.4/8.0) and current (8.4/8.5 + Laravel 13) matrix rows
-- Dev dependencies resolve PHPUnit 9–12 per PHP version (`^9.6|^10.5|^11.5|^12.0`)
+- **Laravel**: 8.x through 13.x; CI matrix includes PHP 7.3 + Laravel 8, PHP 7.4 + Laravel 8, and PHP 8.0 + Laravel 9
+- **Laravel 8**: supports PHP 7.3 and 7.4 (Laravel 9+ requires PHP 8.0.2+)
+- **Laravel 9**: requires PHP `^8.0.2`; CI/local installs use `platform.php` `8.0.2` (see `scripts/ci-platform-php.sh`)
+- **PHPUnit**: `^9.6` on PHP 7.3/7.4; `^10.5+` on PHP 8.1+ (resolved automatically by Composer)
+- **Config**: `ConfigurationProvider` accepts `use`/`properties` and legacy `default`/`connections` layouts
+- **Tests**: reflection helpers call `setAccessible(true)` for PHP 7.3/7.4 unit tests
 
 ---
 

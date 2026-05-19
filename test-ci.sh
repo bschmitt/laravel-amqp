@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Local runner for .github/workflows/ci.yml
-# Runs matrix jobs in order: PHP 7.4 → 8.0 → 8.1 → … → 8.5
+# Runs matrix jobs in order: PHP 7.3 → 7.4 → 8.0 → 8.1 → … → 8.5
 #
 # Usage:
 #   ./test-ci.sh                    # composer for all jobs; phpunit only if PATH PHP matches
@@ -26,6 +26,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
 MATRIX=(
+  "7.3:8.*"
   "7.4:8.*"
   "8.0:9.*"
   "8.1:10.*"
@@ -408,23 +409,11 @@ run_job() {
     return 1
   fi
 
-  platform_php="$(platform_php_for_job "$php_ver" "$laravel_ver")"
-
   backup_composer_files
-  run_composer "$php_bin" config platform.php "$platform_php"
 
-  echo "→ composer require (CI step)..."
-  if ! run_composer "$php_bin" require --dev --no-update \
-    "illuminate/support:${laravel_ver}" \
-    "illuminate/config:${laravel_ver}"; then
-    echo "✗ FAIL: composer require — ${label}"
-    restore_composer_files
-    return 1
-  fi
-
-  echo "→ composer update (CI step)..."
-  if ! run_composer "$php_bin" update --prefer-dist --optimize-autoloader --no-progress --ansi --no-interaction; then
-    echo "✗ FAIL: composer update — ${label}"
+  echo "→ composer install (CI step, platform + Laravel ${laravel_ver})..."
+  if ! PHP_BIN="$php_bin" bash "$ROOT/scripts/ci-composer-install.sh" "$php_ver" "$laravel_ver"; then
+    echo "✗ FAIL: composer install — ${label}"
     restore_composer_files
     return 1
   fi
@@ -470,7 +459,7 @@ echo "PHP install dir: ${PHP_INSTALL_ROOT:-not detected}"
 echo "Download cache: ${PHP_CACHE_DIR:-n/a}"
 echo "PATH PHP: ${CURRENT_PHP:-none} (${DEFAULT_PHP:-n/a})"
 echo "Mode: $([[ "$FULL_MODE" -eq 1 ]] && echo '--full' || echo 'default') | Download PHP: $([[ "$AUTO_DOWNLOAD_PHP" -eq 1 ]] && echo yes || echo no)"
-echo "Order: PHP 7.4 → 8.0 → 8.1 → 8.2 → 8.3 → 8.4 → 8.5"
+echo "Order: PHP 7.3 → 7.4 → 8.0 → 8.1 → 8.2 → 8.3 → 8.4 → 8.5"
 echo "Jobs: ${JOB_TOTAL}"
 [[ -n "$FROM_PHP" ]] && echo "From PHP: ${FROM_PHP}"
 list_installed_php

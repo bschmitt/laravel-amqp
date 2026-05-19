@@ -18,7 +18,7 @@ Laravel AMQP provides:
 
 ### What PHP versions are supported?
 
-PHP 7.3 through 8.5 are supported. Use Laravel 8–9 on PHP 7.4–8.0, Laravel 10–12 on PHP 8.1+, and Laravel 13 on PHP 8.3+.
+PHP 7.3 through 8.5 are supported. Use Laravel 8 on PHP 7.3–7.4, Laravel 9 on PHP 8.0.2+, Laravel 10–12 on PHP 8.1+, and Laravel 13 on PHP 8.3+.
 
 ## Installation & Configuration
 

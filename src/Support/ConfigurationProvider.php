@@ -33,11 +33,52 @@ class ConfigurationProvider implements ConfigurationProviderInterface
      */
     protected function extractProperties(Repository $config): void
     {
-        if ($config->has(self::REPOSITORY_KEY)) {
-            $data = $config->get(self::REPOSITORY_KEY);
-            $this->originalProperties = $data['properties'][$data['use']] ?? [];
-            $this->properties = $this->originalProperties;
+        if (!$config->has(self::REPOSITORY_KEY)) {
+            return;
         }
+
+        $data = $config->get(self::REPOSITORY_KEY);
+        if (!is_array($data)) {
+            return;
+        }
+
+        $connectionProperties = $this->resolveConnectionProperties($data);
+        if ($connectionProperties !== null) {
+            $this->originalProperties = $connectionProperties;
+            $this->properties = $connectionProperties;
+        }
+    }
+
+    /**
+     * Resolve the active connection block from config (current or legacy layout).
+     *
+     * @param array $data
+     * @return array|null
+     */
+    protected function resolveConnectionProperties(array $data)
+    {
+        // Current format (Laravel 8+): use + properties
+        if (isset($data['properties'], $data['use']) && is_array($data['properties'])) {
+            $connection = $data['use'];
+            if (isset($data['properties'][$connection]) && is_array($data['properties'][$connection])) {
+                return $data['properties'][$connection];
+            }
+        }
+
+        // Legacy format: default + connections
+        if (isset($data['connections'], $data['default']) && is_array($data['connections'])) {
+            $connection = $data['default'];
+            if (isset($data['connections'][$connection]) && is_array($data['connections'][$connection])) {
+                return $data['connections'][$connection];
+            }
+        }
+
+        // Single-connection shorthand: flat host/port keys at top level
+        if (isset($data['host'], $data['port'])) {
+            return $data;
+        }
+
+        return null;
     }
 
     /**

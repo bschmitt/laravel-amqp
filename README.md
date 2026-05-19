@@ -42,9 +42,19 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 
 ## Requirements
 
-- **PHP** 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, or 8.5
-- **Laravel** 8.x through 13.x (or Lumen 8.x+). Laravel 13 requires PHP 8.3+; Laravel 10+ requires PHP 8.1+
+- **PHP** 7.3 through 8.5 (`composer.json`: `^7.3|^8.0`)
+- **Laravel** 8.x through 13.x (or Lumen 8.x+)
 - RabbitMQ 3.x (tested with `rabbitmq:3-management` Docker image)
+
+| Laravel | Minimum PHP | Notes |
+|---------|-------------|--------|
+| 8.x | 7.3 | Last Laravel version for PHP 7.3 / 7.4 |
+| 9.x | 8.0.2 | Use PHP 8.0.2+ (not 8.0.0/8.0.1) |
+| 10.x | 8.1 | |
+| 11.x / 12.x | 8.2 | |
+| 13.x | 8.3 | |
+
+Config supports both `use` + `properties` (current) and legacy `default` + `connections` layouts.
 
 ## Installation
 

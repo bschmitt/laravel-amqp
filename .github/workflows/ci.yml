@@ -12,6 +12,12 @@ jobs:
       # Each include row = one job (do not mix top-level os + include-only php/laravel).
       matrix:
         include:
+          - php: "7.3"
+            laravel: "8.*"
+          - php: "7.4"
+            laravel: "8.*"
+          - php: "8.0"
+            laravel: "9.*"
           - php: "8.1"
             laravel: "10.*"
           - php: "8.2"
@@ -51,19 +57,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ubuntu-PHP${{ matrix.php }}-Laravel${{ matrix.laravel }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ubuntu-PHP${{ matrix.php }}-Laravel${{ matrix.laravel }}-composer-${{ hashFiles('composer.json') }}
           restore-keys: |
             ubuntu-PHP${{ matrix.php }}-Laravel${{ matrix.laravel }}-composer-
             ubuntu-PHP${{ matrix.php }}-composer-
 
       - name: Composer Install
-        run: |
-          PLATFORM_PHP="$(bash scripts/ci-platform-php.sh "${{ matrix.php }}" "${{ matrix.laravel }}")"
-          composer config platform.php "$PLATFORM_PHP"
-          composer require --dev --no-update \
-            "illuminate/support:${{ matrix.laravel }}" \
-            "illuminate/config:${{ matrix.laravel }}"
-          composer update --prefer-dist --optimize-autoloader --no-progress --ansi --no-interaction
+        run: bash scripts/ci-composer-install.sh "${{ matrix.php }}" "${{ matrix.laravel }}"
 
       - name: Unit Tests
         run: ./vendor/bin/phpunit
