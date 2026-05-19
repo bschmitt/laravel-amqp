@@ -1,7 +1,5 @@
 # Release Notes
 
-## Unreleased
-
 ---
 
 ## Version 3.3.0 - Minor Release
