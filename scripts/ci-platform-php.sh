@@ -16,6 +16,7 @@ if [[ -z "$php_ver" ]]; then
 fi
 
 case "$php_ver" in
+  7.3) php_floor="7.3.33" ;;
   7.4) php_floor="7.4.33" ;;
   8.0) php_floor="8.0.2" ;;
   8.1) php_floor="8.1.0" ;;

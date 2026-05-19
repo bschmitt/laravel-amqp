@@ -3,7 +3,7 @@
 namespace Bschmitt\Amqp\Test\Support;
 
 /**
- * PHP 7.4 requires setAccessible(true) before reading/writing non-public members via reflection.
+ * PHP 7.3/7.4 requires setAccessible(true) before reading/writing non-public members via reflection.
  */
 trait ReflectionTestTrait
 {
