@@ -12,6 +12,8 @@ jobs:
       # Each include row = one job (do not mix top-level os + include-only php/laravel).
       matrix:
         include:
+          - php: "7.4"
+            laravel: "9.*"
           - php: "8.1"
             laravel: "10.*"
           - php: "8.2"
