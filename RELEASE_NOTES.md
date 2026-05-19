@@ -2,15 +2,38 @@
 
 ## Unreleased
 
+---
+
+## Version 3.3.0 - Minor Release
+
+This release broadens framework and PHP compatibility, improves configuration resolution, and expands CI coverage.
+
 ### Compatibility
 
 - **PHP**: 7.3 through 8.5 (`composer.json`: `^7.3|^8.0`)
-- **Laravel**: 8.x through 13.x; CI matrix includes PHP 7.3 + Laravel 8, PHP 7.4 + Laravel 8, and PHP 8.0 + Laravel 9
+- **Laravel**: 7.x through 13.x in dev dependencies; CI matrix covers Laravel 8–13 across supported PHP versions
 - **Laravel 8**: supports PHP 7.3 and 7.4 (Laravel 9+ requires PHP 8.0.2+)
 - **Laravel 9**: requires PHP `^8.0.2`; CI/local installs use `platform.php` `8.0.2` (see `scripts/ci-platform-php.sh`)
-- **PHPUnit**: `^9.6` on PHP 7.3/7.4; `^10.5+` on PHP 8.1+ (resolved automatically by Composer)
-- **Config**: `ConfigurationProvider` accepts `use`/`properties` and legacy `default`/`connections` layouts
-- **Tests**: reflection helpers call `setAccessible(true)` for PHP 7.3/7.4 unit tests
+- **PHPUnit**: `^9.6` on PHP 7.3/7.4; `^10.5|^11.5|^12.0` on PHP 8.0+ (resolved automatically by Composer)
+
+### Features
+
+1. **Configuration layouts**
+   - `ConfigurationProvider` accepts current `use`/`properties`, legacy `default`/`connections`, and flat single-connection configs.
+
+2. **CI and local testing**
+   - GitHub Actions matrix for PHP 7.3–8.5 and Laravel 8–13.
+   - `scripts/ci-platform-php.sh` and `scripts/ci-composer-install.sh` for correct Composer platform constraints.
+   - `test-ci.sh` for running the CI matrix locally.
+
+### Fixes
+
+- PHP 8.4+ implicitly nullable parameter deprecations in test helpers.
+- PHP 8.5 compatibility: removed deprecated `curl_close()` usage and guarded reflection `setAccessible()` for unit tests on PHP 7.3/7.4.
+
+### Migration
+
+No migration required. Existing `config/amqp.php` layouts continue to work.
 
 ---
 
