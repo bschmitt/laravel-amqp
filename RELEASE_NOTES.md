@@ -26,8 +26,16 @@ This release broadens framework and PHP compatibility, improves configuration re
 
 ### Fixes
 
-- PHP 8.4+ implicitly nullable parameter deprecations in test helpers.
-- PHP 8.5 compatibility: removed deprecated `curl_close()` usage and guarded reflection `setAccessible()` for unit tests on PHP 7.3/7.4.
+PHP 8.4+ and 8.5 compatibility fixes contributed by [@dlpro](https://github.com/dlpro) in [PR #136](https://github.com/bschmitt/laravel-amqp/pull/136) (merged May 18, 2026):
+
+1. **PHP 8.4+ implicitly nullable parameters**
+   - Added explicit `?` to nullable constructor parameters in `ConsumerFactory`, `PublisherFactory`, `Consumer`, and `Publisher` (avoids deprecation warnings on PHP 8.4 and fatal errors in PHP 9).
+   - Fixed the same pattern in `DeadLetterExchangeIntegrationTest::createConfig()`.
+
+2. **PHP 8.5 deprecations**
+   - Removed `curl_close()` from `ManagementApiClient` (no-op since PHP 8.0, removed in PHP 8.5).
+   - Dropped `ReflectionProperty::setAccessible()` calls in unit/integration tests (deprecated in PHP 8.5; no-op since PHP 8.1).
+   - `ReflectionTestTrait` still calls `setAccessible(true)` on PHP 7.3/7.4 where reflection access requires it.
 
 ### Migration
 
