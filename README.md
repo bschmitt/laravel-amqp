@@ -40,6 +40,30 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - Lazy Queues - Disk-based message storage
 - Alternate Exchange - Unroutable message handling
 
+## Planned Features
+
+- Native Laravel Queue integration
+- `amqp:work` and consumer artisan commands
+- Advanced retry & dead-letter abstractions
+- Delayed message and backoff support
+- Typed message contracts & DTO serialization
+- JSON schema validation for messages
+- Exchange and topology builders
+- Quorum queue & priority queue support
+- Auto reconnect and heartbeat monitoring
+- Connection pooling & persistent channels
+- OpenTelemetry and distributed tracing support
+- Correlation ID propagation
+- Consumer lifecycle management
+- Native SAGA workflow helpers
+- Laravel event & middleware integration
+- Improved testing and fake AMQP drivers
+- Publisher confirms & async publishing
+- RPC abstraction helpers
+- Cross-service / polyglot messaging support
+- Enhanced observability and queue metrics
+- High-performance worker optimizations
+
 ## Requirements
 
 - **PHP** 7.3 through 8.5 (`composer.json`: `^7.3|^8.0`)
