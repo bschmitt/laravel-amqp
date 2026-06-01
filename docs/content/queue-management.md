@@ -7,12 +7,11 @@
 Remove all messages from a queue without deleting it.
 
 ```php
-use Bschmitt\Amqp\Facades\Amqp;
+use Bschmitt\\Amqp\\Facades\\Amqp;
 
 $amqp = app('Amqp');
 $amqp->queuePurge('my-queue', [
     'queue' => 'my-queue'
-
 ]);
 ```
 
@@ -25,13 +24,11 @@ Delete a queue completely.
 $amqp = app('Amqp');
 $amqp->queueDelete('my-queue', [
     'queue' => 'my-queue'
-
 ], false, false);
 
 // Force delete (even if not empty)
 $amqp->queueDelete('my-queue', [
     'queue' => 'my-queue'
-
 ], false, false);
 ```
 
@@ -73,48 +70,38 @@ $amqp->exchangeUnbind('destination-exchange', 'source-exchange', 'routing-key', 
 
 ```php
 // app/Console/Commands/CleanupQueues.php
-namespace App\Console\Commands;
+namespace App\\Console\\Commands;
 
-use Illuminate\Console\Command;
-use Bschmitt\Amqp\Facades\Amqp;
+use Illuminate\\Console\\Command;
+use Bschmitt\\Amqp\\Facades\\Amqp;
 
 class CleanupQueues extends Command
 {
-
     protected $signature = 'amqp:cleanup {action} {queue}';
     protected $description = 'Cleanup queues';
 
     public function handle()
-
     {
         $action = $this->argument('action');
         $queue = $this->argument('queue');
-
-
+        
         $properties = ['queue' => $queue];
         $amqp = app('Amqp');
-
-
+        
         switch ($action) {
             case 'purge':
                 $amqp->queuePurge($queue, $properties);
                 $this->info("Queue {$queue} purged");
-
                 break;
-
-
+                
             case 'delete':
                 $amqp->queueDelete($queue, $properties);
                 $this->info("Queue {$queue} deleted");
-
                 break;
-
-
+                
             default:
                 $this->error("Unknown action: {$action}");
-
         }
-
     }
 }
 ```

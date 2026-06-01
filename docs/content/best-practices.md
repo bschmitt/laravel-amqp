@@ -10,16 +10,15 @@ $amqp->consume('queue', function ($message, $resolver) {
     try {
         processMessage($message->body);
         $resolver->acknowledge($message);
-    } catch (\Exception $e) {
+    } catch (\\Exception $e) {
         // Log error
-        \Log::error('Message processing failed', [
+        \\Log::error('Message processing failed', [
             'error' => $e->getMessage(),
             'message' => $message->body,
         ]);
-
+        
         // Reject and requeue (or send to DLQ)
         $resolver->reject($message, true);
-
     }
 });
 ```
@@ -32,26 +31,20 @@ Make message processing idempotent:
 $amqp = app('Amqp');
 $amqp->consume('queue', function ($message, $resolver) {
     $id = $message->getHeader('X-Message-ID');
-
-
+    
     // Check if already processed
     if (Cache::has("processed:{$id}")) {
         $resolver->acknowledge($message);
         return;
-
     }
-
-
+    
     // Process message
     processMessage($message->body);
-
-
+    
     // Mark as processed
     Cache::put("processed:{$id}", true, 3600);
-
-
+    
     $resolver->acknowledge($message);
-
 });
 ```
 
@@ -65,17 +58,15 @@ $amqp->consume('queue', function ($message, $resolver) {
     try {
         processMessage($message->body);
         $resolver->acknowledge($message);
-    } catch (\Exception $e) {
+    } catch (\\Exception $e) {
         // Reject without requeue - goes to DLQ
         $resolver->reject($message, false);
-
     }
 }, [
     'queue_properties' => [
         'x-dead-letter-exchange' => 'dlx',
         'x-dead-letter-routing-key' => 'failed',
     ],
-
 ]);
 ```
 
@@ -87,22 +78,16 @@ Use Artisan commands with process managers:
 // app/Console/Commands/ProcessQueue.php
 class ProcessQueue extends Command
 {
-
     protected $signature = 'queue:process {queue}';
-
-
+    
     public function handle()
-
     {
         $amqp = app('Amqp');
         $amqp->consume($this->argument('queue'), function ($message, $resolver) {
             // Process message
             $resolver->acknowledge($message);
-
         });
-
     }
-
 }
 ```
 
@@ -116,11 +101,9 @@ $stats = $amqp->getQueueStats('my-queue', '/');
 
 if ($stats['messages'] > 1000) {
     // Alert: Queue backlog
-
 }
 
 if ($stats['consumers'] === 0) {
     // Alert: No consumers
-
 }
 ```

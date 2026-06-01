@@ -3,7 +3,7 @@
 ## Simple Publishing
 
 ```php
-use Bschmitt\Amqp\Facades\Amqp;
+use Bschmitt\\Amqp\\Facades\\Amqp;
 
 // Publish to default exchange and routing key
 Amqp::publish('routing.key', 'Hello World');
@@ -85,6 +85,5 @@ Amqp::publish('routing.key', 'important message', [
 ```php
 Amqp::publish('routing.key', 'temporary message', [
     'expiration' => '60000', // 60 seconds in milliseconds
-
 ]);
 ```

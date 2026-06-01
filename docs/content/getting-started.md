@@ -11,12 +11,12 @@ composer require bschmitt/laravel-amqp
 ### 2. Publish Configuration
 
 ```bash
-php artisan vendor:publish --provider="Bschmitt\Amqp\Providers\AmqpServiceProvider"
+php artisan vendor:publish --provider="Bschmitt\\\\Amqp\\\\Providers\\\\AmqpServiceProvider"
 ```
 
 ### 3. Configure Environment
 
-Add to your `.env`:
+Add to your \`.env\`:
 
 ```env
 AMQP_HOST=localhost
@@ -33,7 +33,7 @@ AMQP_EXCHANGE_TYPE=topic
 #### Publish a Message
 
 ```php
-use Bschmitt\Amqp\Facades\Amqp;
+use Bschmitt\\Amqp\\Facades\\Amqp;
 
 Amqp::publish('routing.key', 'Hello World');
 ```
@@ -54,7 +54,7 @@ That's it! You're ready to use Laravel AMQP.
 ## Next Steps
 
 - [Configuration](#configuration)
-- [Laravel Queue Driver](#queue-driver) — use `dispatch()` and `queue:work amqp`
+- [Laravel Queue Driver](#queue-driver) - Use \`dispatch()\` and \`queue:work\`
 - [Publishing Messages](#publishing)
 - [Consuming Messages](#consuming)
 - [RPC Pattern](#rpc)

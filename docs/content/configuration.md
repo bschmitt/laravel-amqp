@@ -27,7 +27,7 @@ return [
 
 ## Environment Variables
 
-Add to your `.env` file:
+Add to your ```.env``` file:
 
 ```env
 AMQP_HOST=localhost
@@ -76,13 +76,3 @@ Then switch using:
 ```env
 AMQP_ENV=staging
 ```
-
-## Laravel Queue Driver Configuration
-
-When using the native queue driver, merge `config/queue-amqp.php` into
-`config/queue.php` and set `QUEUE_CONNECTION=amqp`. Queue-specific keys
-(`host`, `exchange`, `routing`, `queue_properties`, etc.) can be placed
-directly on the `amqp` connection entry and will override the matching keys
-from `config/amqp.php`.
-
-See [Laravel Queue Driver](queue-driver.md) for the full setup guide.

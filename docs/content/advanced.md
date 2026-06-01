@@ -10,12 +10,10 @@ $publisher->enablePublisherConfirms();
 
 $publisher->setAckHandler(function ($message) {
     // Message was acknowledged
-
 });
 
 $publisher->setNackHandler(function ($message) {
     // Message was not acknowledged
-
 });
 
 $publisher->publish('routing.key', 'message');
@@ -30,12 +28,10 @@ Control message delivery rate:
 $amqp = app('Amqp');
 $amqp->consume('queue', function ($message, $resolver) {
     // Process message
-
 }, [
     'qos_prefetch_count' => 10,  // Max 10 unacked messages
     'qos_prefetch_size' => 0,    // No size limit
     'qos_a_global' => false,     // Per consumer
-
 ]);
 ```
 
@@ -47,12 +43,10 @@ $amqp->consume('queue', function ($message, $resolver) {
 $amqp = app('Amqp');
 $amqp->consume('queue', function ($message, $resolver) {
     // Process message
-
 }, [
     'queue_properties' => [
         'x-queue-type' => 'quorum',
     ],
-
 ]);
 ```
 
@@ -62,13 +56,11 @@ $amqp->consume('queue', function ($message, $resolver) {
 $amqp = app('Amqp');
 $amqp->consume('queue', function ($message, $resolver) {
     // Process message
-
 }, [
     'queue_properties' => [
         'x-queue-type' => 'stream',
     ],
     'queue_durable' => true,
-
 ]);
 ```
 
@@ -80,10 +72,9 @@ $amqp->consume('queue', function ($message, $resolver) {
     try {
         processMessage($message->body);
         $resolver->acknowledge($message);
-    } catch (\Exception $e) {
+    } catch (\\Exception $e) {
         // Reject without requeue - goes to DLQ
         $resolver->reject($message, false);
-
     }
 }, [
     'queue_properties' => [
@@ -100,7 +91,6 @@ $amqp->consume('queue', function ($message, $resolver) {
 $amqp = app('Amqp');
 $amqp->consume('priority-queue', function ($message, $resolver) {
     // Process message
-
 }, [
     'queue_properties' => [
         'x-max-priority' => 10,
@@ -119,7 +109,6 @@ Amqp::publish('routing.key', 'high priority', [
 $amqp = app('Amqp');
 $amqp->consume('lazy-queue', function ($message, $resolver) {
     // Process message
-
 }, [
     'queue_properties' => [
         'x-queue-mode' => 'lazy',

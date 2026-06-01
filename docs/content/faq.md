@@ -9,8 +9,8 @@ AMQP (Advanced Message Queuing Protocol) is an open standard for message-oriente
 ### Why use Laravel AMQP instead of Laravel Queues?
 
 You don't have to choose — the package **is** a Laravel queue driver. Set
-`QUEUE_CONNECTION=amqp` and use `dispatch()` / `queue:work` as usual, while also
-gaining:
+```QUEUE_CONNECTION=amqp``` and use ```dispatch()``` / ```queue:work``` as usual, while
+also gaining:
 
 - Direct RabbitMQ integration (exchanges, routing keys, DLX)
 - Advanced RabbitMQ features (quorum/stream queues, publisher confirms)
@@ -18,12 +18,12 @@ gaining:
 - Management API access
 - Fine-grained control over message properties
 
-For low-level publish/consume without Laravel jobs, use `Amqp::publish()` and
-`app('Amqp')->consume()` instead.
+For low-level publish/consume without Laravel jobs, use ```Amqp::publish()``` and
+```app('Amqp')->consume()``` instead.
 
 ### How do I use the native Laravel queue driver?
 
-See the [Laravel Queue Driver](queue-driver.md) guide. In short:
+See the [Laravel Queue Driver](#queue-driver) guide. In short:
 
 ```env
 QUEUE_CONNECTION=amqp
@@ -42,7 +42,6 @@ PHP 7.3 through 8.5 are supported. Use Laravel 8 on PHP 7.3–7.4, Laravel 9 on 
 ### How do I install RabbitMQ?
 
 Using Docker:
-
 ```bash
 docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 ```
@@ -50,9 +49,8 @@ docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 ### Connection timeout errors?
 
 Check:
-
 1. RabbitMQ is running
-2. Credentials are correct in `.env`
+2. Credentials are correct in ```.env```
 3. Port 5672 is accessible
 4. Firewall settings
 
@@ -70,23 +68,19 @@ $amqp->consume('queue-name', function ($message, $resolver) {
 
 ### Can I use the Facade for consume()?
 
-Joey
-No, you must use `app('Amqp')` or `resolve('Amqp')` for consume(), listen(), and rpc() methods.
+No, you must use ```app('Amqp')``` or ```resolve('Amqp')``` for consume(), listen(), and rpc() methods.
 
 ### How do I handle failed messages?
 
-Joey
 Use Dead Letter Exchanges:
-
 ```php
 $amqp = app('Amqp');
 $amqp->consume('queue', function ($message, $resolver) {
     try {
         processMessage($message->body);
         $resolver->acknowledge($message);
-    } catch (\Exception $e) {
+    } catch (\\Exception $e) {
         $resolver->reject($message, false); // Send to DLQ
-Joey
     }
 }, [
     'queue_properties' => [
@@ -99,9 +93,7 @@ Joey
 
 ### Messages not being consumed?
 
-Joey
 Check:
-
 1. Consumer is running
 2. Routing key matches
 3. Queue is bound to exchange
@@ -109,16 +101,12 @@ Check:
 
 ### RPC timeout?
 
-Joey
-
 1. Increase timeout value
 2. Check server is running
 3. Verify queue name
 4. Check server processing time
 
 ### Memory issues?
-
-Joey
 
 1. Use consumer prefetch (QoS)
 2. Process messages in batches

@@ -3,7 +3,7 @@
 ## Setting Message Properties
 
 ```php
-use Bschmitt\Amqp\Facades\Amqp;
+use Bschmitt\\Amqp\\Facades\\Amqp;
 
 Amqp::publish('routing.key', 'Message', [
     // Standard properties
@@ -19,8 +19,7 @@ Amqp::publish('routing.key', 'Message', [
     'content_type' => 'application/json',
     'content_encoding' => 'utf-8',
     'delivery_mode' => 2,                // 2 = persistent
-
-
+    
     // Custom headers
     'application_headers' => [
         'X-Custom-Header' => 'value',
@@ -40,11 +39,9 @@ $amqp->consume('queue', function ($message, $resolver) {
     $replyTo = $message->getReplyTo();
     $headers = $message->getHeaders();
     $customHeader = $message->getHeader('X-Custom-Header');
-
-
+    
     // Process message
     $resolver->acknowledge($message);
-
 });
 ```
 
@@ -59,7 +56,6 @@ Amqp::publish('tasks', 'urgent task', [
     'queue_properties' => [
         'x-max-priority' => 10,
     ],
-
 ]);
 
 // Normal priority
@@ -70,7 +66,6 @@ Amqp::publish('tasks', 'normal task', [
 // Low priority
 Amqp::publish('tasks', 'low priority task', [
     'priority' => 1,
-
 ]);
 ```
 
@@ -80,7 +75,6 @@ Amqp::publish('tasks', 'low priority task', [
 // Message expires in 60 seconds
 Amqp::publish('routing.key', 'temporary message', [
     'expiration' => '60000', // milliseconds
-
 ]);
 ```
 

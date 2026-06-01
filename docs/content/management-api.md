@@ -5,7 +5,7 @@
 Get queue information:
 
 ```php
-use Bschmitt\Amqp\Facades\Amqp;
+use Bschmitt\\Amqp\\Facades\\Amqp;
 
 $amqp = app('Amqp');
 $stats = $amqp->getQueueStats('my-queue', '/');
