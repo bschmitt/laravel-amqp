@@ -1851,6 +1851,168 @@ body {
   margin: 2rem 0;
 }
 
+/* =========================================================
+   Code block overlay: language badge + copy button
+   Applies to fenced code blocks inside .doc-content (rendered
+   by marked) and inside the Quick Start panel.
+   ========================================================= */
+
+.code-block-wrapper {
+  position: relative;
+  margin: 1.25rem 0;
+}
+
+@media (min-width: 640px) {
+  .code-block-wrapper {
+    margin: 1.5rem 0;
+  }
+}
+
+/* When the wrapper sits inside .doc-content, take ownership of
+   spacing so the inner <pre> doesn't double-margin. */
+.doc-content .code-block-wrapper > pre,
+.quick-start-panel .code-block-wrapper > pre {
+  margin: 0;
+  padding-top: 2.5rem;
+}
+
+@media (min-width: 640px) {
+  .doc-content .code-block-wrapper > pre,
+  .quick-start-panel .code-block-wrapper > pre {
+    padding-top: 2.75rem;
+  }
+}
+
+/* Quick Start panel: the wrapper fills the panel and keeps the
+   pre flush to its rounded bottom. */
+.quick-start-panel .code-block-wrapper {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.quick-start-panel .code-block-wrapper > pre {
+  flex: 1;
+}
+
+@media (min-width: 1024px) {
+  .quick-start-panel .code-block-wrapper {
+    flex: 1;
+  }
+}
+
+.code-block-lang {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.625rem;
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 2;
+  user-select: none;
+}
+
+@media (min-width: 640px) {
+  .code-block-lang {
+    top: 0.625rem;
+    left: 0.875rem;
+    font-size: 0.72rem;
+  }
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease,
+    border-color 0.18s ease, transform 0.18s ease;
+  z-index: 3;
+  line-height: 1;
+  /* iOS-friendly tap target without bloating visual size */
+  min-height: 32px;
+}
+
+@media (min-width: 640px) {
+  .code-copy-btn {
+    top: 0.625rem;
+    right: 0.625rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+  }
+}
+
+.code-copy-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.55);
+  color: #ffffff;
+}
+
+.code-copy-btn:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 2px;
+}
+
+.code-copy-btn:active {
+  transform: scale(0.97);
+}
+
+.code-copy-btn .copy-icon,
+.code-copy-btn .check-icon {
+  flex-shrink: 0;
+}
+
+.code-copy-btn .check-icon {
+  display: none;
+  color: #6ee7b7;
+}
+
+/* Hide the "Copy" label on the smallest screens to keep the
+   button compact next to the language badge. */
+.code-copy-btn .copy-label {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .code-copy-btn .copy-label {
+    display: inline;
+  }
+}
+
+/* Copied state ----------------------------------------------- */
+.code-copy-btn.copied {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.55);
+  color: #6ee7b7;
+}
+
+.code-copy-btn.copied .copy-icon {
+  display: none;
+}
+
+.code-copy-btn.copied .check-icon {
+  display: inline-block;
+}
+
 /* Tables get wrapped in a horizontal scroll container on mobile */
 .doc-content table {
   display: block;

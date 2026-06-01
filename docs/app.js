@@ -1,5 +1,64 @@
 const { createApp } = Vue;
 
+// --- Marked renderer: wrap every fenced code block with a copy button overlay ---
+function escapeHtmlForCode(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+if (typeof marked !== "undefined") {
+  marked.use({
+    renderer: {
+      // Handles both modern (token object) and legacy (positional args) Marked APIs.
+      code(tokenOrText, langArg, escapedArg) {
+        let text;
+        let lang;
+        let isEscaped = false;
+
+        if (typeof tokenOrText === "object" && tokenOrText !== null) {
+          text = tokenOrText.text;
+          lang = (tokenOrText.lang || "").trim().split(/\s+/)[0];
+          isEscaped = !!tokenOrText.escaped;
+        } else {
+          text = tokenOrText;
+          lang = (langArg || "").trim().split(/\s+/)[0];
+          isEscaped = !!escapedArg;
+        }
+
+        const safeCode = isEscaped ? text : escapeHtmlForCode(text || "");
+        const langClass = lang ? ' class="language-' + lang + '"' : "";
+        const langBadge = lang
+          ? '<span class="code-block-lang" aria-hidden="true">' + lang + "</span>"
+          : "";
+
+        const copyBtn =
+          '<button type="button" class="code-copy-btn" aria-label="Copy code to clipboard">' +
+            '<svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+              '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>' +
+              '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' +
+            "</svg>" +
+            '<svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+              '<polyline points="20 6 9 17 4 12"/>' +
+            "</svg>" +
+            '<span class="copy-label">Copy</span>' +
+          "</button>";
+
+        return (
+          '<div class="code-block-wrapper">' +
+            langBadge +
+            copyBtn +
+            "<pre><code" + langClass + ">" + safeCode + "</code></pre>" +
+          "</div>"
+        );
+      },
+    },
+  });
+}
+
 createApp({
   data() {
     return {
@@ -183,6 +242,7 @@ createApp({
       window.addEventListener("hashchange", this.applyHash);
 
       document.addEventListener("keydown", this.handleKeyboard);
+      document.addEventListener("click", this.handleCopyClick);
 
       this.fetchContributors();
     } catch (error) {
@@ -192,6 +252,7 @@ createApp({
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this.handleKeyboard);
+    document.removeEventListener("click", this.handleCopyClick);
     window.removeEventListener("hashchange", this.applyHash);
   },
   methods: {
@@ -409,6 +470,57 @@ createApp({
         ];
       } finally {
         this.loadingContributors = false;
+      }
+    },
+    async handleCopyClick(event) {
+      const btn = event.target.closest && event.target.closest(".code-copy-btn");
+      if (!btn) return;
+      event.preventDefault();
+
+      const wrapper = btn.closest(".code-block-wrapper");
+      if (!wrapper) return;
+      const codeEl = wrapper.querySelector("pre code") || wrapper.querySelector("pre");
+      if (!codeEl) return;
+
+      const text = (codeEl.textContent || "").replace(/\n+$/, "");
+      const ok = await this.copyToClipboard(text);
+      if (!ok) return;
+
+      btn.classList.add("copied");
+      const label = btn.querySelector(".copy-label");
+      if (label) label.textContent = "Copied!";
+
+      if (btn._copyResetTimer) clearTimeout(btn._copyResetTimer);
+      btn._copyResetTimer = setTimeout(() => {
+        btn.classList.remove("copied");
+        if (label) label.textContent = "Copy";
+      }, 1800);
+    },
+    async copyToClipboard(text) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (err) {
+        console.warn("navigator.clipboard failed, falling back:", err);
+      }
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.top = "-1000px";
+        ta.style.left = "0";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
+      } catch (err) {
+        console.warn("Copy fallback failed:", err);
+        return false;
       }
     },
     async loadMarkdownPage(key, path) {
