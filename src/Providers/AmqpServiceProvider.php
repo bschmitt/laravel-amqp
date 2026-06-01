@@ -35,6 +35,47 @@ class AmqpServiceProvider extends ServiceProvider
         ]);
 
         $this->registerQueueConnector();
+        $this->registerCommands();
+    }
+
+    /**
+     * Register the package's artisan commands when running in the console.
+     *
+     * @return void
+     */
+    protected function registerCommands(): void
+    {
+        if (!$this->isRunningInConsole()) {
+            return;
+        }
+
+        if (!method_exists($this, 'commands')) {
+            return;
+        }
+
+        $this->commands([
+            \Bschmitt\Amqp\Console\Commands\AmqpWorkCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpConsumeCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpListenCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpPublishCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpPurgeCommand::class,
+        ]);
+    }
+
+    /**
+     * `$this->app->runningInConsole()` exists in Laravel but not in the bare
+     * Illuminate Container used by some package tests. Probe for it safely.
+     *
+     * @return bool
+     */
+    protected function isRunningInConsole(): bool
+    {
+        if (method_exists($this->app, 'runningInConsole')) {
+            return (bool) $this->app->runningInConsole();
+        }
+
+        // Fall back to PHP_SAPI detection.
+        return in_array(PHP_SAPI, ['cli', 'phpdbg', 'embed'], true);
     }
 
     /**

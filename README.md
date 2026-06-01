@@ -40,10 +40,9 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - Lazy Queues - Disk-based message storage
 - Alternate Exchange - Unroutable message handling
 - **Native Laravel Queue integration** - Use `amqp` as a `config/queue.php` driver with `queue:work`
+- **Artisan commands** - `amqp:work`, `amqp:consume`, `amqp:listen`, `amqp:publish`, and `amqp:purge`
 
 ## Planned Features
-
-- `amqp:work` and consumer artisan commands
 - Advanced retry & dead-letter abstractions
 - Delayed message and backoff support
 - Typed message contracts & DTO serialization
@@ -174,6 +173,79 @@ $amqp->listen(['key1', 'key2', 'key3'], function ($message, $resolver) {
     processMessage($message->body);
     $resolver->acknowledge($message);
 });
+```
+
+## Artisan Commands
+
+The package registers five console commands. Handler classes must implement `Bschmitt\Amqp\Contracts\MessageHandlerInterface` or expose an `__invoke($message, $resolver)` method. The `$resolver` is the active consumer and provides `acknowledge()`, `reject()`, `reply()`, and `stopWhenProcessed()`.
+
+### `amqp:work` — long-running worker
+
+```bash
+php artisan amqp:work my-queue --handler="App\\Messaging\\ProcessOrderHandler"
+```
+
+| Option | Description |
+|--------|-------------|
+| `--handler=` | **Required.** FQCN of your message handler |
+| `--connection=` | Connection name from `config/amqp.php` |
+| `--exchange=` / `--exchange-type=` | Override exchange settings |
+| `--routing-key=*` | Routing key(s) to bind (repeatable) |
+| `--prefetch-count=` | Enable QoS with this prefetch count |
+| `--max-messages=0` | Stop after N messages (0 = unlimited) |
+| `--max-time=0` | Stop after N seconds |
+| `--memory=128` | Exit if memory exceeds MB |
+| `--stop-when-empty` | Exit when the queue is drained instead of waiting |
+| `--requeue-on-error` | Requeue messages when the handler throws |
+
+### `amqp:consume` — process a fixed number of messages
+
+```bash
+php artisan amqp:consume my-queue --handler="App\\Messaging\\ProcessOrderHandler" --max-messages=10
+php artisan amqp:consume my-queue --handler="App\\Messaging\\ProcessOrderHandler" --all
+```
+
+Defaults to one message per invocation. Use `--all` to drain the queue.
+
+### `amqp:listen` — listen on routing keys
+
+```bash
+php artisan amqp:listen order.created order.updated --handler="App\\Messaging\\OrderHandler"
+```
+
+Creates an auto-deleted queue (unless `--queue=` or `--no-auto-delete` is set) and binds it to every supplied routing key.
+
+### `amqp:publish` — publish from the CLI
+
+```bash
+php artisan amqp:publish order.created --body='{"id":42}' --exchange=orders --priority=5
+php artisan amqp:publish order.created --file=./payload.json --headers='{"X-Source":"cli"}'
+```
+
+### `amqp:purge` — empty a queue
+
+```bash
+php artisan amqp:purge my-queue --force
+```
+
+### Example handler
+
+```php
+namespace App\Messaging;
+
+use Bschmitt\Amqp\Contracts\ConsumerInterface;
+use Bschmitt\Amqp\Contracts\MessageHandlerInterface;
+use PhpAmqpLib\Message\AMQPMessage;
+
+class ProcessOrderHandler implements MessageHandlerInterface
+{
+    public function handle(AMQPMessage $message, ConsumerInterface $resolver): void
+    {
+        $order = json_decode($message->body, true);
+        // ... process $order ...
+        $resolver->acknowledge($message);
+    }
+}
 ```
 
 ## Laravel Queue Driver

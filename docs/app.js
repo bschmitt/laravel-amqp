@@ -143,6 +143,31 @@ createApp({
             "ProcessOrder::dispatch($order)->delay(now()->addMinutes(5));\n" +
             "php artisan queue:work amqp --queue=default",
         },
+        {
+          id: "artisan",
+          label: "Artisan Commands",
+          description: "Run workers and publish messages from the CLI",
+          icon: "",
+          language: "bash",
+          code:
+            "# Long-running worker with QoS and memory cap\n" +
+            "php artisan amqp:work orders \\\n" +
+            "    --handler=\"App\\Messaging\\ProcessOrderHandler\" \\\n" +
+            "    --prefetch-count=10 \\\n" +
+            "    --memory=256\n\n" +
+            "# Drain N messages then exit (great for cron)\n" +
+            "php artisan amqp:consume orders \\\n" +
+            "    --handler=\"App\\Messaging\\ProcessOrderHandler\" \\\n" +
+            "    --max-messages=100\n\n" +
+            "# Listen on routing keys with an auto-deleted queue\n" +
+            "php artisan amqp:listen order.created order.updated \\\n" +
+            "    --handler=\"App\\Messaging\\OrderHandler\"\n\n" +
+            "# Publish from the CLI for smoke tests\n" +
+            "php artisan amqp:publish order.created \\\n" +
+            "    --body='{\"id\":42}' --exchange=orders --priority=5\n\n" +
+            "# Wipe a queue (use --force to skip confirmation)\n" +
+            "php artisan amqp:purge dead-letters --force",
+        },
       ],
     };
   },
@@ -550,6 +575,7 @@ createApp({
       await this.loadMarkdownPage('faq', "./content/faq.md");
       await this.loadMarkdownPage('troubleshooting', "./content/troubleshooting.md");
       await this.loadMarkdownPage('queue-driver', "./content/queue-driver.md");
+      await this.loadMarkdownPage('artisan-commands', "./content/artisan-commands.md");
       await this.loadMarkdownPage('guide', "./content/guide.md");
     },
   },

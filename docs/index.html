@@ -334,6 +334,18 @@
                     <code>dispatch()</code> and delayed delivery via RabbitMQ TTL.
                   </p>
                 </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">🛠️</div>
+                  <h3>Artisan Commands</h3>
+                  <p>
+                    Five built-in commands —
+                    <code>amqp:work</code>, <code>amqp:consume</code>,
+                    <code>amqp:listen</code>, <code>amqp:publish</code>,
+                    and <code>amqp:purge</code> — for running workers
+                    and managing queues from the CLI.
+                  </p>
+                </div>
               </div>
             </div>
           </section>
@@ -540,6 +552,12 @@
                       @click.prevent="navigateTo('queue-driver')"
                       :class="{active: currentPage === 'queue-driver'}"
                       >Laravel Queue Driver</a
+                    >
+                    <a
+                      href="#artisan-commands"
+                      @click.prevent="navigateTo('artisan-commands')"
+                      :class="{active: currentPage === 'artisan-commands'}"
+                      >Artisan Commands</a
                     >
                     <a
                       href="#rpc"

@@ -55,6 +55,7 @@ That's it! You're ready to use Laravel AMQP.
 
 - [Configuration](#configuration)
 - [Laravel Queue Driver](#queue-driver) - Use \`dispatch()\` and \`queue:work\`
+- [Artisan Commands](#artisan-commands) - Run workers and publish from the CLI
 - [Publishing Messages](#publishing)
 - [Consuming Messages](#consuming)
 - [RPC Pattern](#rpc)

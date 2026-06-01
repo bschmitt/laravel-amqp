@@ -1,5 +1,7 @@
 # Consuming Messages
 
+> **Looking for a CLI worker?** Use the [`amqp:work`](#artisan-commands) artisan command — it wraps everything on this page in a long-running process with QoS, memory caps, and graceful shutdown built in.
+
 ## Basic Consume
 
 ```php
