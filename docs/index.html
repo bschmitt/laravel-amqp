@@ -57,7 +57,7 @@
       <nav class="navbar">
         <div class="container">
           <div class="nav-brand">
-            <a href="#home" @click.prevent="currentPage = 'home'" class="nav-brand-link" style="text-decoration: none;color: inherit;display: flex;vertical-align: center;align-content: center;align-items: center;">
+            <a href="#home" @click.prevent="navigateTo('home')" class="nav-brand-link" style="text-decoration: none;color: inherit;display: flex;vertical-align: center;align-content: center;align-items: center;">
             <img
               src="mascot.png"
               alt="Laravel AMQP"
@@ -70,33 +70,33 @@
           <div class="nav-links">
             <a
               href="#home"
-              @click.prevent="currentPage = 'home'"
+              @click.prevent="navigateTo('home')"
               :class="{active: currentPage === 'home'}"
               >Home</a
             >
             <a
               href="#guide"
-              @click.prevent="currentPage = 'guide'"
+              @click.prevent="navigateTo('guide')"
               :class="{active: currentPage === 'guide'}"
               >Guide</a
             >
             <a href="https://github.com/bschmitt/laravel-amqp/issues" target="_blank" rel="noopener noreferrer"
               >Issues</a
             >
-            <button class="search-trigger" @click="toggleSearch" title="Search documentation (Ctrl+K)">
+          </div>
+
+          <div class="nav-actions">
+            <button class="search-trigger" @click="toggleSearch" title="Search documentation (Ctrl+K)" aria-label="Search documentation">
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor">
                 <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span clas="search-hint">Search...</span>
-              <!-- <span class="search-hint">
-                <kbd>Ctrl</kbd>
-                <kbd>K</kbd>
-              </span> -->
+              <span class="search-hint">Search...</span>
             </button>
             <button
               class="theme-toggle"
               @click="toggleTheme"
               :title="isDark ? 'Light mode' : 'Dark mode'"
+              :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
             >
               <span v-if="isDark">☀️</span>
               <span v-else>🌙</span>
@@ -106,11 +106,12 @@
               target="_blank"
               rel="noopener noreferrer"
               class="github-link"
+              aria-label="View on GitHub"
             >
               <svg
-                height="24"
+                height="22"
                 viewBox="0 0 16 16"
-                width="24"
+                width="22"
                 fill="currentColor"
               >
                 <path
@@ -118,16 +119,17 @@
                 ></path>
               </svg>
             </a>
+            <button
+              class="mobile-menu-toggle"
+              @click="mobileMenuOpen = !mobileMenuOpen"
+              :aria-expanded="mobileMenuOpen"
+              aria-label="Toggle navigation menu"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
           </div>
-
-          <button
-            class="mobile-menu-toggle"
-            @click="mobileMenuOpen = !mobileMenuOpen"
-          >
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
         </div>
       </nav>
 
@@ -135,18 +137,34 @@
       <div class="mobile-menu" :class="{open: mobileMenuOpen}">
         <a
           href="#home"
-          @click.prevent="currentPage = 'home'; mobileMenuOpen = false"
+          @click.prevent="navigateTo('home')"
           >Home</a
         >
         <a
+          href="#getting-started"
+          @click.prevent="navigateTo('getting-started')"
+          >Getting Started</a
+        >
+        <a
           href="#guide"
-          @click.prevent="currentPage = 'guide'; mobileMenuOpen = false"
+          @click.prevent="navigateTo('guide')"
           >Guide</a
         >
-        <a href="#issues" target="_blank" rel="noopener noreferrer">Issues</a>
         <a
-          href="#discussions"
-          @click.prevent="currentPage = 'discussions'; mobileMenuOpen = false"
+          href="#queue-driver"
+          @click.prevent="navigateTo('queue-driver')"
+          >Queue Driver</a
+        >
+        <a
+          href="https://github.com/bschmitt/laravel-amqp/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Issues</a
+        >
+        <a
+          href="https://github.com/bschmitt/laravel-amqp/discussions"
+          target="_blank"
+          rel="noopener noreferrer"
           >Discussions</a
         >
       </div>
@@ -226,13 +244,13 @@
                   <div class="hero-buttons">
                     <button
                       class="btn btn-primary"
-                      @click="currentPage = 'getting-started'"
+                      @click="navigateTo('getting-started')"
                     >
                       Getting Started
                     </button>
                     <button
                       class="btn btn-secondary"
-                      @click="currentPage = 'guide'"
+                      @click="navigateTo('guide')"
                     >
                       Documentation
                     </button>
@@ -324,84 +342,55 @@
           <section class="quick-start">
             <div class="container">
               <h2 class="section-title">Quick Start</h2>
-              <div class="code-example">
-                <div class="code-tabs">
+              <p class="section-subtitle">
+                Browse common tasks — pick one from the list to see the snippet.
+              </p>
+
+              <div class="quick-start-layout">
+                <aside
+                  class="quick-start-nav"
+                  role="tablist"
+                  aria-label="Quick start examples"
+                  ref="quickStartNav"
+                >
                   <button
-                    :class="{active: activeTab === 'install'}"
-                    @click="activeTab = 'install'"
+                    v-for="tab in quickStartTabs"
+                    :key="tab.id"
+                    role="tab"
+                    :id="`qs-tab-${tab.id}`"
+                    :ref="el => { if (el) quickStartTabRefs[tab.id] = el }"
+                    :aria-selected="activeTab === tab.id"
+                    :aria-controls="`qs-panel-${tab.id}`"
+                    :class="{active: activeTab === tab.id}"
+                    @click="activeTab = tab.id"
                   >
-                    Installation
+                    <span class="tab-icon" aria-hidden="true">{{ tab.icon }}</span>
+                    <span class="tab-meta">
+                      <span class="tab-label">{{ tab.label }}</span>
+                      <span class="tab-description">{{ tab.description }}</span>
+                    </span>
                   </button>
-                  <button
-                    :class="{active: activeTab === 'publish'}"
-                    @click="activeTab = 'publish'"
-                  >
-                    Publishing
-                  </button>
-                  <button
-                    :class="{active: activeTab === 'consume'}"
-                    @click="activeTab = 'consume'"
-                  >
-                    Consuming
-                  </button>
-                  <button
-                    :class="{active: activeTab === 'queue'}"
-                    @click="activeTab = 'queue'"
-                  >
-                    Queue Driver
-                  </button>
-                </div>
-                <div class="code-content">
-                  <div v-if="activeTab === 'install'">
-                    <pre><code class="language-bash"># Install via Composer
-composer require bschmitt/laravel-amqp
+                </aside>
 
-# Publish configuration
-php artisan vendor:publish --provider="Bschmitt\\Amqp\\Providers\\AmqpServiceProvider"</code></pre>
-                  </div>
-                  <div v-if="activeTab === 'publish'">
-                    <pre><code class="language-php">use Bschmitt\Amqp\Facades\Amqp;
-
-// Simple publish
-Amqp::publish('routing-key', 'Hello World');
-
-// Publish with properties
-Amqp::publish('routing-key', 'Message', [
-    'priority' => 10,
-    'correlation_id' => 'unique-id',
-    'application_headers' => [
-        'X-Custom-Header' => 'value'
-    ]
-]);</code></pre>
-                  </div>
-                  <div v-if="activeTab === 'consume'">
-                    <pre><code class="language-php">use Bschmitt\Amqp\Facades\Amqp;
-
-$amqp = app('Amqp');
-$amqp->consume('queue-name', function ($message, $resolver) {
-    // Process message
-    echo $message->body;
-    
-    // Acknowledge
-    $resolver->acknowledge($message);
-    $resolver->stopWhenProcessed();
-});</code></pre>
-                  </div>
-                  <div v-if="activeTab === 'queue'">
-                    <pre><code class="language-php">// .env
-QUEUE_CONNECTION=amqp
-
-// config/queue.php — merge from config/queue-amqp.php
-'amqp' => [
-    'driver'     => 'amqp',
-    'connection' => env('AMQP_ENV', 'production'),
-    'queue'      => env('AMQP_QUEUE', 'default'),
-],
-
-// Dispatch &amp; work
-ProcessOrder::dispatch($order)->delay(now()->addMinutes(5));
-php artisan queue:work amqp --queue=default</code></pre>
-                  </div>
+                <div class="quick-start-content">
+                  <template v-for="tab in quickStartTabs" :key="tab.id">
+                    <div
+                      v-if="activeTab === tab.id"
+                      class="quick-start-panel"
+                      role="tabpanel"
+                      :id="`qs-panel-${tab.id}`"
+                      :aria-labelledby="`qs-tab-${tab.id}`"
+                    >
+                      <div class="quick-start-panel-header">
+                        <h3>
+                          <span class="tab-icon" aria-hidden="true">{{ tab.icon }}</span>
+                          {{ tab.label }}
+                        </h3>
+                        <p>{{ tab.description }}</p>
+                      </div>
+                      <pre><code :class="`language-${tab.language}`">{{ tab.code }}</code></pre>
+                    </div>
+                  </template>
                 </div>
               </div>
             </div>
@@ -465,35 +454,51 @@ php artisan queue:work amqp --queue=default</code></pre>
         <!-- Documentation Pages -->
         <div v-else class="page doc-page">
           <div class="container">
-            <div class="doc-layout">
+            <!-- Mobile-only sidebar toggle -->
+            <button
+              class="doc-sidebar-toggle"
+              :aria-expanded="docNavOpen"
+              aria-controls="doc-sidebar"
+              @click="docNavOpen = !docNavOpen"
+            >
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="17" y2="6"/>
+                <line x1="3" y1="10" x2="17" y2="10"/>
+                <line x1="3" y1="14" x2="17" y2="14"/>
+              </svg>
+              <span>{{ docNavOpen ? 'Hide navigation' : 'Browse docs' }}</span>
+              <span class="doc-sidebar-toggle-current">{{ currentPage.replace(/-/g, ' ') }}</span>
+            </button>
+
+            <div class="doc-layout" :class="{'doc-nav-open': docNavOpen}">
               <!-- Sidebar -->
-              <aside class="doc-sidebar">
+              <aside class="doc-sidebar" id="doc-sidebar">
                 <div class="sidebar-search">
                           <button class="search-trigger" @click="toggleSearch" title="Search documentation (Ctrl+K)" style="width:100%">
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor">
                 <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span clas="search-hint">Search Documentation</span>
+              <span class="search-hint">Search Documentation</span>
             </button>
                 </div>
                 <nav class="doc-nav">
                   <div class="nav-section">
                     <h4>Getting Started</h4>
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'getting-started'"
+                      href="#getting-started"
+                      @click.prevent="navigateTo('getting-started')"
                       :class="{active: currentPage === 'getting-started'}"
                       >Quick Start</a
                     >
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'installation'"
+                      href="#installation"
+                      @click.prevent="navigateTo('installation')"
                       :class="{active: currentPage === 'installation'}"
                       >Installation</a
                     >
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'configuration'"
+                      href="#configuration"
+                      @click.prevent="navigateTo('configuration')"
                       :class="{active: currentPage === 'configuration'}"
                       >Configuration</a
                     >
@@ -502,26 +507,26 @@ php artisan queue:work amqp --queue=default</code></pre>
                   <div class="nav-section">
                     <h4>Core Features</h4>
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'publishing'"
+                      href="#publishing"
+                      @click.prevent="navigateTo('publishing')"
                       :class="{active: currentPage === 'publishing'}"
                       >Publishing Messages</a
                     >
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'consuming'"
+                      href="#consuming"
+                      @click.prevent="navigateTo('consuming')"
                       :class="{active: currentPage === 'consuming'}"
                       >Consuming Messages</a
                     >
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'queue-driver'"
+                      href="#queue-driver"
+                      @click.prevent="navigateTo('queue-driver')"
                       :class="{active: currentPage === 'queue-driver'}"
                       >Laravel Queue Driver</a
                     >
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'rpc'"
+                      href="#rpc"
+                      @click.prevent="navigateTo('rpc')"
                       :class="{active: currentPage === 'rpc'}"
                       >RPC Pattern</a
                     >
@@ -530,14 +535,14 @@ php artisan queue:work amqp --queue=default</code></pre>
                   <div class="nav-section">
                     <h4>Management</h4>
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'queue-management'"
+                      href="#queue-management"
+                      @click.prevent="navigateTo('queue-management')"
                       :class="{active: currentPage === 'queue-management'}"
                       >Queue Management</a
                     >
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'management-api'"
+                      href="#management-api"
+                      @click.prevent="navigateTo('management-api')"
                       :class="{active: currentPage === 'management-api'}"
                       >Management API</a
                     >
@@ -546,20 +551,20 @@ php artisan queue:work amqp --queue=default</code></pre>
                   <div class="nav-section">
                     <h4>Advanced</h4>
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'message-properties'"
+                      href="#message-properties"
+                      @click.prevent="navigateTo('message-properties')"
                       :class="{active: currentPage === 'message-properties'}"
                       >Message Properties</a
                     >
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'advanced'"
+                      href="#advanced"
+                      @click.prevent="navigateTo('advanced')"
                       :class="{active: currentPage === 'advanced'}"
                       >Advanced Features</a
                     >
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'best-practices'"
+                      href="#best-practices"
+                      @click.prevent="navigateTo('best-practices')"
                       :class="{active: currentPage === 'best-practices'}"
                       >Best Practices</a
                     >
@@ -568,14 +573,20 @@ php artisan queue:work amqp --queue=default</code></pre>
                   <div class="nav-section">
                     <h4>Reference</h4>
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'faq'"
+                      href="#guide"
+                      @click.prevent="navigateTo('guide')"
+                      :class="{active: currentPage === 'guide'}"
+                      >Guide</a
+                    >
+                    <a
+                      href="#faq"
+                      @click.prevent="navigateTo('faq')"
                       :class="{active: currentPage === 'faq'}"
                       >FAQ</a
                     >
                     <a
-                      href="#"
-                      @click.prevent="currentPage = 'troubleshooting'"
+                      href="#troubleshooting"
+                      @click.prevent="navigateTo('troubleshooting')"
                       :class="{active: currentPage === 'troubleshooting'}"
                       >Troubleshooting</a
                     >
@@ -600,14 +611,14 @@ php artisan queue:work amqp --queue=default</code></pre>
             </div>
             <div class="footer-section">
               <h4>Documentation</h4>
-              <a href="#" @click.prevent="currentPage = 'getting-started'"
+              <a href="#getting-started" @click.prevent="navigateTo('getting-started')"
                 >Getting Started</a
               >
-              <a href="#" @click.prevent="currentPage = 'queue-driver'"
+              <a href="#queue-driver" @click.prevent="navigateTo('queue-driver')"
                 >Laravel Queue Driver</a
               >
-              <a href="#" @click.prevent="currentPage = 'guide'">Guide</a>
-              <a href="#" @click.prevent="currentPage = 'faq'">FAQ</a>
+              <a href="#guide" @click.prevent="navigateTo('guide')">Guide</a>
+              <a href="#faq" @click.prevent="navigateTo('faq')">FAQ</a>
             </div>
             <div class="footer-section">
               <h4>Community</h4>

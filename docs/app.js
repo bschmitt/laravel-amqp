@@ -8,12 +8,83 @@ createApp({
       searchQuery: "",
       isDark: false,
       mobileMenuOpen: false,
+      docNavOpen: false,
       documentation: {},
       searchOpen: false,
       searchResults: [],
       selectedResultIndex: 0,
       contributors: [],
       loadingContributors: true,
+      quickStartTabRefs: {},
+      quickStartTabs: [
+        {
+          id: "install",
+          label: "Installation",
+          description: "Install via Composer & publish config",
+          icon: "",
+          language: "bash",
+          code:
+            "# Install via Composer\n" +
+            "composer require bschmitt/laravel-amqp\n\n" +
+            "# Publish configuration\n" +
+            'php artisan vendor:publish --provider="Bschmitt\\Amqp\\Providers\\AmqpServiceProvider"',
+        },
+        {
+          id: "publish",
+          label: "Publishing",
+          description: "Send messages with optional properties",
+          icon: "",
+          language: "php",
+          code:
+            "use Bschmitt\\Amqp\\Facades\\Amqp;\n\n" +
+            "// Simple publish\n" +
+            "Amqp::publish('routing-key', 'Hello World');\n\n" +
+            "// Publish with properties\n" +
+            "Amqp::publish('routing-key', 'Message', [\n" +
+            "    'priority' => 10,\n" +
+            "    'correlation_id' => 'unique-id',\n" +
+            "    'application_headers' => [\n" +
+            "        'X-Custom-Header' => 'value'\n" +
+            "    ]\n" +
+            "]);",
+        },
+        {
+          id: "consume",
+          label: "Consuming",
+          description: "Pull and acknowledge messages",
+          icon: "",
+          language: "php",
+          code:
+            "use Bschmitt\\Amqp\\Facades\\Amqp;\n\n" +
+            "$amqp = app('Amqp');\n" +
+            "$amqp->consume('queue-name', function ($message, $resolver) {\n" +
+            "    // Process message\n" +
+            "    echo $message->body;\n\n" +
+            "    // Acknowledge\n" +
+            "    $resolver->acknowledge($message);\n" +
+            "    $resolver->stopWhenProcessed();\n" +
+            "});",
+        },
+        {
+          id: "queue",
+          label: "Queue Driver",
+          description: "Use Laravel's dispatch() with RabbitMQ",
+          icon: "",
+          language: "php",
+          code:
+            "// .env\n" +
+            "QUEUE_CONNECTION=amqp\n\n" +
+            "// config/queue.php — merge from config/queue-amqp.php\n" +
+            "'amqp' => [\n" +
+            "    'driver'     => 'amqp',\n" +
+            "    'connection' => env('AMQP_ENV', 'production'),\n" +
+            "    'queue'      => env('AMQP_QUEUE', 'default'),\n" +
+            "],\n\n" +
+            "// Dispatch & work\n" +
+            "ProcessOrder::dispatch($order)->delay(now()->addMinutes(5));\n" +
+            "php artisan queue:work amqp --queue=default",
+        },
+      ],
     };
   },
   computed: {
@@ -71,18 +142,23 @@ createApp({
     },
   },
   watch: {
-    currentPage() {
-      // Scroll to top when page changes
+    currentPage(newPage) {
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Re-highlight code blocks
       this.$nextTick(() => {
-        Prism.highlightAll();
+        if (typeof Prism !== "undefined") {
+          Prism.highlightAll();
+        }
       });
+
+      this.syncHashToPage(newPage);
     },
-    activeTab() {
+    activeTab(newTab) {
       this.$nextTick(() => {
-        Prism.highlightAll();
+        if (typeof Prism !== "undefined") {
+          Prism.highlightAll();
+        }
+        this.ensureActiveTabVisible(newTab);
       });
     },
     searchQuery() {
@@ -103,12 +179,8 @@ createApp({
         Prism.highlightAll();
       }
 
-      if (window.location.hash) {
-        const page = window.location.hash.substring(1);
-        if (page && page !== "home" && this.documentation[page]) {
-          this.currentPage = page;
-        }
-      }
+      this.applyHash();
+      window.addEventListener("hashchange", this.applyHash);
 
       document.addEventListener("keydown", this.handleKeyboard);
 
@@ -120,6 +192,7 @@ createApp({
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this.handleKeyboard);
+    window.removeEventListener("hashchange", this.applyHash);
   },
   methods: {
     handleKeyboard(e) {
@@ -173,8 +246,79 @@ createApp({
       this.selectedResultIndex = 0;
     },
     selectResult(result) {
-      this.currentPage = result.page;
+      this.navigateTo(result.page);
       this.closeSearch();
+    },
+    navigateTo(page) {
+      this.mobileMenuOpen = false;
+      this.docNavOpen = false;
+
+      if (this.currentPage === page) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      this.currentPage = page;
+    },
+    applyHash() {
+      const hash = window.location.hash.replace(/^#/, "").trim();
+
+      if (!hash || hash === "home") {
+        if (this.currentPage !== "home") {
+          this.currentPage = "home";
+        }
+        return;
+      }
+
+      if (this.documentation[hash]) {
+        if (this.currentPage !== hash) {
+          this.currentPage = hash;
+        }
+        return;
+      }
+
+      console.warn(`Unknown documentation page "${hash}" — redirecting to home.`);
+      if (this.currentPage !== "home") {
+        this.currentPage = "home";
+      }
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    },
+    ensureActiveTabVisible(tabId) {
+      const nav = this.$refs.quickStartNav;
+      const button = this.quickStartTabRefs[tabId];
+      if (!nav || !button || typeof button.scrollIntoView !== "function") {
+        return;
+      }
+
+      const navRect = nav.getBoundingClientRect();
+      const btnRect = button.getBoundingClientRect();
+
+      const offscreenHorizontally =
+        btnRect.left < navRect.left || btnRect.right > navRect.right;
+      const offscreenVertically =
+        btnRect.top < navRect.top || btnRect.bottom > navRect.bottom;
+
+      if (offscreenHorizontally || offscreenVertically) {
+        button.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
+      }
+    },
+    syncHashToPage(page) {
+      const currentHash = window.location.hash.replace(/^#/, "");
+
+      if (page === "home") {
+        if (currentHash) {
+          history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
+        return;
+      }
+
+      if (currentHash !== page) {
+        window.location.hash = page;
+      }
     },
     toggleTheme() {
       this.isDark = !this.isDark;
