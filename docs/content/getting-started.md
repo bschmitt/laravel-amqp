@@ -59,3 +59,10 @@ That's it! You're ready to use Laravel AMQP.
 - [Publishing Messages](#publishing)
 - [Consuming Messages](#consuming)
 - [RPC Pattern](#rpc)
+
+### Going Further
+
+- [Advanced Features](#advanced) - Publisher confirms, QoS, dead-letter abstractions
+- [Delayed Messaging](#delayed-messaging) - `publishLater()` and publisher backoff
+- [Typed Messaging](#typed-messaging) - DTO contracts with pluggable serializers
+- [Schema Validation](#schema-validation) - Validate payloads on publish & consume

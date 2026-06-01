@@ -189,6 +189,127 @@ Use `--retry=0` (or omit `--retry` entirely) to keep the old
 | `RetryPolicy::immediate($maxAttempts)` | Transient races where a retry without any wait fixes the problem. |
 | `RetryPolicy::none()` | Disable retries entirely — every failure goes straight to the DLQ. |
 
+## Delayed Messaging & Publish Backoff
+
+### `publishLater()`
+
+Schedule a message for delivery after a delay (milliseconds):
+
+```php
+$amqp = app('Amqp');
+
+// Default: TTL queue + dead-letter back to the target exchange (stock RabbitMQ)
+$amqp->publishLater('orders.reminder', json_encode(['orderId' => 42]), 60000, [
+    'exchange' => 'shop.events',
+]);
+
+// Plugin strategy: requires rabbitmq-delayed-message-exchange
+$amqp->publishLater('orders.reminder', $body, 60000, [
+    'exchange' => 'shop.delayed',
+    'delay_strategy' => 'plugin',
+]);
+```
+
+| Strategy | Constant | When to use |
+|----------|----------|-------------|
+| TTL + DLX | `ttl` (default) | Works everywhere; creates `{routing}.delayed.{ms}` with `x-message-ttl`. |
+| Delayed exchange plugin | `plugin` | Fewer queues; exchange must be declared as `x-delayed-message`. |
+
+`DelayedPublisher::delayQueueName($routing, $delayMs)` documents the TTL queue naming convention.
+
+### `PublishBackoff`
+
+Wrap any publish closure with a `RetryPolicy` to absorb transient broker errors:
+
+```php
+use Bschmitt\Amqp\Support\RetryPolicy;
+
+$amqp->withPublishBackoff(
+    RetryPolicy::exponential(3, 100, 2.0),
+    function (\Throwable $e, int $attempt) {
+        return $e instanceof \RuntimeException;
+    }
+)->run(function () use ($amqp) {
+    return $amqp->publish('orders.created', $body);
+});
+```
+
+Consumer-side retries use `RetryHandler`; `PublishBackoff` retries the **publish call** itself.
+
+## Typed Message Contracts & DTO Serialization
+
+| Type | Role |
+|------|------|
+| `MessageContractInterface` | `toPayload()` / `fromPayload()` contract for DTOs. |
+| `TypedMessage` | Optional base class with reflection-driven defaults plus `routingKey()`, `exchange()`, `schema()` hooks. |
+| `MessageSerializerInterface` | Wire format strategy (default: `JsonMessageSerializer`). |
+| `Amqp::publishTyped()` / `consumeTyped()` / `publishTypedLater()` | High-level helpers that serialize, set `content_type`, and honour contract defaults. |
+
+```php
+use Bschmitt\Amqp\Support\TypedMessage;
+
+class OrderCreated extends TypedMessage
+{
+    public $orderId;
+    public $total;
+
+    public function __construct($orderId = null, $total = null)
+    {
+        $this->orderId = $orderId;
+        $this->total = $total;
+    }
+
+    public static function routingKey()
+    {
+        return 'orders.created';
+    }
+}
+
+$amqp = app('Amqp');
+$amqp->publishTyped(new OrderCreated('order-1', 19.99));
+
+$amqp->consumeTyped('orders.queue', OrderCreated::class, function ($order, $message, $resolver) {
+    process($order->orderId);
+    $resolver->acknowledge($message);
+});
+```
+
+Custom serializers:
+
+```php
+$amqp->setSerializer(new MyProtobufSerializer());
+```
+
+## JSON Schema Validation
+
+When a contract defines `schema()`, typed helpers validate payloads automatically:
+
+```php
+public static function schema()
+{
+    return [
+        'type' => 'object',
+        'required' => ['orderId'],
+        'properties' => [
+            'orderId' => ['type' => 'string', 'minLength' => 1],
+            'total'   => ['type' => 'number', 'minimum' => 0],
+        ],
+    ];
+}
+```
+
+Failures raise `Bschmitt\Amqp\Exception\SchemaValidationException` with `errors()` returning human-readable paths (`/total: required property is missing`).
+
+The bundled `SchemaValidator` is a **subset** of JSON Schema Draft 7 (no `$ref`, no external packages). Supported keywords include types, `required`, `properties`, `additionalProperties`, string/number/array constraints, `enum`, `const`, and `oneOf`/`anyOf`/`allOf`/`not`.
+
+Standalone validation:
+
+```php
+$errors = app('Amqp')->schemaValidator()->validate($payload, OrderCreated::schema());
+```
+
+CLI: `php artisan amqp:work orders --handler=... --contract="App\\Messaging\\OrderCreated" --validate-schema`
+
 ## Message Priority
 
 ```php

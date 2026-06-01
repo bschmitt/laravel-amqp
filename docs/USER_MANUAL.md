@@ -810,6 +810,39 @@ deliveries.
 
 See **[Advanced Features → Advanced Retry & Dead-Letter Abstractions](content/advanced.md)** for the full reference.
 
+### 3a. Delayed Publishing
+
+Schedule messages without hand-rolling TTL queues:
+
+```php
+$amqp = app('Amqp');
+$amqp->publishLater('orders.reminder', json_encode(['orderId' => 42]), 60000, [
+    'exchange' => 'shop.events',
+]);
+```
+
+Use `delay_strategy => 'plugin'` when the delayed-message exchange plugin is installed. For publisher-side transient failures, wrap publishes in `withPublishBackoff(RetryPolicy::...)`.
+
+### 3b. Typed Messages & Schema Validation
+
+Define DTOs with `TypedMessage`, publish with `publishTyped()`, consume with `consumeTyped()`:
+
+```php
+$amqp->publishTyped(new OrderCreated('order-1', 19.99, 'USD'));
+
+$amqp->consumeTyped('orders.queue', OrderCreated::class, function ($order, $message, $resolver) {
+    processOrder($order->orderId);
+    $resolver->acknowledge($message);
+});
+```
+
+Add a static `schema()` method on the contract to enable JSON Schema validation (see `SchemaValidator` in `docs/content/advanced.md`). On the CLI:
+
+```bash
+php artisan amqp:work orders --handler="App\\Messaging\\Handler" \
+    --contract="App\\Messaging\\OrderCreated" --validate-schema
+```
+
 ### 4. Production Consumers
 
 Use Artisan commands with process managers:

@@ -97,3 +97,39 @@ $amqp->listen(['key1', 'key2', 'key3'], function ($message, $resolver) {
     'exchange_type' => 'topic',
 ]);
 ```
+
+## Typed Consuming (`consumeTyped`)
+
+Deserialize JSON bodies into contract DTOs automatically:
+
+```php
+use App\Messaging\OrderCreated;
+
+$amqp = app('Amqp');
+$amqp->consumeTyped('orders.queue', OrderCreated::class, function ($order, $message, $resolver) {
+    processOrder($order->orderId, $order->total);
+    $resolver->acknowledge($message);
+});
+```
+
+When `OrderCreated::schema()` is defined, inbound payloads are validated before `fromPayload()` runs. Validation failures throw `SchemaValidationException` (compatible with `RetryHandler` / `consumeWithRetry`).
+
+### CLI: `--contract` and `--validate-schema`
+
+```bash
+php artisan amqp:work orders \
+    --handler="App\\Messaging\\ProcessOrderHandler" \
+    --contract="App\\Messaging\\OrderCreated" \
+    --validate-schema
+```
+
+The handler receives the deserialised contract as an optional **third** argument:
+
+```php
+public function handle(AMQPMessage $message, ConsumerInterface $resolver, $typed = null): void
+{
+    /** @var OrderCreated $typed */
+    $this->orders->markPaid($typed->orderId);
+    $resolver->acknowledge($message);
+}
+```

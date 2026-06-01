@@ -72,22 +72,84 @@ No, you must use ```app('Amqp')``` or ```resolve('Amqp')``` for consume(), liste
 
 ### How do I handle failed messages?
 
-Use Dead Letter Exchanges:
+For ad-hoc cases, manually configure a dead-letter exchange and
+`$resolver->reject($message, false)` to ship the message to the DLQ.
+
+For production workloads use the built-in retry pipeline — it
+handles republishing through per-delay retry queues, bumps an
+`x-retry-attempt` header, and only forwards to the DLQ once the budget is
+exhausted:
+
+```php
+use Bschmitt\\Amqp\\Support\\DeadLetterTopology;
+use Bschmitt\\Amqp\\Support\\RetryPolicy;
+
+$amqp = app('Amqp');
+$topology = DeadLetterTopology::for('orders.process', RetryPolicy::exponential(5, 1000, 2.0, 60000))
+    ->on('shop.events', 'topic');
+
+$amqp->declareRetryTopology($topology);
+$amqp->consumeWithRetry($topology, function ($message, $resolver) {
+    processOrder(json_decode($message->body, true));
+    $resolver->acknowledge($message);
+});
+```
+
+The same pipeline is reachable from the CLI via
+`amqp:work --retry=5 --retry-backoff=exponential --declare-topology`.
+
+### How do I schedule a message for later delivery?
+
+Use `publishLater()`:
+
 ```php
 $amqp = app('Amqp');
-$amqp->consume('queue', function ($message, $resolver) {
-    try {
-        processMessage($message->body);
-        $resolver->acknowledge($message);
-    } catch (\\Exception $e) {
-        $resolver->reject($message, false); // Send to DLQ
-    }
-}, [
-    'queue_properties' => [
-        'x-dead-letter-exchange' => 'dlx',
-    ],
+$amqp->publishLater('orders.reminder', json_encode(['orderId' => 42]), 60000, [
+    'exchange' => 'shop.events',
 ]);
 ```
+
+Default strategy creates a per-delay TTL queue that dead-letters to your
+real destination — works on stock RabbitMQ. Pass
+`delay_strategy => 'plugin'` to use the
+`rabbitmq-delayed-message-exchange` plugin instead. See
+[Delayed Messaging](#delayed-messaging).
+
+From the CLI: `php artisan amqp:publish order.reminder --body='...' --delay-ms=60000`.
+
+### How do I validate inbound message payloads?
+
+Define a contract DTO with a static `schema()` and consume with
+`consumeTyped()` (or `amqp:work --contract=... --validate-schema`):
+
+```php
+class OrderCreated extends \\Bschmitt\\Amqp\\Support\\TypedMessage
+{
+    public $orderId;
+
+    public function __construct($orderId = null) { $this->orderId = $orderId; }
+
+    public static function schema()
+    {
+        return [
+            'type' => 'object',
+            'required' => ['orderId'],
+            'properties' => [
+                'orderId' => ['type' => 'string', 'minLength' => 1],
+            ],
+        ];
+    }
+}
+
+$amqp->consumeTyped('orders.queue', OrderCreated::class, function ($order, $message, $resolver) {
+    processOrder($order->orderId);
+    $resolver->acknowledge($message);
+});
+```
+
+Schema mismatches raise `Bschmitt\\Amqp\\Exception\\SchemaValidationException`
+before your handler runs. See [Schema Validation](#schema-validation) and
+[Typed Messaging](#typed-messaging).
 
 ## Troubleshooting
 

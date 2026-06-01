@@ -2,6 +2,97 @@
 
 ---
 
+## Version 3.4.0 - Minor Release
+
+This release lands four major features from the roadmap — every item is fully
+backwards-compatible (no API changes) and verified on PHP 7.3 through 8.5.
+
+### Features
+
+1. **Advanced retry & dead-letter abstractions**
+   - New `Bschmitt\Amqp\Support\RetryPolicy` value object with
+     `fixed()` / `exponential()` / `immediate()` / `none()` factories and
+     configurable `maxDelayMs` cap + `jitterMs`.
+   - New `DeadLetterTopology` builder generates property bags for the work
+     queue, DLQ, and per-delay retry queues (`{queue}.retry.{ms}`).
+   - New `RetryHandler` decorator wraps any callable with the full
+     republish-or-reject pipeline (tracks `x-retry-attempt`,
+     `x-first-failed-at`, and `x-last-error` headers).
+   - High-level entry points on `Amqp`: `declareRetryTopology()`,
+     `retryHandler()`, `consumeWithRetry()`, `topology()`.
+   - `amqp:work` gains `--retry`, `--retry-backoff`, `--retry-delay`,
+     `--retry-multiplier`, `--retry-max-delay`, `--retry-jitter`,
+     `--dlq`, and `--declare-topology` flags.
+
+2. **Delayed messaging & publisher backoff**
+   - New `Bschmitt\Amqp\Support\DelayedPublisher` with two strategies:
+     `ttl` (default, TTL+DLX per-delay queue — works on stock RabbitMQ)
+     and `plugin` (`rabbitmq-delayed-message-exchange`).
+   - `Amqp::publishLater()`, `publishTypedLater()`, and the convenience
+     accessor `delayedPublisher()`.
+   - New `PublishBackoff` wraps any publish closure with a `RetryPolicy`
+     for transient-error recovery, exposed via `Amqp::withPublishBackoff()`.
+   - `amqp:publish` gains `--delay-ms` and `--delay-strategy=ttl|plugin`.
+
+3. **Typed message contracts & DTO serialization**
+   - New `Bschmitt\Amqp\Contracts\MessageContractInterface` and the
+     optional `TypedMessage` base class (reflection-driven defaults plus
+     `routingKey()`, `exchange()`, `schema()` hooks).
+   - New `MessageSerializerInterface` strategy; default is
+     `JsonMessageSerializer` (`JSON_THROW_ON_ERROR`, unicode/slash-safe).
+   - `Amqp::publishTyped()`, `publishTypedLater()`, `consumeTyped()`,
+     `setSerializer()`, `getSerializer()`.
+   - `amqp:work --contract=` deserializes inbound bodies and passes the
+     DTO as a third handler argument (the existing two-argument signature
+     keeps working).
+
+4. **JSON Schema validation for messages**
+   - New zero-dependency `Bschmitt\Amqp\Support\SchemaValidator`
+     implementing a Draft 7 subset (types, `required`, `properties`,
+     `additionalProperties`, string/number/array constraints, `enum`,
+     `const`, `oneOf`/`anyOf`/`allOf`/`not`, common `format`s).
+   - New `SchemaValidationException` carries `errors()` with JSON-pointer
+     paths.
+   - Schema validation runs automatically on publish/consume whenever a
+     contract exposes a non-null `schema()`.
+   - `amqp:work --validate-schema` enables enforcement in long-running
+     workers.
+
+### Tests
+
+- 80 new unit tests, total now 341 (810 assertions).
+- New PHP 7.3 syntax checker (`scripts/check-php73-compat.php` and
+  `scripts/check-php73-compat-all-src.php`) using `nikic/php-parser`;
+  every file under `src/` parses as PHP 7.3.
+- Full suite passes on PHP 8.3 and 8.4; deprecation warnings on 8.4 come
+  exclusively from the vendored Mockery library and predate this release.
+
+### New Documentation Pages
+
+- `docs/content/delayed-messaging.md`
+- `docs/content/typed-messaging.md`
+- `docs/content/schema-validation.md`
+- Updated `docs/content/advanced.md`, `publishing.md`, `consuming.md`,
+  `artisan-commands.md`, `best-practices.md`, `faq.md`, `getting-started.md`,
+  `guide.md`, `USER_MANUAL.md`, `README.md`.
+- Sidebar entries added to `docs/index.html`; new "Typed Messages"
+  quick-start tab on the home page.
+
+### Migration
+
+No migration required. All new features are opt-in:
+
+- Existing handlers keep their two-argument signature; the typed third
+  argument defaults to `null` when `--contract` is not used.
+- `MessageHandlerInterface::handle()` gains an optional `$typed = null`
+  parameter; implementations written against the old signature continue
+  to work because the new argument has a default value.
+- The default `MessageSerializerInterface` is lazily resolved as
+  `JsonMessageSerializer` — existing publish/consume calls that send raw
+  bodies are unaffected.
+
+---
+
 ## Version 3.3.0 - Minor Release
 
 This release broadens framework and PHP compatibility, improves configuration resolution, and expands CI coverage.

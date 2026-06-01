@@ -34,7 +34,9 @@ class AmqpPublishCommand extends Command
                             {--content-type= : content_type property}
                             {--headers= : JSON-encoded application_headers, e.g. {"X-Foo":"bar"}}
                             {--mandatory : Send the message with the mandatory flag}
-                            {--file= : Read the message body from this file path instead of the argument}';
+                            {--file= : Read the message body from this file path instead of the argument}
+                            {--delay-ms= : Publish the message with this delay (ms) before delivery}
+                            {--delay-strategy=ttl : Delay strategy: ttl (default, stock RabbitMQ) or plugin (rabbitmq-delayed-message-exchange)}';
 
     /** @var string */
     protected $description = 'Publish a single message to RabbitMQ from the command line.';
@@ -67,17 +69,42 @@ class AmqpPublishCommand extends Command
 
         try {
             $properties = $this->buildProperties();
-            $this->amqp->publish($routingKey, $body, $properties);
+            $delayOpt = $this->option('delay-ms');
+            if ($delayOpt !== null && $delayOpt !== '') {
+                $delayMs = (int) $delayOpt;
+                if ($delayMs < 0) {
+                    $this->error('--delay-ms must be >= 0');
+                    return self::INVALID;
+                }
+                $strategy = (string) $this->option('delay-strategy');
+                if (!in_array($strategy, ['ttl', 'plugin'], true)) {
+                    $this->error('--delay-strategy must be "ttl" or "plugin"');
+                    return self::INVALID;
+                }
+                $properties['delay_strategy'] = $strategy;
+                $this->amqp->publishLater($routingKey, $body, $delayMs, $properties);
+            } else {
+                $this->amqp->publish($routingKey, $body, $properties);
+            }
         } catch (Throwable $e) {
             $this->error('Publish failed: '.$e->getMessage());
             return self::FAILURE;
         }
 
+        $delayLog = '';
+        $delayOpt = $this->option('delay-ms');
+        if ($delayOpt !== null && $delayOpt !== '') {
+            $delayLog = sprintf(' with delay [%d ms, strategy=%s]',
+                (int) $delayOpt,
+                (string) $this->option('delay-strategy'));
+        }
+
         $this->info(sprintf(
-            'Published %d byte(s) to routing key [%s]%s.',
+            'Published %d byte(s) to routing key [%s]%s%s.',
             strlen($body),
             $routingKey,
-            isset($properties['exchange']) ? ' on exchange ['.$properties['exchange'].']' : ''
+            isset($properties['exchange']) ? ' on exchange ['.$properties['exchange'].']' : '',
+            $delayLog
         ));
 
         return self::SUCCESS;

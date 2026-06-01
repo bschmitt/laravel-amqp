@@ -3,9 +3,13 @@
 namespace Bschmitt\Amqp\Console\Commands;
 
 use Bschmitt\Amqp\Console\HandlerResolver;
+use Bschmitt\Amqp\Contracts\MessageContractInterface;
 use Bschmitt\Amqp\Core\Amqp;
+use Bschmitt\Amqp\Exception\SchemaValidationException;
 use Bschmitt\Amqp\Support\DeadLetterTopology;
+use Bschmitt\Amqp\Support\JsonMessageSerializer;
 use Bschmitt\Amqp\Support\RetryPolicy;
+use Bschmitt\Amqp\Support\SchemaValidator;
 use Illuminate\Console\Command;
 use InvalidArgumentException;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -48,6 +52,8 @@ class AmqpWorkCommand extends Command
                             {--retry-jitter=0 : Random jitter added to each retry delay (ms)}
                             {--dlq= : Dead-letter queue name (defaults to {queue}.dlq)}
                             {--declare-topology : Declare work + retry + DLQ queues before consuming}
+                            {--contract= : FQCN of a Bschmitt\\Amqp\\Contracts\\MessageContractInterface to deserialize incoming bodies into}
+                            {--validate-schema : Validate inbound payloads against the contract::schema() (if any) and fail on mismatch}
                             {--quiet-iterations : Suppress per-message log output (only show errors and summary)}';
 
     /** @var string */
@@ -97,6 +103,20 @@ class AmqpWorkCommand extends Command
         } catch (Throwable $e) {
             $this->error($e->getMessage());
             return self::FAILURE;
+        }
+
+        $contractClass = $this->option('contract');
+        if (is_string($contractClass) && $contractClass !== '') {
+            if (!class_exists($contractClass)
+                || !is_subclass_of($contractClass, MessageContractInterface::class)) {
+                $this->error(sprintf(
+                    'Contract class [%s] does not exist or does not implement %s.',
+                    $contractClass,
+                    MessageContractInterface::class
+                ));
+                return self::INVALID;
+            }
+            $callable = $this->wrapWithContract($callable, $contractClass);
         }
 
         $properties = $this->buildProperties();
@@ -373,6 +393,45 @@ class AmqpWorkCommand extends Command
         }
 
         return $topology;
+    }
+
+    /**
+     * Decorate the resolved handler so it receives a deserialised contract
+     * instance as a *third* argument (`$handler($message, $resolver, $typed)`).
+     *
+     * Keeping the existing `(AMQPMessage, ConsumerInterface)` positional
+     * signature means classic handlers that implement `MessageHandlerInterface`
+     * still work; advanced handlers can opt in to the typed argument by
+     * accepting a third parameter.
+     *
+     * @param callable                         $callable
+     * @param class-string<MessageContractInterface> $contractClass
+     * @param bool|null                        $validateSchema When null, reads `--validate-schema` per message (lazy).
+     * @return callable
+     */
+    protected function wrapWithContract(callable $callable, string $contractClass, ?bool $validateSchema = null): callable
+    {
+        $serializer = new JsonMessageSerializer();
+
+        return function (AMQPMessage $message, $resolver) use ($callable, $contractClass, $serializer, $validateSchema) {
+            $payload = $serializer->deserialize((string) $message->body);
+
+            $shouldValidate = $validateSchema ?? (bool) $this->option('validate-schema');
+            $validator = $shouldValidate ? new SchemaValidator() : null;
+
+            if ($validator !== null && method_exists($contractClass, 'schema')) {
+                $schema = $contractClass::schema();
+                if (is_array($schema)) {
+                    $errors = $validator->validate($payload, $schema);
+                    if (!empty($errors)) {
+                        throw new SchemaValidationException($errors);
+                    }
+                }
+            }
+
+            $typed = $contractClass::fromPayload($payload);
+            $callable($message, $resolver, $typed);
+        };
     }
 
     /**

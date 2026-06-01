@@ -36,17 +36,17 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - Queue Types - Classic, Quorum, and Stream queues
 - Dead Letter Exchanges - Message routing for failed messages
 - **Advanced retry & dead-letter abstractions** - Declarative `RetryPolicy` + `DeadLetterTopology` + `RetryHandler` with fixed/exponential backoff and auto-routing to DLQ when retries exhaust (see [Retry & DLQ Abstractions](#retry--dead-letter-abstractions))
+- **Delayed messaging & publish backoff** - `publishLater()` / `publishTypedLater()` with TTL+DLX or `rabbitmq-delayed-message-exchange` plugin strategies, plus `PublishBackoff` for publisher-side transient retries (see [Delayed Messaging](#delayed-messaging--publish-backoff))
+- **Typed message contracts** - `MessageContractInterface`, `TypedMessage` base class, `publishTyped()` / `consumeTyped()` with pluggable `MessageSerializerInterface` (JSON by default) (see [Typed Messaging](#typed-message-contracts--dto-serialization))
+- **JSON schema validation** - Zero-dependency `SchemaValidator` (Draft 7 subset) validates payloads against contract `schema()` definitions (see [JSON Schema Validation](#json-schema-validation))
 - Message Priority - Priority-based message processing
 - TTL Support - Message and queue expiration
 - Lazy Queues - Disk-based message storage
 - Alternate Exchange - Unroutable message handling
 - **Native Laravel Queue integration** - Use `amqp` as a `config/queue.php` driver with `queue:work`
-- **Artisan commands** - `amqp:work` (with `--retry`/`--retry-backoff`/`--dlq`/`--declare-topology`), `amqp:consume`, `amqp:listen`, `amqp:publish`, and `amqp:purge`
+- **Artisan commands** - `amqp:work` (with `--retry`/`--contract`/`--validate-schema`), `amqp:consume`, `amqp:listen`, `amqp:publish` (with `--delay-ms`), and `amqp:purge`
 
 ## Planned Features
-- Delayed message and backoff support
-- Typed message contracts & DTO serialization
-- JSON schema validation for messages
 - Exchange and topology builders
 - Quorum queue & priority queue support
 - Auto reconnect and heartbeat monitoring
@@ -220,7 +220,10 @@ Creates an auto-deleted queue (unless `--queue=` or `--no-auto-delete` is set) a
 ```bash
 php artisan amqp:publish order.created --body='{"id":42}' --exchange=orders --priority=5
 php artisan amqp:publish order.created --file=./payload.json --headers='{"X-Source":"cli"}'
+php artisan amqp:publish order.created --body='{"id":42}' --delay-ms=5000 --exchange=orders
 ```
+
+Use `--delay-ms` to schedule delivery (TTL+DLX by default, or `--delay-strategy=plugin` when the delayed-message exchange plugin is installed).
 
 ### `amqp:purge` — empty a queue
 
@@ -240,6 +243,8 @@ php artisan amqp:purge my-queue --force
 | `--retry-jitter=ms` | Random jitter added to each retry delay |
 | `--dlq=name` | Override the dead-letter queue name (default `{queue}.dlq`) |
 | `--declare-topology` | Pre-declare the work + DLQ + retry queues before consuming |
+| `--contract=` | FQCN of a `MessageContractInterface` to deserialize bodies into (passed as 3rd handler arg) |
+| `--validate-schema` | Validate inbound JSON against the contract's `schema()` before invoking the handler |
 
 See [Retry & Dead-Letter Abstractions](#retry--dead-letter-abstractions) for the full picture.
 
@@ -254,9 +259,9 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 class ProcessOrderHandler implements MessageHandlerInterface
 {
-    public function handle(AMQPMessage $message, ConsumerInterface $resolver): void
+    public function handle(AMQPMessage $message, ConsumerInterface $resolver, $typed = null): void
     {
-        $order = json_decode($message->body, true);
+        $order = $typed !== null ? $typed->toPayload() : json_decode($message->body, true);
         // ... process $order ...
         $resolver->acknowledge($message);
     }
@@ -577,6 +582,120 @@ php artisan amqp:work orders.process \
 
 See `docs/content/advanced.md` and the unit tests under `test/Unit/Retry*` /
 `test/Unit/DeadLetterTopologyTest.php` for more examples.
+
+## Delayed Messaging & Publish Backoff
+
+Schedule messages for later delivery or absorb transient broker errors on publish.
+
+### `publishLater()` — schedule delivery
+
+```php
+$amqp = app('Amqp');
+
+// TTL + dead-letter exchange (works on stock RabbitMQ)
+$amqp->publishLater('orders.reminder', json_encode(['orderId' => 42]), 60000, [
+    'exchange' => 'shop.events',
+]);
+
+// rabbitmq-delayed-message-exchange plugin (exchange must be x-delayed-message)
+$amqp->publishLater('orders.reminder', $body, 60000, [
+    'exchange' => 'shop.delayed',
+    'delay_strategy' => 'plugin',
+]);
+```
+
+`DelayedPublisher` creates a per-delay queue (`{routing}.delayed.{ms}`) with `x-message-ttl` and DLX routing back to the target exchange when using the default TTL strategy.
+
+### `PublishBackoff` — retry failed publishes
+
+```php
+use Bschmitt\Amqp\Support\RetryPolicy;
+
+$amqp->withPublishBackoff(RetryPolicy::exponential(3, 100, 2.0))->run(function () use ($amqp) {
+    return $amqp->publish('orders.created', $payload);
+});
+```
+
+This is separate from consumer-side `RetryHandler` — it retries the **publish** call itself when the broker throws.
+
+## Typed Message Contracts & DTO Serialization
+
+Define message shapes as plain PHP classes and let the package handle JSON encoding/decoding.
+
+```php
+use Bschmitt\Amqp\Support\TypedMessage;
+
+class OrderCreated extends TypedMessage
+{
+    public $orderId;
+    public $total;
+    public $currency;
+
+    public function __construct($orderId = null, $total = null, $currency = null)
+    {
+        $this->orderId = $orderId;
+        $this->total = $total;
+        $this->currency = $currency;
+    }
+
+    public static function routingKey()
+    {
+        return 'orders.created';
+    }
+
+    public static function exchange()
+    {
+        return 'shop.events';
+    }
+}
+```
+
+```php
+$amqp = app('Amqp');
+
+// Publish — picks up routing key + exchange from the contract
+$amqp->publishTyped(new OrderCreated('order-1', 19.99, 'USD'));
+
+// Consume — callback receives ($typed, $message, $resolver)
+$amqp->consumeTyped('orders.queue', OrderCreated::class, function ($order, $message, $resolver) {
+    processOrder($order->orderId);
+    $resolver->acknowledge($message);
+});
+
+// Delayed typed publish
+$amqp->publishTypedLater(new OrderCreated('order-2', 9.99, 'USD'), 30000);
+```
+
+Swap the serializer via `$amqp->setSerializer($mySerializer)` when you need MessagePack, Avro, etc.
+
+## JSON Schema Validation
+
+Contracts may expose a static `schema()` method returning a JSON Schema-style array. The package validates payloads on publish and consume using the bundled `SchemaValidator` (no external dependencies).
+
+```php
+class OrderCreated extends TypedMessage
+{
+    // ...properties...
+
+    public static function schema()
+    {
+        return [
+            'type' => 'object',
+            'required' => ['orderId', 'total', 'currency'],
+            'additionalProperties' => false,
+            'properties' => [
+                'orderId'  => ['type' => 'string', 'minLength' => 1],
+                'total'    => ['type' => 'number', 'minimum' => 0],
+                'currency' => ['type' => 'string', 'enum' => ['USD', 'EUR', 'GBP']],
+            ],
+        ];
+    }
+}
+```
+
+Invalid payloads raise `Bschmitt\Amqp\Exception\SchemaValidationException` with a list of pointer-style error messages. On the CLI, combine `--contract` with `--validate-schema` on `amqp:work`.
+
+Supported keywords include `type`, `required`, `properties`, `additionalProperties`, `enum`, `const`, `minimum`/`maximum`, `minLength`/`maxLength`, `pattern`, `format` (email, uri, uuid, date, date-time), `items`, `oneOf`/`anyOf`/`allOf`/`not`, and more — see `docs/content/advanced.md`.
 
 ## Testing
 

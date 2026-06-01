@@ -16,7 +16,7 @@ class ThrowingHandler implements MessageHandlerInterface
     /** @var int */
     public static $callCount = 0;
 
-    public function handle(AMQPMessage $message, ConsumerInterface $resolver): void
+    public function handle(AMQPMessage $message, ConsumerInterface $resolver, $typed = null): void
     {
         self::$callCount++;
         throw new RuntimeException('handler exploded on purpose');

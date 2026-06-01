@@ -95,6 +95,8 @@ This is the headline command — keep it alive under a process manager (Supervis
 | `--retry-jitter=` | `0` | Random jitter (ms) added to each retry delay |
 | `--dlq=` | `{queue}.dlq` | Dead-letter queue name |
 | `--declare-topology` | off | Pre-declare the work + DLQ + retry queues before consuming |
+| `--contract=` | off | FQCN implementing `MessageContractInterface`; deserialised DTO passed as 3rd handler arg |
+| `--validate-schema` | off | Validate inbound JSON against `Contract::schema()` before invoking the handler |
 | `--quiet-iterations` | off | Suppress per-message output (only show errors and summary) |
 
 > **Retry vs. requeue:** `--requeue-on-error` puts the message back at the
@@ -241,7 +243,18 @@ php artisan amqp:publish order.created --file=./payload.json --headers='{"X-Sour
 | `--content-type=` | `content_type` property |
 | `--headers=` | JSON-encoded `application_headers`, e.g. `'{"X-Foo":"bar"}'` |
 | `--mandatory` | Set the AMQP mandatory flag |
+| `--delay-ms=` | Schedule delivery after this many milliseconds (`publishLater`) |
+| `--delay-strategy=` | `ttl` (default, stock RabbitMQ) or `plugin` (delayed-message exchange) |
 | `--connection=` | Connection name |
+
+### Delayed publish example
+
+```bash
+php artisan amqp:publish order.reminder \
+    --body='{"orderId":42}' \
+    --exchange=shop.events \
+    --delay-ms=60000
+```
 
 ---
 

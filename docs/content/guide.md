@@ -26,7 +26,10 @@ Welcome to the Laravel AMQP package documentation. This guide will help you get 
 ### Advanced
 
 - [Message Properties](#message-properties) - Work with message metadata
-- [Advanced Features](#advanced) - Publisher confirms, QoS, queue types
+- [Advanced Features](#advanced) - Publisher confirms, QoS, queue types, retry/DLQ abstractions
+- [Delayed Messaging](#delayed-messaging) - `publishLater()` and publisher-side backoff
+- [Typed Messaging](#typed-messaging) - DTO contracts and pluggable serializers
+- [Schema Validation](#schema-validation) - Zero-dependency JSON schema enforcement
 - [Best Practices](#best-practices) - Production-ready patterns
 
 ### Reference
@@ -47,6 +50,11 @@ Welcome to the Laravel AMQP package documentation. This guide will help you get 
 - Consumer prefetch (QoS)
 - Multiple queue types (classic, quorum, stream)
 - Dead letter exchanges
+- Advanced retry & dead-letter abstractions (`RetryPolicy`, `DeadLetterTopology`, `RetryHandler`)
+- Delayed publishing via TTL+DLX or the `rabbitmq-delayed-message-exchange` plugin
+- Publisher-side backoff (`PublishBackoff`)
+- Typed message contracts & DTO serialization (`TypedMessage`, `publishTyped()`, `consumeTyped()`)
+- JSON Schema validation for inbound and outbound payloads
 - Message priority
 - TTL support
 

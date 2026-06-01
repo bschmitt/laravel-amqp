@@ -87,3 +87,53 @@ Amqp::publish('routing.key', 'temporary message', [
     'expiration' => '60000', // 60 seconds in milliseconds
 ]);
 ```
+
+## Delayed Publishing (`publishLater`)
+
+Schedule delivery after a delay without building TTL queues yourself:
+
+```php
+$amqp = app('Amqp');
+
+$amqp->publishLater('orders.reminder', json_encode(['orderId' => 42]), 60000, [
+    'exchange' => 'shop.events',
+]);
+```
+
+Use `delay_strategy => 'plugin'` when the `rabbitmq-delayed-message-exchange` plugin is installed. See [Delayed Messaging](advanced.md#delayed-messaging--publish-backoff) for details.
+
+## Typed Publishing (`publishTyped`)
+
+```php
+use App\Messaging\OrderCreated;
+
+$amqp = app('Amqp');
+$amqp->publishTyped(new OrderCreated('order-1', 19.99, 'USD'));
+
+// Typed + delayed
+$amqp->publishTypedLater(new OrderCreated('order-2', 9.99, 'USD'), 30000);
+```
+
+Outbound payloads are validated against `OrderCreated::schema()` when defined.
+
+## Publisher-Side Backoff
+
+```php
+use Bschmitt\Amqp\Support\RetryPolicy;
+
+$amqp->withPublishBackoff(RetryPolicy::fixed(3, 500))->run(function () use ($amqp) {
+    return $amqp->publish('routing.key', $body);
+});
+```
+
+## CLI: `amqp:publish --delay-ms`
+
+```bash
+php artisan amqp:publish order.reminder \
+    --body='{"orderId":42}' \
+    --exchange=shop.events \
+    --delay-ms=60000
+
+# With the delayed-message exchange plugin:
+php artisan amqp:publish order.reminder --body='...' --delay-ms=60000 --delay-strategy=plugin
+```

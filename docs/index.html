@@ -273,55 +273,11 @@
               <div class="features-grid">
                 <div class="feature-card">
                   <div class="feature-icon">📦</div>
-                  <h3>Simple Publishing</h3>
+                  <h3>Simple Publish &amp; Consume</h3>
                   <p>
-                    Publish messages to RabbitMQ with a clean, intuitive API. No
-                    complexity, just results.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <div class="feature-icon">🔄</div>
-                  <h3>RPC Pattern</h3>
-                  <p>
-                    Built-in request-response patterns with rpc() and reply()
-                    methods for seamless communication.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <div class="feature-icon">⚙️</div>
-                  <h3>Queue Management</h3>
-                  <p>
-                    Programmatic control over queues and exchanges. Purge,
-                    delete, and manage with ease.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <div class="feature-icon">🔌</div>
-                  <h3>Management API</h3>
-                  <p>
-                    Full integration with RabbitMQ Management HTTP API for
-                    advanced monitoring and control.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <div class="feature-icon">📝</div>
-                  <h3>Message Properties</h3>
-                  <p>
-                    Support for all standard AMQP message properties including
-                    priority, TTL, and custom headers.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <div class="feature-icon">🚀</div>
-                  <h3>Advanced Features</h3>
-                  <p>
-                    Publisher confirms, consumer prefetch, quorum queues, stream
-                    queues, and dead letter exchanges.
+                    Clean, intuitive API for publishing and consuming
+                    messages with full AMQP property support — priority,
+                    TTL, correlation IDs, and custom headers out of the box.
                   </p>
                 </div>
 
@@ -329,9 +285,10 @@
                   <div class="feature-icon">⚡</div>
                   <h3>Laravel Queue Driver</h3>
                   <p>
-                    Use <code>QUEUE_CONNECTION=amqp</code> and run
-                    <code>php artisan queue:work amqp</code> — dispatch jobs with
-                    <code>dispatch()</code> and delayed delivery via RabbitMQ TTL.
+                    Set <code>QUEUE_CONNECTION=amqp</code> and use
+                    <code>dispatch()</code> / <code>queue:work</code> as
+                    usual — RabbitMQ handles persistence, delays, and
+                    failures behind the scenes.
                   </p>
                 </div>
 
@@ -339,11 +296,76 @@
                   <div class="feature-icon">🛠️</div>
                   <h3>Artisan Commands</h3>
                   <p>
-                    Five built-in commands —
+                    Long-running workers and CLI tooling via
                     <code>amqp:work</code>, <code>amqp:consume</code>,
                     <code>amqp:listen</code>, <code>amqp:publish</code>,
-                    and <code>amqp:purge</code> — for running workers
-                    and managing queues from the CLI.
+                    and <code>amqp:purge</code>.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">🔄</div>
+                  <h3>RPC Pattern</h3>
+                  <p>
+                    Built-in request/response with <code>rpc()</code> and
+                    <code>reply()</code>, including automatic correlation
+                    ID handling and reply-queue management.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">🔁</div>
+                  <h3>Retry &amp; Dead-Letter Pipeline</h3>
+                  <p>
+                    Declarative <code>RetryPolicy</code> +
+                    <code>DeadLetterTopology</code> +
+                    <code>RetryHandler</code> with fixed/exponential
+                    backoff, automatic DLQ routing, and one-flag CLI
+                    integration (<code>--retry --declare-topology</code>).
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">⏱️</div>
+                  <h3>Delayed Messaging</h3>
+                  <p>
+                    Schedule deliveries with <code>publishLater()</code> or
+                    <code>amqp:publish --delay-ms</code>. Works on stock
+                    RabbitMQ (TTL+DLX) or the delayed-message exchange
+                    plugin. Includes <code>PublishBackoff</code> for
+                    transient publisher errors.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">📐</div>
+                  <h3>Typed Messages &amp; Schema</h3>
+                  <p>
+                    Plain-PHP DTOs via <code>TypedMessage</code>, published
+                    with <code>publishTyped()</code> / consumed with
+                    <code>consumeTyped()</code>. Optional zero-dependency
+                    JSON-Schema-lite validation on both directions.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">🚀</div>
+                  <h3>Production-Grade Features</h3>
+                  <p>
+                    Publisher confirms, consumer prefetch (QoS), quorum
+                    and stream queues, message priority, lazy queues,
+                    alternate exchanges, and full TTL support.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">🔌</div>
+                  <h3>Queue Management &amp; Admin API</h3>
+                  <p>
+                    Programmatic purge/delete/unbind plus full
+                    RabbitMQ Management HTTP API integration: queue stats,
+                    connections, channels, nodes, policies, and feature
+                    flags.
                   </p>
                 </div>
               </div>
@@ -596,6 +618,24 @@
                       @click.prevent="navigateTo('advanced')"
                       :class="{active: currentPage === 'advanced'}"
                       >Advanced Features</a
+                    >
+                    <a
+                      href="#delayed-messaging"
+                      @click.prevent="navigateTo('delayed-messaging')"
+                      :class="{active: currentPage === 'delayed-messaging'}"
+                      >Delayed Messaging</a
+                    >
+                    <a
+                      href="#typed-messaging"
+                      @click.prevent="navigateTo('typed-messaging')"
+                      :class="{active: currentPage === 'typed-messaging'}"
+                      >Typed Messaging</a
+                    >
+                    <a
+                      href="#schema-validation"
+                      @click.prevent="navigateTo('schema-validation')"
+                      :class="{active: currentPage === 'schema-validation'}"
+                      >Schema Validation</a
                     >
                     <a
                       href="#best-practices"

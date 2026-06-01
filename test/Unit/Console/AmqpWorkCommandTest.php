@@ -10,8 +10,10 @@ use Bschmitt\Amqp\Support\RetryHandler;
 use Bschmitt\Amqp\Support\RetryPolicy;
 use Bschmitt\Amqp\Test\Support\CommandTestCase;
 use Bschmitt\Amqp\Test\Support\Fixtures\InvokableHandler;
+use Bschmitt\Amqp\Test\Support\Fixtures\OrderCreatedMessage;
 use Bschmitt\Amqp\Test\Support\Fixtures\RecordingHandler;
 use Bschmitt\Amqp\Test\Support\Fixtures\ThrowingHandler;
+use Bschmitt\Amqp\Test\Support\Fixtures\TypedRecordingHandler;
 use Mockery;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -25,6 +27,7 @@ class AmqpWorkCommandTest extends CommandTestCase
         RecordingHandler::reset();
         InvokableHandler::reset();
         ThrowingHandler::reset();
+        TypedRecordingHandler::reset();
     }
 
     public function testMissingHandlerOptionReturnsInvalid(): void
@@ -423,6 +426,97 @@ class AmqpWorkCommandTest extends CommandTestCase
         ]);
 
         $this->assertSame(SymfonyCommand::SUCCESS, $result['status']);
+    }
+
+    public function testInvalidContractClassReturnsInvalid(): void
+    {
+        $result = $this->runCommand($this->makeCommand(), [
+            'queue' => 'orders',
+            '--handler' => RecordingHandler::class,
+            '--contract' => 'App\\Nope\\NotAContract',
+        ]);
+
+        $this->assertSame(SymfonyCommand::INVALID, $result['status']);
+        $this->assertStringContainsString('does not implement', $result['output']);
+    }
+
+    public function testContractOptionDeserializesTypedMessageForHandler(): void
+    {
+        $body = json_encode([
+            'orderId' => 'order-cli-1',
+            'total' => 42.0,
+            'currency' => 'USD',
+        ]);
+        $consumer = $this->fakeConsumer();
+
+        $this->amqp->shouldReceive('consume')
+            ->once()
+            ->andReturnUsing(function ($queue, $callback) use ($body, $consumer) {
+                $callback($this->fakeMessage($body, 1), $consumer);
+                return true;
+            });
+
+        $result = $this->runCommand($this->makeCommand(), [
+            'queue' => 'orders',
+            '--handler' => TypedRecordingHandler::class,
+            '--contract' => OrderCreatedMessage::class,
+        ]);
+
+        $this->assertSame(SymfonyCommand::SUCCESS, $result['status']);
+        $this->assertCount(1, TypedRecordingHandler::$calls);
+        $typed = TypedRecordingHandler::$calls[0]['typed'];
+        $this->assertInstanceOf(OrderCreatedMessage::class, $typed);
+        $this->assertSame('order-cli-1', $typed->orderId);
+        $this->assertEquals(42.0, $typed->total);
+        $this->assertSame('USD', $typed->currency);
+    }
+
+    public function testWrapWithContractThrowsWhenValidateSchemaEnabledAndPayloadInvalid(): void
+    {
+        $command = $this->makeCommand();
+        $method = new \ReflectionMethod($command, 'wrapWithContract');
+        $method->setAccessible(true);
+
+        $handlerInvoked = false;
+        $inner = function () use (&$handlerInvoked) {
+            $handlerInvoked = true;
+        };
+
+        $wrapped = $method->invoke($command, $inner, OrderCreatedMessage::class, true);
+
+        try {
+            $wrapped($this->fakeMessage('{"orderId":"x"}', 1), $this->fakeConsumer());
+            $this->fail('Expected SchemaValidationException');
+        } catch (\Bschmitt\Amqp\Exception\SchemaValidationException $e) {
+            $this->assertFalse($handlerInvoked);
+            $this->assertNotEmpty($e->errors());
+        }
+    }
+
+    public function testValidateSchemaRejectsInvalidPayloadBeforeHandlerRuns(): void
+    {
+        $consumer = $this->fakeConsumer();
+
+        $this->amqp->shouldReceive('consume')
+            ->once()
+            ->andReturnUsing(function ($queue, $callback) use ($consumer) {
+                $callback($this->fakeMessage('{"orderId":"x"}', 1), $consumer);
+                return true;
+            });
+
+        $command = $this->makeCommand();
+        $result = $this->runCommand($command, [
+            'queue' => 'orders',
+            '--handler' => TypedRecordingHandler::class,
+            '--contract' => OrderCreatedMessage::class,
+            '--validate-schema' => true,
+        ]);
+
+        $this->assertTrue((bool) $command->option('validate-schema'));
+        $this->assertSame(SymfonyCommand::FAILURE, $result['status'], 'all-failed workers exit non-zero');
+        $this->assertCount(0, TypedRecordingHandler::$calls);
+        $this->assertStringContainsString('failed: 1', $result['output']);
+        $this->assertStringContainsString('Schema validation failed', $result['output']);
     }
 
     public function testConsumerLevelExceptionIsReportedAsFailure(): void

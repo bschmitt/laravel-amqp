@@ -118,6 +118,78 @@ class AmqpPublishCommandTest extends CommandTestCase
         $this->assertStringContainsString('broker exploded', $result['output']);
     }
 
+    public function testDelayMsRoutesThroughPublishLaterWithDefaultTtlStrategy(): void
+    {
+        $this->amqp->shouldReceive('publish')->never();
+        $this->amqp->shouldReceive('publishLater')
+            ->once()
+            ->with('order.created', 'hello', 5000, Mockery::on(function ($props) {
+                $this->assertSame('ttl', $props['delay_strategy']);
+                $this->assertSame('orders', $props['exchange']);
+                return true;
+            }))
+            ->andReturn(true);
+
+        $result = $this->runCommand($this->makeCommand(), [
+            'routing-key' => 'order.created',
+            '--body' => 'hello',
+            '--exchange' => 'orders',
+            '--delay-ms' => 5000,
+        ]);
+
+        $this->assertSame(SymfonyCommand::SUCCESS, $result['status']);
+        $this->assertStringContainsString('with delay [5000 ms, strategy=ttl]', $result['output']);
+    }
+
+    public function testDelayMsPluginStrategyIsForwarded(): void
+    {
+        $this->amqp->shouldReceive('publishLater')
+            ->once()
+            ->with(Mockery::any(), Mockery::any(), 2500, Mockery::on(function ($props) {
+                $this->assertSame('plugin', $props['delay_strategy']);
+                return true;
+            }))
+            ->andReturn(true);
+
+        $result = $this->runCommand($this->makeCommand(), [
+            'routing-key' => 'evt',
+            '--body' => 'x',
+            '--delay-ms' => 2500,
+            '--delay-strategy' => 'plugin',
+        ]);
+
+        $this->assertSame(SymfonyCommand::SUCCESS, $result['status']);
+        $this->assertStringContainsString('strategy=plugin', $result['output']);
+    }
+
+    public function testNegativeDelayIsRejected(): void
+    {
+        $this->amqp->shouldReceive('publish')->never();
+        $this->amqp->shouldReceive('publishLater')->never();
+
+        $result = $this->runCommand($this->makeCommand(), [
+            'routing-key' => 'x',
+            '--body' => 'y',
+            '--delay-ms' => -1,
+        ]);
+
+        $this->assertNotSame(SymfonyCommand::SUCCESS, $result['status']);
+    }
+
+    public function testUnknownDelayStrategyIsRejected(): void
+    {
+        $this->amqp->shouldReceive('publishLater')->never();
+
+        $result = $this->runCommand($this->makeCommand(), [
+            'routing-key' => 'x',
+            '--body' => 'y',
+            '--delay-ms' => 100,
+            '--delay-strategy' => 'unknown',
+        ]);
+
+        $this->assertNotSame(SymfonyCommand::SUCCESS, $result['status']);
+    }
+
     /* ------------------------------------------------------------------ */
 
     private function makeCommand(): AmqpPublishCommand

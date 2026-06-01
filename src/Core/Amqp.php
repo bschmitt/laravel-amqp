@@ -8,12 +8,19 @@ use Bschmitt\Amqp\Contracts\ConsumerInterface;
 use Bschmitt\Amqp\Contracts\PublisherFactoryInterface;
 use Bschmitt\Amqp\Contracts\ConsumerFactoryInterface;
 use Bschmitt\Amqp\Contracts\BatchManagerInterface;
+use Bschmitt\Amqp\Contracts\MessageContractInterface;
+use Bschmitt\Amqp\Contracts\MessageSerializerInterface;
+use Bschmitt\Amqp\Exception\SchemaValidationException;
 use Bschmitt\Amqp\Factories\MessageFactory;
 use Bschmitt\Amqp\Managers\ConnectionManager;
 use Bschmitt\Amqp\Models\Message;
 use Bschmitt\Amqp\Support\DeadLetterTopology;
+use Bschmitt\Amqp\Support\DelayedPublisher;
+use Bschmitt\Amqp\Support\JsonMessageSerializer;
+use Bschmitt\Amqp\Support\PublishBackoff;
 use Bschmitt\Amqp\Support\RetryHandler;
 use Bschmitt\Amqp\Support\RetryPolicy;
+use Bschmitt\Amqp\Support\SchemaValidator;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -41,6 +48,16 @@ class Amqp
     protected $batchManager;
 
     /**
+     * @var MessageSerializerInterface|null
+     */
+    protected $serializer;
+
+    /**
+     * @var SchemaValidator|null
+     */
+    protected $schemaValidator;
+
+    /**
      * @param PublisherFactoryInterface $publisherFactory
      * @param ConsumerFactoryInterface $consumerFactory
      * @param MessageFactory $messageFactory
@@ -56,6 +73,43 @@ class Amqp
         $this->consumerFactory = $consumerFactory;
         $this->messageFactory = $messageFactory;
         $this->batchManager = $batchManager;
+    }
+
+    /**
+     * Override the default {@see MessageSerializerInterface} used by
+     * {@see publishTyped()} / {@see consumeTyped()}.
+     *
+     * Pass `null` to fall back to {@see JsonMessageSerializer}.
+     *
+     * @param MessageSerializerInterface|null $serializer
+     * @return $this
+     */
+    public function setSerializer(?MessageSerializerInterface $serializer): self
+    {
+        $this->serializer = $serializer;
+        return $this;
+    }
+
+    /**
+     * Get the active serializer, lazily defaulting to JSON.
+     */
+    public function getSerializer(): MessageSerializerInterface
+    {
+        if ($this->serializer === null) {
+            $this->serializer = new JsonMessageSerializer();
+        }
+        return $this->serializer;
+    }
+
+    /**
+     * Lazy accessor for the bundled JSON-Schema-lite validator.
+     */
+    public function schemaValidator(): SchemaValidator
+    {
+        if ($this->schemaValidator === null) {
+            $this->schemaValidator = new SchemaValidator();
+        }
+        return $this->schemaValidator;
     }
 
     /**
@@ -459,6 +513,274 @@ class Amqp
         } finally {
             $this->disconnectPublisher($publisher);
         }
+    }
+
+    /* =================================================================
+     *  Delayed messaging
+     * =================================================================
+     */
+
+    /**
+     * Publish a message that the broker should hold for `$delayMs` ms before
+     * delivering.
+     *
+     * Defaults to the TTL+DLX strategy which works on stock RabbitMQ; pass
+     * `delay_strategy => 'plugin'` in `$properties` to use the
+     * `rabbitmq-delayed-message-exchange` plugin instead (the target
+     * exchange must be declared as `x-delayed-message`).
+     *
+     * @param string                       $routing     Routing key of the destination.
+     * @param string|Message               $message     Body or pre-built Message.
+     * @param int                          $delayMs     Delay before delivery, in milliseconds.
+     * @param array<string, mixed>         $properties  Standard publish properties.
+     *                                                  Use `delay_strategy => 'ttl'|'plugin'` to select strategy.
+     *
+     * @return bool|null
+     */
+    public function publishLater(string $routing, $message, int $delayMs, array $properties = [])
+    {
+        $strategy = (string) ($properties['delay_strategy'] ?? DelayedPublisher::STRATEGY_TTL);
+        unset($properties['delay_strategy']);
+
+        // Honour "use" by merging the named connection's config, just like publish().
+        if (isset($properties['use'])) {
+            $connectionName = $properties['use'];
+            unset($properties['use']);
+            $properties = array_merge($this->getConnectionConfig($connectionName), $properties);
+        }
+
+        return $this->delayedPublisher()->publishLater($routing, $message, $delayMs, $properties, $strategy);
+    }
+
+    /**
+     * Convenience accessor for a {@see DelayedPublisher} bound to this
+     * instance's publisher factory.
+     */
+    public function delayedPublisher(): DelayedPublisher
+    {
+        return new DelayedPublisher($this->publisherFactory, $this->messageFactory);
+    }
+
+    /* =================================================================
+     *  Typed messaging (contracts + serializer + optional schema)
+     * =================================================================
+     */
+
+    /**
+     * Publish a {@see MessageContractInterface} after serialising it through
+     * the active {@see MessageSerializerInterface}.
+     *
+     * Behavioural details:
+     *  - Routing key defaults to `$contract::routingKey()` (if implemented) or
+     *    the routing key supplied in `$properties['routing']`.
+     *  - Exchange defaults to `$contract::exchange()` (if implemented), then
+     *    `$properties['exchange']`, then the connection default.
+     *  - `content_type` defaults to the serializer's content type.
+     *  - If the contract exposes a non-null `schema()`, the produced payload
+     *    is validated against it; failures raise {@see SchemaValidationException}.
+     *
+     * @param MessageContractInterface     $contract
+     * @param array<string, mixed>         $properties
+     * @return bool|null
+     */
+    public function publishTyped(MessageContractInterface $contract, array $properties = [])
+    {
+        $payload = $contract->toPayload();
+
+        $schema = $this->resolveContractSchema($contract);
+        if ($schema !== null) {
+            $errors = $this->schemaValidator()->validate($payload, $schema);
+            if (!empty($errors)) {
+                throw new SchemaValidationException($errors);
+            }
+        }
+
+        $serializer = $this->getSerializer();
+        $body = $serializer->serialize($payload);
+
+        $routing = $this->resolveContractRoutingKey($contract, $properties);
+        $properties = $this->applyContractDefaults($contract, $properties, $serializer);
+
+        return $this->publish($routing, $body, $properties);
+    }
+
+    /**
+     * Delayed counterpart to {@see publishTyped()}.
+     *
+     * @param MessageContractInterface     $contract
+     * @param int                          $delayMs
+     * @param array<string, mixed>         $properties
+     * @return bool|null
+     */
+    public function publishTypedLater(MessageContractInterface $contract, int $delayMs, array $properties = [])
+    {
+        $payload = $contract->toPayload();
+
+        $schema = $this->resolveContractSchema($contract);
+        if ($schema !== null) {
+            $errors = $this->schemaValidator()->validate($payload, $schema);
+            if (!empty($errors)) {
+                throw new SchemaValidationException($errors);
+            }
+        }
+
+        $serializer = $this->getSerializer();
+        $body = $serializer->serialize($payload);
+
+        $routing = $this->resolveContractRoutingKey($contract, $properties);
+        $properties = $this->applyContractDefaults($contract, $properties, $serializer);
+
+        return $this->publishLater($routing, $body, $delayMs, $properties);
+    }
+
+    /**
+     * Consume typed messages.
+     *
+     * The inner handler receives `($typed, $message, $resolver)` where
+     * `$typed` is an instance of `$contractClass::fromPayload(decoded body)`.
+     * The raw {@see \PhpAmqpLib\Message\AMQPMessage} and the consumer
+     * resolver are still passed so handlers retain access to delivery
+     * metadata, headers, and the ack/reject API.
+     *
+     * If `$contractClass::schema()` returns a non-null schema, the decoded
+     * payload is validated before instantiation; failures raise
+     * {@see SchemaValidationException} from inside the consumer callback so
+     * they interact properly with {@see RetryHandler} if it is also active.
+     *
+     * @param string                       $queue
+     * @param class-string<MessageContractInterface> $contractClass
+     * @param Closure                      $callback   `fn($typed, $message, $resolver): void`
+     * @param array<string, mixed>         $properties
+     * @return bool
+     */
+    public function consumeTyped(string $queue, string $contractClass, Closure $callback, array $properties = []): bool
+    {
+        if (!is_subclass_of($contractClass, MessageContractInterface::class)
+            && !($contractClass === MessageContractInterface::class)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Contract class [%s] must implement %s',
+                $contractClass,
+                MessageContractInterface::class
+            ));
+        }
+
+        $serializer = $this->getSerializer();
+        $validator = $this->schemaValidator();
+        $schema = $this->resolveClassSchema($contractClass);
+
+        return $this->consume($queue, function ($message, $resolver) use (
+            $contractClass, $callback, $serializer, $validator, $schema
+        ) {
+            $payload = $serializer->deserialize((string) $message->body);
+
+            if ($schema !== null) {
+                $errors = $validator->validate($payload, $schema);
+                if (!empty($errors)) {
+                    throw new SchemaValidationException($errors);
+                }
+            }
+
+            $typed = $contractClass::fromPayload($payload);
+            $callback($typed, $message, $resolver);
+        }, $properties);
+    }
+
+    /* =================================================================
+     *  Publisher-side backoff
+     * =================================================================
+     */
+
+    /**
+     * Build a {@see PublishBackoff} bound to the given retry policy.
+     *
+     * Example:
+     * ```
+     * $amqp->withPublishBackoff(RetryPolicy::exponential(3, 100))->run(function () use ($amqp) {
+     *     return $amqp->publish('orders.created', json_encode($order));
+     * });
+     * ```
+     */
+    public function withPublishBackoff(
+        RetryPolicy $policy,
+        ?callable $shouldRetry = null,
+        ?callable $logger = null
+    ): PublishBackoff {
+        return new PublishBackoff($policy, $shouldRetry, $logger);
+    }
+
+    /* =================================================================
+     *  Internal helpers for typed messaging
+     * =================================================================
+     */
+
+    /**
+     * @param MessageContractInterface $contract
+     * @return array<string, mixed>|null
+     */
+    protected function resolveContractSchema(MessageContractInterface $contract): ?array
+    {
+        return $this->resolveClassSchema(get_class($contract));
+    }
+
+    /**
+     * @param string $class
+     * @return array<string, mixed>|null
+     */
+    protected function resolveClassSchema(string $class): ?array
+    {
+        if (!method_exists($class, 'schema')) {
+            return null;
+        }
+        $schema = $class::schema();
+        return is_array($schema) ? $schema : null;
+    }
+
+    /**
+     * @param MessageContractInterface $contract
+     * @param array<string, mixed>     $properties
+     */
+    protected function resolveContractRoutingKey(MessageContractInterface $contract, array $properties): string
+    {
+        if (!empty($properties['routing'])) {
+            $routing = $properties['routing'];
+            return is_array($routing) ? (string) reset($routing) : (string) $routing;
+        }
+        $class = get_class($contract);
+        if (method_exists($class, 'routingKey')) {
+            $key = $class::routingKey();
+            if (is_string($key) && $key !== '') {
+                return $key;
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Merge content-type + exchange defaults supplied by the contract class.
+     *
+     * @param MessageContractInterface     $contract
+     * @param array<string, mixed>         $properties
+     * @param MessageSerializerInterface   $serializer
+     * @return array<string, mixed>
+     */
+    protected function applyContractDefaults(
+        MessageContractInterface $contract,
+        array $properties,
+        MessageSerializerInterface $serializer
+    ): array {
+        if (!isset($properties['content_type'])) {
+            $properties['content_type'] = $serializer->contentType();
+        }
+
+        $class = get_class($contract);
+        if (empty($properties['exchange']) && method_exists($class, 'exchange')) {
+            $exchange = $class::exchange();
+            if (is_string($exchange) && $exchange !== '') {
+                $properties['exchange'] = $exchange;
+            }
+        }
+
+        return $properties;
     }
 
     /**

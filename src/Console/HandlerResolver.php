@@ -58,20 +58,20 @@ class HandlerResolver
         }
 
         if ($handler instanceof MessageHandlerInterface) {
-            return function (AMQPMessage $message, ConsumerInterface $resolver) use ($handler) {
-                $handler->handle($message, $resolver);
+            return function (AMQPMessage $message, ConsumerInterface $resolver, $typed = null) use ($handler) {
+                $handler->handle($message, $resolver, $typed);
             };
         }
 
         if (is_object($handler) && method_exists($handler, '__invoke')) {
-            return function (AMQPMessage $message, ConsumerInterface $resolver) use ($handler) {
-                $handler($message, $resolver);
+            return function (AMQPMessage $message, ConsumerInterface $resolver, $typed = null) use ($handler) {
+                $handler($message, $resolver, $typed);
             };
         }
 
         if (is_callable($handler)) {
-            return function (AMQPMessage $message, ConsumerInterface $resolver) use ($handler) {
-                $handler($message, $resolver);
+            return function (AMQPMessage $message, ConsumerInterface $resolver, $typed = null) use ($handler) {
+                $handler($message, $resolver, $typed);
             };
         }
 

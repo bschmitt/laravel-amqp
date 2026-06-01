@@ -17,9 +17,9 @@ class RecordingHandler implements MessageHandlerInterface
     /** @var array<int, array{message: AMQPMessage, resolver: ConsumerInterface}> */
     public static $calls = [];
 
-    public function handle(AMQPMessage $message, ConsumerInterface $resolver): void
+    public function handle(AMQPMessage $message, ConsumerInterface $resolver, $typed = null): void
     {
-        self::$calls[] = ['message' => $message, 'resolver' => $resolver];
+        self::$calls[] = ['message' => $message, 'resolver' => $resolver, 'typed' => $typed];
     }
 
     public static function reset(): void

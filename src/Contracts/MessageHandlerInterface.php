@@ -24,9 +24,14 @@ interface MessageHandlerInterface
     /**
      * Handle a single delivered message.
      *
-     * @param AMQPMessage      $message  Delivered AMQP message.
+     * When `amqp:work --contract=...` is used, a third argument is passed:
+     * the deserialised {@see MessageContractInterface} instance. Handlers that
+     * do not need typed messages may omit this parameter (default `null`).
+     *
+     * @param AMQPMessage       $message  Delivered AMQP message.
      * @param ConsumerInterface $resolver Consumer used to ack/reject/reply.
+     * @param mixed             $typed    Deserialised contract DTO, or null.
      * @return void
      */
-    public function handle(AMQPMessage $message, ConsumerInterface $resolver): void;
+    public function handle(AMQPMessage $message, ConsumerInterface $resolver, $typed = null): void;
 }

@@ -165,8 +165,56 @@ createApp({
             "# Publish from the CLI for smoke tests\n" +
             "php artisan amqp:publish order.created \\\n" +
             "    --body='{\"id\":42}' --exchange=orders --priority=5\n\n" +
+            "# Schedule a delayed publish (TTL+DLX, works on stock RabbitMQ)\n" +
+            "php artisan amqp:publish order.reminder \\\n" +
+            "    --body='{\"id\":42}' --exchange=shop.events --delay-ms=60000\n\n" +
             "# Wipe a queue (use --force to skip confirmation)\n" +
             "php artisan amqp:purge dead-letters --force",
+        },
+        {
+          id: "typed",
+          label: "Typed Messages",
+          description: "DTO contracts with JSON schema validation",
+          icon: "",
+          language: "php",
+          code:
+            "use Bschmitt\\Amqp\\Support\\TypedMessage;\n\n" +
+            "class OrderCreated extends TypedMessage\n" +
+            "{\n" +
+            "    public $orderId;\n" +
+            "    public $total;\n" +
+            "    public $currency;\n\n" +
+            "    public function __construct($orderId = null, $total = null, $currency = null)\n" +
+            "    {\n" +
+            "        $this->orderId = $orderId;\n" +
+            "        $this->total = $total;\n" +
+            "        $this->currency = $currency;\n" +
+            "    }\n\n" +
+            "    public static function routingKey() { return 'orders.created'; }\n" +
+            "    public static function exchange()   { return 'shop.events'; }\n\n" +
+            "    public static function schema()\n" +
+            "    {\n" +
+            "        return [\n" +
+            "            'type' => 'object',\n" +
+            "            'required' => ['orderId', 'total', 'currency'],\n" +
+            "            'properties' => [\n" +
+            "                'orderId'  => ['type' => 'string', 'minLength' => 1],\n" +
+            "                'total'    => ['type' => 'number', 'minimum' => 0],\n" +
+            "                'currency' => ['type' => 'string', 'enum' => ['USD', 'EUR', 'GBP']],\n" +
+            "            ],\n" +
+            "        ];\n" +
+            "    }\n" +
+            "}\n\n" +
+            "$amqp = app('Amqp');\n\n" +
+            "// Publish (schema-validated, routing+exchange from contract)\n" +
+            "$amqp->publishTyped(new OrderCreated('order-1', 19.99, 'USD'));\n\n" +
+            "// Schedule for 30s later\n" +
+            "$amqp->publishTypedLater(new OrderCreated('order-2', 9.99, 'USD'), 30000);\n\n" +
+            "// Consume — callback receives the DTO directly\n" +
+            "$amqp->consumeTyped('orders.queue', OrderCreated::class, function ($order, $message, $resolver) {\n" +
+            "    processOrder($order->orderId);\n" +
+            "    $resolver->acknowledge($message);\n" +
+            "});",
         },
       ],
     };
@@ -571,6 +619,9 @@ createApp({
       await this.loadMarkdownPage('management-api', "./content/management-api.md");
       await this.loadMarkdownPage('message-properties', "./content/message-properties.md");
       await this.loadMarkdownPage('advanced', "./content/advanced.md");
+      await this.loadMarkdownPage('delayed-messaging', "./content/delayed-messaging.md");
+      await this.loadMarkdownPage('typed-messaging', "./content/typed-messaging.md");
+      await this.loadMarkdownPage('schema-validation', "./content/schema-validation.md");
       await this.loadMarkdownPage('best-practices', "./content/best-practices.md");
       await this.loadMarkdownPage('faq', "./content/faq.md");
       await this.loadMarkdownPage('troubleshooting', "./content/troubleshooting.md");
