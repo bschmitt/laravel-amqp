@@ -54,6 +54,7 @@ That's it! You're ready to use Laravel AMQP.
 ## Next Steps
 
 - [Configuration](#configuration)
+- [Laravel Queue Driver](#queue-driver) — use `dispatch()` and `queue:work amqp`
 - [Publishing Messages](#publishing)
 - [Consuming Messages](#consuming)
 - [RPC Pattern](#rpc)

@@ -42,10 +42,12 @@ class ConsumeExistingQueueMessagesTest extends IntegrationTestBase
         echo "[CONSUME EXISTING] ============================================================\n";
         
         if ($initialMessageCount === 0) {
-            echo "[CONSUME EXISTING] ⚠ Queue is empty. Nothing to consume.\n";
+            echo "[CONSUME EXISTING] Queue is empty — publishing seed messages for this test.\n";
             \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
-            $this->markTestSkipped('Queue is empty - no messages to consume');
-            return;
+            $this->seedTestQueue(3, 'consume-existing');
+            $consumer = new Consumer($this->configRepository);
+            $consumer->setup();
+            $initialMessageCount = $consumer->getQueueMessageCount();
         }
         
         echo "[CONSUME EXISTING] Found {$initialMessageCount} messages in queue.\n";
@@ -189,8 +191,8 @@ class ConsumeExistingQueueMessagesTest extends IntegrationTestBase
         echo "[CONSUME SPECIFIC] ============================================================\n";
         
         if ($result['initial_count'] === 0) {
-            $this->markTestSkipped("Queue '{$queueName}' is empty or doesn't exist. Update \$queueName to your actual queue name.");
-            return;
+            $this->seedTestQueue(2, 'consume-specific');
+            $result = $helper->consumeAllFromQueue($queueName);
         }
         
         $this->assertGreaterThan(0, $result['consumed'], 'Should have consumed at least one message');

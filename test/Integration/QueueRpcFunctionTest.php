@@ -4,6 +4,7 @@ namespace Bschmitt\Amqp\Test\Integration;
 
 use Bschmitt\Amqp\Core\Consumer;
 use Bschmitt\Amqp\Core\Publisher;
+use Bschmitt\Amqp\Support\ConfigurationProvider;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\TestCase;
 
@@ -12,35 +13,71 @@ class QueueRpcFunctionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
-        // Skip if RabbitMQ is not available
+
         if (!@fsockopen('localhost', 5672)) {
             $this->markTestSkipped('RabbitMQ is not running');
         }
     }
 
     /**
-     * Test the original queue_rpc function (with its issues)
-     * This test demonstrates the problems with the original implementation
+     * Legacy queue_rpc helpers relied on App::make(); verify the DI-based Amqp::publish path instead.
      */
     public function testOriginalQueueRpcFunction()
     {
         $queue = 'test-rpc-queue-' . uniqid();
         $message = 'test-message-' . uniqid();
-        
-        // This test will likely fail due to App facade issues
-        // But we'll test it to demonstrate the problems
-        
-        try {
-            // Try to use App facade (will fail in test environment)
-            if (class_exists('\Illuminate\Support\Facades\App')) {
-                $publisher = \Illuminate\Support\Facades\App::make('Bschmitt\Amqp\Publisher');
-            } else {
-                $this->markTestSkipped('App facade not available in test environment');
-            }
-        } catch (\Exception $e) {
-            $this->markTestSkipped('Cannot test original function: ' . $e->getMessage());
-        }
+
+        $baseConfig = [
+            'host' => 'localhost',
+            'port' => 5672,
+            'username' => 'guest',
+            'password' => 'guest',
+            'vhost' => '/',
+            'exchange' => 'amq.direct',
+            'exchange_type' => 'direct',
+            'exchange_passive' => true,
+            'exchange_durable' => true,
+            'queue' => $queue,
+            'routing' => [$queue],
+            'queue_force_declare' => true,
+            'queue_durable' => false,
+            'queue_auto_delete' => true,
+        ];
+
+        $config = new Repository([
+            'amqp' => [
+                'use' => 'production',
+                'properties' => [
+                    'production' => $baseConfig,
+                ],
+            ],
+        ]);
+
+        $configProvider = new ConfigurationProvider($config);
+        $amqp = new \Bschmitt\Amqp\Core\Amqp(
+            new \Bschmitt\Amqp\Factories\PublisherFactory($configProvider),
+            new \Bschmitt\Amqp\Factories\ConsumerFactory($configProvider),
+            new \Bschmitt\Amqp\Factories\MessageFactory(),
+            new \Bschmitt\Amqp\Managers\BatchManager()
+        );
+
+        $published = $amqp->publish($queue, $message, $baseConfig);
+        $this->assertTrue($published !== false);
+
+        $consumer = new Consumer($config);
+        $consumer->mergeProperties(array_merge($baseConfig, ['use' => 'production']));
+        $consumer->setup();
+
+        $received = null;
+        $consumer->consume($queue, function ($msg, $resolver) use (&$received, $message) {
+            $received = $msg->body;
+            $resolver->acknowledge($msg);
+            $resolver->stopWhenProcessed();
+        });
+
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
+
+        $this->assertEquals($message, $received);
     }
 
     /**
@@ -254,4 +291,3 @@ class QueueRpcFunctionTest extends TestCase
         $this->assertEquals($expectedResponse, $response, 'Reply should match expected response');
     }
 }
-

@@ -2,7 +2,15 @@
 
 namespace Bschmitt\Amqp\Test\Support;
 
+use Bschmitt\Amqp\Core\Amqp;
+use Bschmitt\Amqp\Core\Publisher;
+use Bschmitt\Amqp\Factories\ConsumerFactory;
+use Bschmitt\Amqp\Factories\MessageFactory;
+use Bschmitt\Amqp\Factories\PublisherFactory;
+use Bschmitt\Amqp\Managers\BatchManager;
+use Bschmitt\Amqp\Support\ConfigurationProvider;
 use Illuminate\Config\Repository;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -51,13 +59,11 @@ class IntegrationTestBase extends TestCase
                         'vhost' => $this->getEnv('AMQP_VHOST', $defaultProperties['vhost'] ?? '/'),
                         'exchange' => $this->testExchange,
                         'queue' => $this->testQueueName,
-                        'queue_force_declare' => false, // Don't force declare - reuse existing queue
-                        'queue_passive' => false, // Allow declaration if queue doesn't exist
-                        'queue_durable' => false, // Non-durable
-                        'queue_auto_delete' => true, // Auto-delete (queue persists while it has messages/consumers)
-                        // Note: If queue already exists with x-max-length, it will keep that property
-                        // To allow messages to accumulate, delete the queue first via RabbitMQ Web UI
-                        'queue_properties' => ['x-max-length' => 1], // Match existing queue properties
+                        'queue_force_declare' => true,
+                        'queue_passive' => false,
+                        'queue_durable' => false,
+                        'queue_auto_delete' => true,
+                        'queue_properties' => [],
                         'routing' => $this->testRoutingKey,
                         'persistent' => true, // Keep consumer running even if queue is empty initially
                         'timeout' => 5, // 5 second timeout for waiting
@@ -73,6 +79,8 @@ class IntegrationTestBase extends TestCase
 
         $this->configRepository = new Repository($config);
         $this->defaultConfig = $config['amqp']['properties']['test'];
+
+        $this->resetIntegrationTestTopology();
     }
 
     protected function tearDown(): void
@@ -84,21 +92,62 @@ class IntegrationTestBase extends TestCase
     }
     
     /**
-     * Delete the test queue (useful for cleanup between test runs)
-     * Call this manually if you need to reset the queue
+     * Remove shared integration queue/exchange so declare args stay consistent across runs.
+     */
+    protected function resetIntegrationTestTopology(): void
+    {
+        $this->deleteBrokerQueue($this->testQueueName);
+        $this->deleteBrokerExchange($this->testExchange);
+    }
+
+    /**
+     * Delete the test queue (useful when a test needs custom queue_properties).
      */
     protected function deleteTestQueue(): void
     {
+        $this->deleteBrokerQueue($this->testQueueName);
+    }
+
+    protected function deleteBrokerQueue(string $queueName): void
+    {
         try {
-            $consumer = new \Bschmitt\Amqp\Core\Consumer($this->configRepository);
-            $consumer->setup();
-            $channel = $consumer->getChannel();
-            $channel->queue_delete($this->testQueueName);
-            \Bschmitt\Amqp\Core\Request::shutdown($channel, $consumer->getConnection());
-            echo "[CLEANUP] Deleted queue: {$this->testQueueName}\n";
-        } catch (\Exception $e) {
-            echo "[CLEANUP] Could not delete queue: " . $e->getMessage() . "\n";
+            [$connection, $channel] = $this->openBrokerChannel();
+            $channel->queue_delete($queueName);
+            $channel->close();
+            $connection->close();
+        } catch (\Throwable $e) {
+            // Queue may not exist
         }
+    }
+
+    protected function deleteBrokerExchange(string $exchangeName): void
+    {
+        try {
+            [$connection, $channel] = $this->openBrokerChannel();
+            $channel->exchange_delete($exchangeName);
+            $channel->close();
+            $connection->close();
+        } catch (\Throwable $e) {
+            // Exchange may not exist
+        }
+    }
+
+    /**
+     * @return array{0: AMQPStreamConnection, 1: \PhpAmqpLib\Channel\AMQPChannel}
+     */
+    private function openBrokerChannel(): array
+    {
+        $props = $this->defaultConfig;
+
+        $connection = new AMQPStreamConnection(
+            $props['host'],
+            (int) $props['port'],
+            $props['username'],
+            $props['password'],
+            $props['vhost']
+        );
+
+        return [$connection, $connection->channel()];
     }
 
     /**
@@ -165,6 +214,44 @@ class IntegrationTestBase extends TestCase
         ];
 
         return new \Bschmitt\Amqp\Models\Message($body, array_merge($defaultProperties, $properties));
+    }
+
+    /**
+     * Build an Amqp instance with the same wiring as the service provider (no Laravel container).
+     */
+    protected function makeAmqp(array $propertyOverrides = []): Amqp
+    {
+        $config = $this->configRepository->get('amqp');
+        if (!empty($propertyOverrides)) {
+            $config['properties']['test'] = array_merge($config['properties']['test'], $propertyOverrides);
+        }
+
+        $configProvider = new ConfigurationProvider(new Repository(['amqp' => $config]));
+
+        return new Amqp(
+            new PublisherFactory($configProvider),
+            new ConsumerFactory($configProvider),
+            new MessageFactory(),
+            new BatchManager()
+        );
+    }
+
+    /**
+     * Publish one or more messages to the shared integration test queue.
+     */
+    protected function seedTestQueue(int $count = 1, string $prefix = 'seed-message'): void
+    {
+        $publisher = new Publisher($this->configRepository);
+        $publisher->setup();
+
+        for ($i = 1; $i <= $count; $i++) {
+            $publisher->publish(
+                $this->testRoutingKey,
+                $this->createMessage("{$prefix}-{$i}")
+            );
+        }
+
+        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
     }
 }
 

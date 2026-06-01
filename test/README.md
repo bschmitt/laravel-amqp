@@ -9,6 +9,11 @@ The test suite is organized into modular folders for better maintainability:
 ```
 test/
 ├── Unit/                    # Unit tests (with mocks)
+│   ├── AmqpQueueTest.php
+│   ├── AmqpJobTest.php
+│   ├── AmqpConnectorTest.php
+│   ├── AmqpServiceProviderQueueTest.php
+│   ├── QueueConfigResolverTest.php
 │   ├── BackwardCompatibilityTest.php
 │   ├── DeadLetterExchangeTest.php
 │   ├── LazyQueueTest.php
@@ -20,6 +25,10 @@ test/
 │   └── RequestTest.php
 │
 ├── Integration/             # Integration tests (real RabbitMQ)
+│   ├── LaravelQueueIntegrationTest.php
+│   ├── LaravelQueueDelayIntegrationTest.php
+│   ├── LaravelQueueReleaseIntegrationTest.php
+│   ├── LaravelQueueWorkerIntegrationTest.php
 │   ├── ConsumeAllMessagesTest.php
 │   ├── ConsumeExistingQueueMessagesTest.php
 │   ├── ConsumerVerificationTest.php
@@ -36,6 +45,7 @@ test/
 ├── Support/                 # Base classes and helpers
 │   ├── BaseTestCase.php           # Base class for unit tests
 │   ├── IntegrationTestBase.php   # Base class for integration tests
+│   ├── LaravelQueueTestCase.php  # Base for native queue-driver integration tests
 │   └── ConsumeQueueHelper.php    # Helper for consuming messages
 │
 ├── README.md                # This file
@@ -61,6 +71,20 @@ php vendor/bin/phpunit test/Unit/
 ```bash
 php vendor/bin/phpunit test/Integration/
 ```
+
+### Run Native Laravel Queue Driver Tests
+
+Requires a reachable RabbitMQ broker on `AMQP_HOST` / `AMQP_PORT` (defaults to `localhost:5672`):
+
+```bash
+vendor/bin/phpunit --testdox \
+  --filter 'AmqpQueue|AmqpJob|AmqpConnector|AmqpServiceProviderQueue|QueueConfigResolver|LaravelQueue'
+```
+
+| Layer | Tests |
+|-------|-------|
+| Unit | `AmqpQueueTest`, `AmqpJobTest`, `AmqpConnectorTest`, `AmqpServiceProviderQueueTest`, `QueueConfigResolverTest` |
+| Integration | `LaravelQueue*Test` — push/pop, delay DLX, release, full `Worker` pipeline |
 
 ### Run Specific Test Suite
 

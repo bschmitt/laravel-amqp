@@ -8,13 +8,30 @@ AMQP (Advanced Message Queuing Protocol) is an open standard for message-oriente
 
 ### Why use Laravel AMQP instead of Laravel Queues?
 
-Laravel AMQP provides:
+You don't have to choose — the package **is** a Laravel queue driver. Set
+`QUEUE_CONNECTION=amqp` and use `dispatch()` / `queue:work` as usual, while also
+gaining:
 
-- Direct RabbitMQ integration
-- Advanced RabbitMQ features
+- Direct RabbitMQ integration (exchanges, routing keys, DLX)
+- Advanced RabbitMQ features (quorum/stream queues, publisher confirms)
 - RPC pattern support
 - Management API access
-- More control over message properties
+- Fine-grained control over message properties
+
+For low-level publish/consume without Laravel jobs, use `Amqp::publish()` and
+`app('Amqp')->consume()` instead.
+
+### How do I use the native Laravel queue driver?
+
+See the [Laravel Queue Driver](queue-driver.md) guide. In short:
+
+```env
+QUEUE_CONNECTION=amqp
+```
+
+```bash
+php artisan queue:work amqp --queue=default
+```
 
 ### What PHP versions are supported?
 
@@ -24,7 +41,6 @@ PHP 7.3 through 8.5 are supported. Use Laravel 8 on PHP 7.3–7.4, Laravel 9 on 
 
 ### How do I install RabbitMQ?
 
-Joey
 Using Docker:
 
 ```bash
@@ -33,7 +49,6 @@ docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
 ### Connection timeout errors?
 
-Joey
 Check:
 
 1. RabbitMQ is running

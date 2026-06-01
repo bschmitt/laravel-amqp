@@ -111,10 +111,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
      */
     public function testPublishAndConsumeMultipleMessages()
     {
-        // Use existing queue properties (queue already exists with x-max-length=1)
-        // Note: With max-length=1, only the latest message will remain
         $config = $this->configRepository->get('amqp');
-        // Keep existing queue_properties to match the queue that already exists
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         
         $messages = [
@@ -190,12 +187,9 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         echo "[VERIFY] Total messages consumed: " . count($consumedMessages) . "\n";
         $this->assertGreaterThanOrEqual(1, count($consumedMessages), 'At least one message should be consumed');
         
-        // With x-max-length=1, only the latest message remains in queue
-        // So we should have consumed at least 1 message (the latest one)
-        if (count($consumedMessages) >= 1) {
-            $latestMessage = end($messages); // Last published message
-            $this->assertContains($latestMessage, $consumedMessages, "Latest published message '{$latestMessage}' should be in consumed messages");
-            echo "[VERIFY] NOTE: With x-max-length=1, only the latest message was kept in queue.\n";
+        $this->assertCount(count($messages), $consumedMessages, 'All published messages should be consumed');
+        foreach ($messages as $messageText) {
+            $this->assertContains($messageText, $consumedMessages, "Message '{$messageText}' should be in consumed messages");
         }
         
         echo "[VERIFY] ✓ Test passed: Messages published and consumed successfully!\n";
@@ -562,9 +556,6 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         echo "\n[VERIFY] Test: Publish Messages for Web UI Inspection\n";
         echo "[VERIFY] This test publishes messages but does NOT consume them.\n";
         echo "[VERIFY] Messages will remain in queue for manual inspection.\n";
-        echo "[VERIFY] NOTE: Queue has x-max-length=1, so only the latest message will remain.\n";
-        
-        // Use existing queue properties (queue already exists)
         $config = $this->configRepository->get('amqp');
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
         
@@ -604,10 +595,7 @@ class PublishConsumeVerificationTest extends IntegrationTestBase
         echo "[VERIFY] Queue name: {$this->testQueueName}\n";
         echo "[VERIFY] Exchange: {$this->testExchange}\n";
         echo "[VERIFY] Routing key: {$this->testRoutingKey}\n";
-        echo "[VERIFY] NOTE: Queue has x-max-length=1, so only the latest message remains.\n";
-        
-        // With x-max-length=1, only the latest message will be in queue
-        $this->assertGreaterThanOrEqual(1, $messageCount, 'Queue should have at least 1 message (latest due to max-length=1)');
+        $this->assertEquals(count($messages), $messageCount, 'All published messages should remain in the queue');
         
         \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
         

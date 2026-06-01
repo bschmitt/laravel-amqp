@@ -31,7 +31,32 @@ class AmqpServiceProvider extends ServiceProvider
 
         $this->publishes([
             __DIR__.'/../../config/amqp.php' => config_path('amqp.php'),
+            __DIR__.'/../../config/queue-amqp.php' => config_path('queue-amqp.php'),
         ]);
+
+        $this->registerQueueConnector();
+    }
+
+    /**
+     * Register the Laravel Queue "amqp" driver when the queue component is available.
+     *
+     * @return void
+     */
+    protected function registerQueueConnector(): void
+    {
+        if (!$this->app->bound('queue')) {
+            return;
+        }
+
+        $this->app->resolving('queue', function ($manager) {
+            if (!method_exists($manager, 'extend')) {
+                return;
+            }
+
+            $manager->extend('amqp', function () {
+                return new \Bschmitt\Amqp\Queue\AmqpConnector($this->app);
+            });
+        });
     }
 
     /**

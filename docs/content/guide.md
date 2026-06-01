@@ -14,6 +14,7 @@ Welcome to the Laravel AMQP package documentation. This guide will help you get 
 
 - [Publishing Messages](#publishing) - Send messages to queues
 - [Consuming Messages](#consuming) - Process messages from queues
+- [Laravel Queue Driver](#queue-driver) - Native `queue:work` integration
 - [RPC Pattern](#rpc) - Request-response communication
 
 ### Management
@@ -34,6 +35,7 @@ Welcome to the Laravel AMQP package documentation. This guide will help you get 
 
 ## Package Features
 
+- Native Laravel queue driver (`queue:work amqp`)
 - Simple API for publishing and consuming
 - RPC pattern support
 - Queue management operations

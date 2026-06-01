@@ -5,6 +5,7 @@ namespace Bschmitt\Amqp\Core;
 use Closure;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
+use PhpAmqpLib\Wire\AMQPTable;
 use Bschmitt\Amqp\Contracts\ConsumerInterface;
 use Bschmitt\Amqp\Contracts\ConfigurationProviderInterface;
 use Bschmitt\Amqp\Contracts\ConnectionManagerInterface;
@@ -133,7 +134,7 @@ class Consumer extends Request implements ConsumerInterface
                     $closure($message, $this);
                 },
                 null,
-                $this->getProperty('consumer_properties', [])
+                $this->resolveConsumerArguments()
             );
 
             $timeout = max(0, (int) $this->getProperty('timeout', 0));
@@ -155,6 +156,26 @@ class Consumer extends Request implements ConsumerInterface
      *
      * @return void
      */
+    /**
+     * Normalize consumer_properties for basic_consume (e.g. x-stream-offset for stream queues).
+     *
+     * @return AMQPTable|array
+     */
+    protected function resolveConsumerArguments()
+    {
+        $properties = $this->getProperty('consumer_properties', []);
+
+        if ($properties instanceof AMQPTable) {
+            return $properties;
+        }
+
+        if (is_array($properties) && !empty($properties)) {
+            return new AMQPTable($properties);
+        }
+
+        return [];
+    }
+
     protected function configureQos(): void
     {
         if ($this->getProperty('qos', false)) {

@@ -39,10 +39,10 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - TTL Support - Message and queue expiration
 - Lazy Queues - Disk-based message storage
 - Alternate Exchange - Unroutable message handling
+- **Native Laravel Queue integration** - Use `amqp` as a `config/queue.php` driver with `queue:work`
 
 ## Planned Features
 
-- Native Laravel Queue integration
 - `amqp:work` and consumer artisan commands
 - Advanced retry & dead-letter abstractions
 - Delayed message and backoff support
@@ -175,6 +175,65 @@ $amqp->listen(['key1', 'key2', 'key3'], function ($message, $resolver) {
     $resolver->acknowledge($message);
 });
 ```
+
+## Laravel Queue Driver
+
+Use this package as a native Laravel queue backend so jobs can be dispatched with `dispatch()`, `Queue::push()`, and processed with `php artisan queue:work`.
+
+### 1. Publish AMQP config
+
+```bash
+php artisan vendor:publish --provider="Bschmitt\Amqp\Providers\AmqpServiceProvider"
+```
+
+### 2. Add queue connection
+
+Merge the example from `config/queue-amqp.php` into `config/queue.php`:
+
+```php
+'connections' => [
+    // ...
+    'amqp' => [
+        'driver' => 'amqp',
+        'connection' => env('AMQP_ENV', 'production'), // key in config/amqp.php properties
+        'queue' => env('AMQP_QUEUE', 'default'),
+        'retry_after' => 90,
+    ],
+],
+```
+
+### 3. Set default queue connection (optional)
+
+```env
+QUEUE_CONNECTION=amqp
+```
+
+### 4. Run the worker
+
+```bash
+php artisan queue:work amqp --queue=default
+```
+
+Jobs are published to your configured exchange with the queue name as the routing key. Delayed jobs use a TTL dead-letter queue per delay interval.
+
+### Delayed & released jobs
+
+```php
+ProcessOrder::dispatch($order)->delay(now()->addMinutes(5));
+```
+
+`AmqpQueue::later()` publishes to a per-TTL delay queue (`{queue}.delay.{ttl_ms}`) with
+`x-dead-letter-exchange` / `x-message-ttl` so RabbitMQ delivers the job back to the
+main queue when the delay expires. `$job->release($seconds)` uses the same mechanism.
+
+### Verify the driver
+
+```bash
+vendor/bin/phpunit --testdox \
+  --filter 'AmqpQueue|AmqpJob|AmqpConnector|AmqpServiceProviderQueue|QueueConfigResolver|LaravelQueue'
+```
+
+Full setup, architecture and troubleshooting: [docs/content/queue-driver.md](docs/content/queue-driver.md) or the interactive docs site (`docs/index.html`).
 
 ## Configuration
 

@@ -255,7 +255,11 @@ class ManagementApiIntegrationTest extends IntegrationTestBase
         // Create a policy first
         $policyDefinition = [
             'pattern' => '^test-delete\\.',
-            'apply-to' => 'all'
+            'apply-to' => 'queues',
+            'definition' => [
+                'max-length' => 1000,
+            ],
+            'priority' => 0,
         ];
 
         try {
@@ -291,7 +295,12 @@ class ManagementApiIntegrationTest extends IntegrationTestBase
     public function testCreatePolicyWithMinimalDefinition()
     {
         $policyDefinition = [
-            'pattern' => '^minimal\\.'
+            'pattern' => '^minimal\\.',
+            'apply-to' => 'queues',
+            'definition' => [
+                'max-length' => 100,
+            ],
+            'priority' => 0,
         ];
 
         try {

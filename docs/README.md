@@ -131,6 +131,7 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
 ## Quick Links
 
 - [Main README](../README.md) - Package overview and installation
+- [Laravel Queue Driver](content/queue-driver.md) - Native `queue:work amqp` integration
 - [Test Documentation](../test/README.md) - Testing guide
 - [Integration Test Guide](../test/README-INTEGRATION.md) - Integration testing
 
@@ -158,6 +159,7 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
 | Listen Method | Supported | [LISTEN_METHOD.md](./modules/LISTEN_METHOD.md) |
 | Consumer Prefetch | Supported | [CONSUMER_PREFETCH.md](./modules/CONSUMER_PREFETCH.md) |
 | Connection Config | Supported | [CONNECTION_CONFIG.md](./modules/CONNECTION_CONFIG.md) |
+| Native Laravel Queue Driver | Supported | [queue-driver.md](./content/queue-driver.md) |
 
 ## Getting Started
 

@@ -48,17 +48,19 @@ class StreamQueueIntegrationTest extends IntegrationTestBase
         $this->testExchange = 'test-exchange-stream';
         $this->testRoutingKey = 'test.routing.key';
         
-        // Delete queue if it exists to start fresh
-        $this->deleteQueue($this->testQueueName);
-        
-        // Update config with test queue and exchange
+        $this->deleteBrokerQueue($this->testQueueName);
+        $this->deleteBrokerExchange($this->testExchange);
+
         $config = $this->configRepository->get('amqp');
         $config['properties']['test']['queue'] = $this->testQueueName;
         $config['properties']['test']['exchange'] = $this->testExchange;
         $config['properties']['test']['routing'] = $this->testRoutingKey;
-        $config['properties']['test']['queue_durable'] = true;      // Required for stream
-        $config['properties']['test']['queue_exclusive'] = false;   // Required for stream
-        $config['properties']['test']['queue_auto_delete'] = false; // Required for stream
+        $config['properties']['test']['queue_durable'] = true;
+        $config['properties']['test']['queue_exclusive'] = false;
+        $config['properties']['test']['queue_auto_delete'] = false;
+        $config['properties']['test']['consumer_properties'] = [
+            'x-stream-offset' => 'first',
+        ];
         $this->configRepository->set('amqp', $config);
     }
 
@@ -66,7 +68,8 @@ class StreamQueueIntegrationTest extends IntegrationTestBase
     {
         // Clean up: delete the test queue
         if ($this->testQueueName !== null) {
-            $this->deleteQueue($this->testQueueName);
+            $this->deleteBrokerQueue($this->testQueueName);
+            $this->deleteBrokerExchange($this->testExchange);
         }
         parent::tearDown();
     }
@@ -157,12 +160,6 @@ class StreamQueueIntegrationTest extends IntegrationTestBase
             );
             
             Request::shutdown($consumer->getChannel(), $consumer->getConnection());
-            
-            // Verify message was consumed
-            // Note: If no messages were consumed, stream queues likely require Stream API
-            if (empty($consumedMessages)) {
-                $this->markTestSkipped('Stream queue consumption returned no messages. Stream queues require RabbitMQ Stream API instead of standard AMQP basic_consume.');
-            }
             
             $this->assertCount(1, $consumedMessages, 'Message should be consumed from stream queue');
             $this->assertEquals($testMessage, $consumedMessages[0]);
@@ -371,12 +368,6 @@ class StreamQueueIntegrationTest extends IntegrationTestBase
             );
             
             Request::shutdown($consumer->getChannel(), $consumer->getConnection());
-            
-            // Verify all messages were consumed
-            // Note: If no messages were consumed, stream queues likely require Stream API
-            if (empty($consumedMessages)) {
-                $this->markTestSkipped('Stream queue consumption returned no messages. Stream queues require RabbitMQ Stream API instead of standard AMQP basic_consume.');
-            }
             
             $this->assertCount(5, $consumedMessages, 'All 5 messages should be consumed from stream queue');
             $this->assertEquals($messages, $consumedMessages);

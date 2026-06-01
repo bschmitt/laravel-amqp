@@ -306,6 +306,16 @@
                     queues, and dead letter exchanges.
                   </p>
                 </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">⚡</div>
+                  <h3>Laravel Queue Driver</h3>
+                  <p>
+                    Use <code>QUEUE_CONNECTION=amqp</code> and run
+                    <code>php artisan queue:work amqp</code> — dispatch jobs with
+                    <code>dispatch()</code> and delayed delivery via RabbitMQ TTL.
+                  </p>
+                </div>
               </div>
             </div>
           </section>
@@ -333,6 +343,12 @@
                     @click="activeTab = 'consume'"
                   >
                     Consuming
+                  </button>
+                  <button
+                    :class="{active: activeTab === 'queue'}"
+                    @click="activeTab = 'queue'"
+                  >
+                    Queue Driver
                   </button>
                 </div>
                 <div class="code-content">
@@ -370,6 +386,21 @@ $amqp->consume('queue-name', function ($message, $resolver) {
     $resolver->acknowledge($message);
     $resolver->stopWhenProcessed();
 });</code></pre>
+                  </div>
+                  <div v-if="activeTab === 'queue'">
+                    <pre><code class="language-php">// .env
+QUEUE_CONNECTION=amqp
+
+// config/queue.php — merge from config/queue-amqp.php
+'amqp' => [
+    'driver'     => 'amqp',
+    'connection' => env('AMQP_ENV', 'production'),
+    'queue'      => env('AMQP_QUEUE', 'default'),
+],
+
+// Dispatch &amp; work
+ProcessOrder::dispatch($order)->delay(now()->addMinutes(5));
+php artisan queue:work amqp --queue=default</code></pre>
                   </div>
                 </div>
               </div>
@@ -484,6 +515,12 @@ $amqp->consume('queue-name', function ($message, $resolver) {
                     >
                     <a
                       href="#"
+                      @click.prevent="currentPage = 'queue-driver'"
+                      :class="{active: currentPage === 'queue-driver'}"
+                      >Laravel Queue Driver</a
+                    >
+                    <a
+                      href="#"
                       @click.prevent="currentPage = 'rpc'"
                       :class="{active: currentPage === 'rpc'}"
                       >RPC Pattern</a
@@ -565,6 +602,9 @@ $amqp->consume('queue-name', function ($message, $resolver) {
               <h4>Documentation</h4>
               <a href="#" @click.prevent="currentPage = 'getting-started'"
                 >Getting Started</a
+              >
+              <a href="#" @click.prevent="currentPage = 'queue-driver'"
+                >Laravel Queue Driver</a
               >
               <a href="#" @click.prevent="currentPage = 'guide'">Guide</a>
               <a href="#" @click.prevent="currentPage = 'faq'">FAQ</a>

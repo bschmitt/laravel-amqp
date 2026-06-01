@@ -139,14 +139,16 @@ class FullIntegrationTest extends IntegrationTestBase
      */
     public function testMessageRejectionWithRequeue()
     {
-        // Use a fixed queue name for this test (without max-length)
         $uniqueQueueName = 'test-queue-requeue';
         $config = $this->configRepository->get('amqp');
         $config['properties']['test']['queue'] = $uniqueQueueName;
         $config['properties']['test']['queue_force_declare'] = true;
-        $config['properties']['test']['queue_properties'] = []; // No max-length
+        $config['properties']['test']['queue_properties'] = [];
+        $config['properties']['test']['queue_auto_delete'] = false;
         $configRepo = new \Illuminate\Config\Repository(['amqp' => $config]);
-        
+
+        $this->deleteBrokerQueue($uniqueQueueName);
+
         // Publish a message
         $publisher = new Publisher($configRepo);
         $publisher->setup();
@@ -191,11 +193,7 @@ class FullIntegrationTest extends IntegrationTestBase
         // If count is 0, the message might have been consumed already or there's a timing issue
         $this->assertGreaterThanOrEqual(0, $messageCount, 'Queue message count should be valid');
         
-        // If message count is 0, skip the consumption test but note it
-        if ($messageCount === 0) {
-            $this->markTestIncomplete('Message was not requeued (may have been consumed or timing issue)');
-            return;
-        }
+        $this->assertGreaterThan(0, $messageCount, 'Message should be back in queue after reject with requeue');
 
         // Consume again - message should be back in queue
         $consumer = new Consumer($configRepo);
@@ -278,17 +276,15 @@ class FullIntegrationTest extends IntegrationTestBase
      */
     public function testAmqpFacadePublish()
     {
-        $this->markTestSkipped('Amqp class requires dependency injection - use Publisher directly instead');
-        
-        // Use Publisher directly instead
-        $publisher = new Publisher($this->configRepository);
-        $publisher->setup();
-        
-        $message = $this->createMessage('facade-test-message');
-        $result = $publisher->publish($this->testRoutingKey, $message);
-        
+        $amqp = $this->makeAmqp();
+        $result = $amqp->publish($this->testRoutingKey, 'facade-test-message');
+
         $this->assertTrue($result !== false);
-        \Bschmitt\Amqp\Core\Request::shutdown($publisher->getChannel(), $publisher->getConnection());
+
+        $consumer = new Consumer($this->configRepository);
+        $consumer->setup();
+        $this->assertGreaterThanOrEqual(1, $consumer->getQueueMessageCount());
+        \Bschmitt\Amqp\Core\Request::shutdown($consumer->getChannel(), $consumer->getConnection());
     }
 
     /**
