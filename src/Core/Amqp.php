@@ -10,17 +10,26 @@ use Bschmitt\Amqp\Contracts\ConsumerFactoryInterface;
 use Bschmitt\Amqp\Contracts\BatchManagerInterface;
 use Bschmitt\Amqp\Contracts\MessageContractInterface;
 use Bschmitt\Amqp\Contracts\MessageSerializerInterface;
+use Bschmitt\Amqp\Contracts\TracePropagatorInterface;
 use Bschmitt\Amqp\Exception\SchemaValidationException;
 use Bschmitt\Amqp\Factories\MessageFactory;
 use Bschmitt\Amqp\Managers\ConnectionManager;
+use Bschmitt\Amqp\Managers\ConnectionPool;
+use Bschmitt\Amqp\Managers\ResilientConnectionManager;
 use Bschmitt\Amqp\Models\Message;
+use Bschmitt\Amqp\Support\ConsumerLifecycle;
+use Bschmitt\Amqp\Support\CorrelationContext;
 use Bschmitt\Amqp\Support\DeadLetterTopology;
 use Bschmitt\Amqp\Support\DelayedPublisher;
+use Bschmitt\Amqp\Support\ExchangeTopology;
 use Bschmitt\Amqp\Support\JsonMessageSerializer;
+use Bschmitt\Amqp\Support\MessageHeaders;
 use Bschmitt\Amqp\Support\PublishBackoff;
+use Bschmitt\Amqp\Support\QueueProfile;
 use Bschmitt\Amqp\Support\RetryHandler;
 use Bschmitt\Amqp\Support\RetryPolicy;
 use Bschmitt\Amqp\Support\SchemaValidator;
+use Bschmitt\Amqp\Support\W3cTracePropagator;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -56,6 +65,11 @@ class Amqp
      * @var SchemaValidator|null
      */
     protected $schemaValidator;
+
+    /**
+     * @var TracePropagatorInterface|null
+     */
+    protected $tracePropagator;
 
     /**
      * @param PublisherFactoryInterface $publisherFactory
@@ -128,6 +142,8 @@ class Amqp
             $connectionConfig = $this->getConnectionConfig($connectionName);
             $properties = array_merge($connectionConfig, $properties);
         }
+
+        $properties = $this->applyContextPropagation($properties);
         
         $properties['routing'] = $routing;
         $publisher = $this->publisherFactory->create($properties);
@@ -494,6 +510,195 @@ class Amqp
     public function topology(string $queue, ?RetryPolicy $policy = null): DeadLetterTopology
     {
         return DeadLetterTopology::for($queue, $policy);
+    }
+
+    /**
+     * Declare an exchange and all bound queues from a topology builder.
+     *
+     * @param ExchangeTopology $topology
+     * @return void
+     */
+    public function declareExchangeTopology(ExchangeTopology $topology): void
+    {
+        foreach ($topology->declarationSteps() as $step) {
+            $this->declareViaPublisher($step);
+        }
+    }
+
+    /**
+     * Shortcut for {@see ExchangeTopology::exchange()}.
+     *
+     * @param string $exchange
+     * @param string $exchangeType
+     * @return ExchangeTopology
+     */
+    public function exchangeTopology(string $exchange, string $exchangeType = 'topic'): ExchangeTopology
+    {
+        return ExchangeTopology::exchange($exchange, $exchangeType);
+    }
+
+    /**
+     * Shortcut for {@see QueueProfile} presets.
+     *
+     * @return QueueProfile
+     */
+    public function queueProfile(): QueueProfile
+    {
+        return QueueProfile::classic();
+    }
+
+    /**
+     * Consume with lifecycle hooks and optional correlation/trace propagation.
+     *
+     * Pass `propagate_correlation` and/or `propagate_trace` in `$properties`
+     * to inherit context from each incoming message before the handler runs.
+     *
+     * @param string                    $queue
+     * @param Closure                   $callback
+     * @param ConsumerLifecycle|null    $lifecycle
+     * @param array<string, mixed>      $properties
+     * @return bool
+     */
+    public function consumeWithLifecycle(
+        string $queue,
+        Closure $callback,
+        ?ConsumerLifecycle $lifecycle = null,
+        array $properties = []
+    ): bool {
+        $lifecycle = $lifecycle !== null ? $lifecycle : new ConsumerLifecycle();
+        $lifecycle->registerSignalHandlers();
+        $lifecycle->fireStarting();
+
+        $propagateCorrelation = !empty($properties['propagate_correlation']);
+        $propagateTrace = !empty($properties['propagate_trace']);
+        $consumerProperties = $properties;
+        unset($consumerProperties['propagate_correlation'], $consumerProperties['propagate_trace']);
+
+        $wrapped = $lifecycle->wrap(function ($message, $resolver) use (
+            $callback,
+            $propagateCorrelation,
+            $propagateTrace
+        ) {
+            if ($propagateCorrelation) {
+                CorrelationContext::inheritFromMessage($message);
+            }
+            if ($propagateTrace) {
+                $this->tracePropagator()->extract(MessageHeaders::toArray($message));
+            }
+
+            return $callback($message, $resolver);
+        });
+
+        try {
+            return $this->consume($queue, $wrapped, $consumerProperties);
+        } finally {
+            $lifecycle->fireStopping();
+        }
+    }
+
+    /**
+     * Global connection pool for long-lived workers.
+     *
+     * @return ConnectionPool
+     */
+    public static function connectionPool(): ConnectionPool
+    {
+        return ConnectionPool::instance();
+    }
+
+    /**
+     * Build a resilient connection manager from inline properties.
+     *
+     * @param array<string, mixed> $properties Merged AMQP connection properties.
+     * @param array<string, mixed> $options    ResilientConnectionManager options.
+     * @return ResilientConnectionManager
+     */
+    public function resilientConnection(array $properties = [], array $options = []): ResilientConnectionManager
+    {
+        $config = $this->buildConfigurationProviderFromProperties($properties);
+        $inner = new ConnectionManager($config);
+
+        return new ResilientConnectionManager($inner, $options);
+    }
+
+    /**
+     * @param TracePropagatorInterface $propagator
+     * @return $this
+     */
+    public function setTracePropagator(TracePropagatorInterface $propagator): self
+    {
+        $this->tracePropagator = $propagator;
+
+        return $this;
+    }
+
+    /**
+     * Active trace propagator (defaults to W3C).
+     */
+    public function tracePropagator(): TracePropagatorInterface
+    {
+        if ($this->tracePropagator === null) {
+            $this->tracePropagator = new W3cTracePropagator();
+        }
+
+        return $this->tracePropagator;
+    }
+
+    /**
+     * Merge correlation and trace headers when requested via property flags.
+     *
+     * @param array<string, mixed> $properties
+     * @return array<string, mixed>
+     */
+    protected function applyContextPropagation(array $properties): array
+    {
+        if (!empty($properties['propagate_correlation'])) {
+            $properties = CorrelationContext::applyToPublishProperties($properties);
+            unset($properties['propagate_correlation']);
+        }
+
+        if (!empty($properties['propagate_trace'])) {
+            $headers = (array) ($properties['application_headers'] ?? []);
+            $properties['application_headers'] = $this->tracePropagator()->inject($headers);
+            unset($properties['propagate_trace']);
+        }
+
+        return $properties;
+    }
+
+    /**
+     * @param array<string, mixed> $properties
+     * @return \Bschmitt\Amqp\Contracts\ConfigurationProviderInterface
+     */
+    protected function buildConfigurationProviderFromProperties(array $properties): \Bschmitt\Amqp\Contracts\ConfigurationProviderInterface
+    {
+        try {
+            $config = \Illuminate\Support\Facades\App::make(\Bschmitt\Amqp\Contracts\ConfigurationProviderInterface::class);
+            if ($config instanceof \Bschmitt\Amqp\Support\ConfigurationProvider) {
+                $config->mergeProperties($properties);
+
+                return $config;
+            }
+        } catch (\Exception $e) {
+            // Fall through.
+        }
+
+        $defaultConfig = include __DIR__ . '/../../config/amqp.php';
+        $defaultProperties = $defaultConfig['properties'][$defaultConfig['use']] ?? [];
+        $mergedProperties = array_merge($defaultProperties, $properties);
+
+        $configArray = [
+            'amqp' => [
+                'use' => $defaultConfig['use'] ?? 'production',
+                'properties' => [
+                    $defaultConfig['use'] ?? 'production' => $mergedProperties,
+                ],
+            ],
+        ];
+
+        $configRepository = new \Illuminate\Config\Repository($configArray);
+
+        return new \Bschmitt\Amqp\Support\ConfigurationProvider($configRepository);
     }
 
     /**

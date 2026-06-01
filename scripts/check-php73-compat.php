@@ -54,6 +54,26 @@ $files = [
     'test/Unit/PublishBackoffTest.php',
     'test/Unit/DelayedPublisherTest.php',
     'test/Unit/AmqpTypedMessagingTest.php',
+    // Production infrastructure (v3.5)
+    'src/Support/QueueProfile.php',
+    'src/Support/ExchangeTopology.php',
+    'src/Support/CorrelationContext.php',
+    'src/Support/TraceContext.php',
+    'src/Support/MessageHeaders.php',
+    'src/Support/W3cTracePropagator.php',
+    'src/Support/NullTracePropagator.php',
+    'src/Support/CallbackTracePropagator.php',
+    'src/Support/ConsumerLifecycle.php',
+    'src/Contracts/TracePropagatorInterface.php',
+    'src/Managers/ResilientConnectionManager.php',
+    'src/Managers/ConnectionPool.php',
+    'test/Unit/QueueProfileTest.php',
+    'test/Unit/ExchangeTopologyTest.php',
+    'test/Unit/CorrelationContextTest.php',
+    'test/Unit/W3cTracePropagatorTest.php',
+    'test/Unit/ConsumerLifecycleTest.php',
+    'test/Unit/ResilientConnectionManagerTest.php',
+    'test/Unit/AmqpProductionFeaturesTest.php',
 ];
 
 $factory = new ParserFactory();

@@ -622,6 +622,7 @@ createApp({
       await this.loadMarkdownPage('delayed-messaging', "./content/delayed-messaging.md");
       await this.loadMarkdownPage('typed-messaging', "./content/typed-messaging.md");
       await this.loadMarkdownPage('schema-validation', "./content/schema-validation.md");
+      await this.loadMarkdownPage('production-features', "./content/production-features.md");
       await this.loadMarkdownPage('best-practices', "./content/best-practices.md");
       await this.loadMarkdownPage('faq', "./content/faq.md");
       await this.loadMarkdownPage('troubleshooting', "./content/troubleshooting.md");

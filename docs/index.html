@@ -350,11 +350,13 @@
 
                 <div class="feature-card">
                   <div class="feature-icon">🚀</div>
-                  <h3>Production-Grade Features</h3>
+                  <h3>Production Infrastructure</h3>
                   <p>
-                    Publisher confirms, consumer prefetch (QoS), quorum
-                    and stream queues, message priority, lazy queues,
-                    alternate exchanges, and full TTL support.
+                    <code>ExchangeTopology</code> builders,
+                    <code>QueueProfile</code> quorum/priority presets,
+                    resilient reconnect + <code>ConnectionPool</code>,
+                    W3C trace propagation, correlation IDs, and
+                    <code>ConsumerLifecycle</code> hooks.
                   </p>
                 </div>
 
@@ -636,6 +638,12 @@
                       @click.prevent="navigateTo('schema-validation')"
                       :class="{active: currentPage === 'schema-validation'}"
                       >Schema Validation</a
+                    >
+                    <a
+                      href="#production-features"
+                      @click.prevent="navigateTo('production-features')"
+                      :class="{active: currentPage === 'production-features'}"
+                      >Production Infrastructure</a
                     >
                     <a
                       href="#best-practices"

@@ -341,3 +341,10 @@ $amqp->consume('lazy-queue', function ($message, $resolver) {
     ],
 ]);
 ```
+
+## Production Infrastructure (v3.5+)
+
+Exchange topology builders, quorum/priority `QueueProfile` presets, resilient
+connections, connection pooling, W3C trace propagation, correlation context,
+and consumer lifecycle hooks are documented on the dedicated
+[Production Infrastructure](./production-features.md) page.

@@ -45,15 +45,14 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - Alternate Exchange - Unroutable message handling
 - **Native Laravel Queue integration** - Use `amqp` as a `config/queue.php` driver with `queue:work`
 - **Artisan commands** - `amqp:work` (with `--retry`/`--contract`/`--validate-schema`), `amqp:consume`, `amqp:listen`, `amqp:publish` (with `--delay-ms`), and `amqp:purge`
+- **Exchange & topology builders** - `ExchangeTopology` declarative exchange + queue bindings with `declareExchangeTopology()` (see [Production Infrastructure](#production-infrastructure))
+- **Quorum & priority queue profiles** - `QueueProfile::quorum()`, `priority()`, and `quorumWithPriority()` presets for `queue_properties` (see [Production Infrastructure](#production-infrastructure))
+- **Resilient connections & pooling** - `ResilientConnectionManager` auto-reconnect with heartbeat staleness checks; `ConnectionPool` for persistent worker channels (see [Production Infrastructure](#production-infrastructure))
+- **Distributed tracing** - W3C `traceparent` propagation via `TracePropagatorInterface` (OTel bridge via `CallbackTracePropagator`); enable with `propagate_trace` on publish/consume (see [Production Infrastructure](#production-infrastructure))
+- **Correlation ID propagation** - `CorrelationContext` with `propagate_correlation` on publish/consume (see [Production Infrastructure](#production-infrastructure))
+- **Consumer lifecycle hooks** - `ConsumerLifecycle` graceful shutdown, signal handlers, and `consumeWithLifecycle()` (see [Production Infrastructure](#production-infrastructure))
 
 ## Planned Features
-- Exchange and topology builders
-- Quorum queue & priority queue support
-- Auto reconnect and heartbeat monitoring
-- Connection pooling & persistent channels
-- OpenTelemetry and distributed tracing support
-- Correlation ID propagation
-- Consumer lifecycle management
 - Native SAGA workflow helpers
 - Laravel event & middleware integration
 - Improved testing and fake AMQP drivers
@@ -696,6 +695,111 @@ class OrderCreated extends TypedMessage
 Invalid payloads raise `Bschmitt\Amqp\Exception\SchemaValidationException` with a list of pointer-style error messages. On the CLI, combine `--contract` with `--validate-schema` on `amqp:work`.
 
 Supported keywords include `type`, `required`, `properties`, `additionalProperties`, `enum`, `const`, `minimum`/`maximum`, `minLength`/`maxLength`, `pattern`, `format` (email, uri, uuid, date, date-time), `items`, `oneOf`/`anyOf`/`allOf`/`not`, and more — see `docs/content/advanced.md`.
+
+## Production Infrastructure
+
+### Exchange topology builder
+
+Declare an exchange and multiple bound queues in one fluent builder:
+
+```php
+use Bschmitt\Amqp\Facades\Amqp;
+use Bschmitt\Amqp\Support\ExchangeTopology;
+use Bschmitt\Amqp\Support\QueueProfile;
+
+$topology = ExchangeTopology::exchange('events', 'topic')
+    ->bindQueue('orders.created', 'order.created')
+    ->bindQueue('orders.shipped', 'order.shipped', QueueProfile::quorum());
+
+Amqp::declareExchangeTopology($topology);
+
+// Publish using properties for a specific queue in the topology
+Amqp::publish('order.created', $payload, $topology->propertiesForQueue('orders.created'));
+```
+
+Shortcut: `Amqp::exchangeTopology('events', 'topic')->bindQueue(...)`.
+
+### Quorum & priority queues
+
+```php
+use Bschmitt\Amqp\Support\QueueProfile;
+
+Amqp::publish('jobs', $payload, QueueProfile::quorumWithPriority(10)->mergeInto([
+    'queue' => 'jobs',
+    'routing' => 'jobs',
+]));
+```
+
+### Resilient connections & connection pool
+
+```php
+use Bschmitt\Amqp\Facades\Amqp;
+use Bschmitt\Amqp\Managers\ConnectionPool;
+
+// Per-request resilient manager (reconnect + heartbeat staleness)
+$resilient = Amqp::resilientConnection(['host' => 'rabbitmq'], [
+    'max_reconnect_attempts' => 5,
+    'heartbeat' => 30,
+]);
+$channel = $resilient->getChannel();
+
+// Long-lived worker pool (persistent keys survive disconnectAll(false))
+$pool = Amqp::connectionPool();
+$manager = $pool->connection('worker', ['use' => 'production', 'resilient' => true], true);
+```
+
+### Correlation ID & distributed tracing
+
+```php
+use Bschmitt\Amqp\Support\CorrelationContext;
+
+CorrelationContext::set('request-abc-123');
+
+Amqp::publish('orders.created', $payload, [
+    'propagate_correlation' => true,
+    'propagate_trace' => true,
+]);
+
+Amqp::consumeWithLifecycle('orders.created', function ($message, $resolver) {
+    // CorrelationContext::get() is populated when propagate_* flags are used
+}, null, [
+    'propagate_correlation' => true,
+    'propagate_trace' => true,
+]);
+```
+
+Bridge OpenTelemetry (or any APM) without a hard dependency:
+
+```php
+use Bschmitt\Amqp\Support\CallbackTracePropagator;
+
+Amqp::setTracePropagator(new CallbackTracePropagator(
+    function (array $carrier, $context) {
+        // inject active span into $carrier
+        return $carrier;
+    },
+    function (array $carrier) {
+        // extract TraceContext from $carrier or return null
+        return null;
+    }
+));
+```
+
+### Consumer lifecycle
+
+```php
+use Bschmitt\Amqp\Support\ConsumerLifecycle;
+
+$lifecycle = (new ConsumerLifecycle())
+    ->registerSignalHandlers()
+    ->onStopping(function ($lifecycle) {
+        // flush buffers, close DB connections, etc.
+    });
+
+Amqp::consumeWithLifecycle('jobs', $handler, $lifecycle);
+```
+
+See `docs/content/production-features.md` for the full reference.
 
 ## Testing
 

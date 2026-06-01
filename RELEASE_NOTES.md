@@ -2,6 +2,50 @@
 
 ---
 
+## Version 3.5.0 - Minor Release
+
+Production-oriented infrastructure from the roadmap — fully backwards-compatible
+and verified on PHP 7.3 through 8.5.
+
+### Features
+
+1. **Exchange & topology builders**
+   - New `ExchangeTopology` fluent builder for exchange + multi-queue bindings.
+   - `Amqp::declareExchangeTopology()`, `exchangeTopology()` shortcut.
+
+2. **Quorum & priority queue profiles**
+   - New `QueueProfile` presets: `classic()`, `quorum()`, `priority()`,
+     `quorumWithPriority()` with `mergeInto()` for property bags.
+
+3. **Auto reconnect & heartbeat monitoring**
+   - New `ResilientConnectionManager` decorator with connect retries and
+     heartbeat staleness detection.
+   - `Amqp::resilientConnection()` factory helper.
+
+4. **Connection pooling & persistent channels**
+   - New `ConnectionPool` singleton via `Amqp::connectionPool()` with
+     persistent key support and optional resilient wrapping.
+
+5. **Distributed tracing (W3C, OTel-ready)**
+   - New `TraceContext`, `TracePropagatorInterface`, `W3cTracePropagator`,
+     `NullTracePropagator`, and `CallbackTracePropagator` for APM bridges.
+   - `propagate_trace` flag on publish/consume; `Amqp::setTracePropagator()`.
+
+6. **Correlation ID propagation**
+   - New `CorrelationContext` with `propagate_correlation` integration on
+     publish and `consumeWithLifecycle()`.
+
+7. **Consumer lifecycle management**
+   - New `ConsumerLifecycle` hooks (starting/stopping/message/error), signal
+     handlers, and `Amqp::consumeWithLifecycle()`.
+
+### Documentation
+
+- README **Production Infrastructure** section and `docs/content/production-features.md`.
+- Docs site nav + feature card updated.
+
+---
+
 ## Version 3.4.0 - Minor Release
 
 This release lands four major features from the roadmap — every item is fully
