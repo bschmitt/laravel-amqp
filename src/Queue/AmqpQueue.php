@@ -19,9 +19,14 @@ use PhpAmqpLib\Wire\AMQPTable;
 class AmqpQueue extends Queue implements QueueContract
 {
     /**
+     * The queue connection entry from config/queue.php.
+     *
+     * Kept separate from {@see Queue::$config} (added in Laravel 12) so we do
+     * not redeclare the parent property, which fatals on PHP 8.4+.
+     *
      * @var array
      */
-    protected $config;
+    protected $queueConnectionConfig;
 
     /**
      * @var array
@@ -66,13 +71,31 @@ class AmqpQueue extends Queue implements QueueContract
         MessageFactory $messageFactory
     ) {
         $this->container = $container;
-        $this->config = $config;
+        $this->queueConnectionConfig = $config;
         $this->publisherFactory = $publisherFactory;
         $this->messageFactory = $messageFactory;
         $this->amqpProperties = QueueConfigResolver::resolve(
             $config,
             $container->make('config')
         );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getConfig()
+    {
+        return $this->queueConnectionConfig;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setConfig(array $config)
+    {
+        $this->queueConnectionConfig = $config;
+
+        return $this;
     }
 
     /**
@@ -255,7 +278,7 @@ class AmqpQueue extends Queue implements QueueContract
      */
     public function getQueue($queue = null)
     {
-        return $queue ?: ($this->config['queue'] ?? $this->amqpProperties['queue'] ?? 'default');
+        return $queue ?: ($this->queueConnectionConfig['queue'] ?? $this->amqpProperties['queue'] ?? 'default');
     }
 
     /**
