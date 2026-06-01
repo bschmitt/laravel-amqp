@@ -11,6 +11,9 @@ use Bschmitt\Amqp\Contracts\BatchManagerInterface;
 use Bschmitt\Amqp\Factories\MessageFactory;
 use Bschmitt\Amqp\Managers\ConnectionManager;
 use Bschmitt\Amqp\Models\Message;
+use Bschmitt\Amqp\Support\DeadLetterTopology;
+use Bschmitt\Amqp\Support\RetryHandler;
+use Bschmitt\Amqp\Support\RetryPolicy;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -361,6 +364,101 @@ class Amqp
     public function message(string $body, array $properties = []): Message
     {
         return $this->messageFactory->createWithProperties($body, $properties);
+    }
+
+    /**
+     * Declare the full retry + dead-letter topology described by the builder.
+     *
+     * Declares the work queue (with DLX pointing at the DLQ), the DLQ itself,
+     * and one retry queue per distinct delay used by the policy. Idempotent —
+     * RabbitMQ silently no-ops re-declares as long as arguments match the
+     * existing definition.
+     *
+     * @param DeadLetterTopology $topology
+     * @return void
+     */
+    public function declareRetryTopology(DeadLetterTopology $topology): void
+    {
+        $this->declareViaPublisher($topology->toWorkProperties());
+        $this->declareViaPublisher($topology->toDlqProperties());
+
+        foreach ($topology->plannedRetryDelays() as $delayMs) {
+            $this->declareViaPublisher($topology->toRetryQueueProperties($delayMs));
+        }
+    }
+
+    /**
+     * Convenience: build a {@see RetryHandler} bound to this Amqp instance.
+     *
+     * @param callable           $handler  Inner handler ($message, $resolver).
+     * @param DeadLetterTopology $topology Topology describing retry queues + DLQ.
+     * @param callable|null      $logger   Optional logger: fn($level, $message, array $context): void
+     * @return RetryHandler
+     */
+    public function retryHandler(callable $handler, DeadLetterTopology $topology, ?callable $logger = null): RetryHandler
+    {
+        return new RetryHandler($handler, $topology, $this->publisherFactory, $this->messageFactory, $logger);
+    }
+
+    /**
+     * Consume from a topology with built-in retry + DLQ semantics.
+     *
+     * Equivalent to wrapping the handler with {@see retryHandler()} and calling
+     * {@see consume()} with the topology's work properties. Re-throws nothing —
+     * failures are routed through the retry queue or to the DLQ per the policy.
+     *
+     * @param DeadLetterTopology $topology
+     * @param callable           $handler  Inner handler ($message, $resolver).
+     * @param array              $properties Extra consumer properties (merged on top of topology's).
+     * @param callable|null      $logger
+     * @return bool
+     */
+    public function consumeWithRetry(
+        DeadLetterTopology $topology,
+        callable $handler,
+        array $properties = [],
+        ?callable $logger = null
+    ): bool {
+        $wrapped = $this->retryHandler($handler, $topology, $logger);
+        $merged = array_merge($topology->toWorkProperties(), $properties);
+
+        return $this->consume($topology->getQueue(), function ($message, $resolver) use ($wrapped) {
+            $wrapped($message, $resolver);
+        }, $merged);
+    }
+
+    /**
+     * Build a {@see DeadLetterTopology} pre-bound to this Amqp instance.
+     *
+     * Pure shortcut: returns `DeadLetterTopology::for($queue, $policy)` so
+     * users don't have to import the class manually.
+     *
+     * @param string           $queue
+     * @param RetryPolicy|null $policy
+     * @return DeadLetterTopology
+     */
+    public function topology(string $queue, ?RetryPolicy $policy = null): DeadLetterTopology
+    {
+        return DeadLetterTopology::for($queue, $policy);
+    }
+
+    /**
+     * Declare a single queue/exchange via the publisher factory (which sets up
+     * exchanges + queues during {@see Publisher::setup()} without actually
+     * publishing anything).
+     *
+     * @param array<string, mixed> $properties
+     * @return void
+     */
+    protected function declareViaPublisher(array $properties): void
+    {
+        $publisher = $this->publisherFactory->create($properties);
+        try {
+            // setup() is called inside PublisherFactory::create(), so the
+            // declaration has already happened. We just close the channel.
+        } finally {
+            $this->disconnectPublisher($publisher);
+        }
     }
 
     /**

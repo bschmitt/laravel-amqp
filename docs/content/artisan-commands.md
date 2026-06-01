@@ -87,7 +87,23 @@ This is the headline command — keep it alive under a process manager (Supervis
 | `--timeout=` | `0` (block) | Per-message wait timeout in seconds |
 | `--stop-when-empty` | off | Exit once the queue is drained instead of waiting |
 | `--requeue-on-error` | off | Requeue messages whose handler throws |
+| `--retry=` | off | Wrap the handler in a `RetryHandler` with this many retry attempts (0 disables retries) |
+| `--retry-delay=` | `1000` | Base delay between retries in milliseconds |
+| `--retry-backoff=` | `fixed` | Backoff strategy (`fixed` or `exponential`) |
+| `--retry-multiplier=` | `2.0` | Growth factor when using exponential backoff |
+| `--retry-max-delay=` | `0` | Cap for the computed retry delay in ms (`0` = uncapped) |
+| `--retry-jitter=` | `0` | Random jitter (ms) added to each retry delay |
+| `--dlq=` | `{queue}.dlq` | Dead-letter queue name |
+| `--declare-topology` | off | Pre-declare the work + DLQ + retry queues before consuming |
 | `--quiet-iterations` | off | Suppress per-message output (only show errors and summary) |
+
+> **Retry vs. requeue:** `--requeue-on-error` puts the message back at the
+> head of the same queue and immediately re-delivers it. `--retry=N` instead
+> routes the message through a per-delay retry queue (`{queue}.retry.{ms}`)
+> with TTL-based delayed redelivery, and forwards it to the DLQ after the
+> retry budget is exhausted. See
+> [Advanced Retry & Dead-Letter Abstractions](#advanced-retry--dead-letter-abstractions)
+> in the advanced guide for the full picture.
 
 ### Recipes
 
@@ -119,6 +135,24 @@ php artisan amqp:work events \
     --routing-key="user.*" \
     --routing-key="order.*"
 ```
+
+**Production worker with retry budget, exponential backoff, and dedicated DLQ:**
+
+```bash
+php artisan amqp:work orders.process \
+    --handler="App\Messaging\ProcessOrderHandler" \
+    --retry=5 \
+    --retry-backoff=exponential \
+    --retry-delay=1000 \
+    --retry-multiplier=2.0 \
+    --retry-max-delay=60000 \
+    --dlq=orders.process.failed \
+    --declare-topology
+```
+
+The first run with `--declare-topology` idempotently creates `orders.process`,
+`orders.process.failed`, and one `orders.process.retry.{ms}` queue per
+distinct backoff delay. On subsequent runs you can drop the flag.
 
 ---
 

@@ -779,6 +779,37 @@ Amqp::consume('queue', function ($message, $resolver) {
 ]);
 ```
 
+For declarative retry + DLQ wiring (recommended for production), use the
+`RetryPolicy` / `DeadLetterTopology` / `RetryHandler` abstractions:
+
+```php
+use Bschmitt\Amqp\Support\DeadLetterTopology;
+use Bschmitt\Amqp\Support\RetryPolicy;
+
+$amqp = app('Amqp');
+
+// RetryPolicy::exponential($maxAttempts, $baseDelayMs, $multiplier, $maxDelayMs)
+$policy   = RetryPolicy::exponential(5, 1000, 2.0, 60000);
+$topology = DeadLetterTopology::for('orders.process', $policy)
+    ->on('app.events', 'topic');
+
+$amqp->declareRetryTopology($topology);
+
+$amqp->consumeWithRetry($topology, function ($message, $resolver) {
+    processMessage($message->body);
+    $resolver->acknowledge($message);
+});
+```
+
+On exception the handler republishes the message to `orders.process.retry.{ms}`
+with a TTL matching the policy; once the retry budget is exhausted the
+message is rejected and RabbitMQ forwards it to `orders.process.dlq` via the
+work queue's `x-dead-letter-exchange`. The `x-retry-attempt`,
+`x-first-failed-at`, and `x-last-error` headers carry diagnostics across
+deliveries.
+
+See **[Advanced Features → Advanced Retry & Dead-Letter Abstractions](content/advanced.md)** for the full reference.
+
 ### 4. Production Consumers
 
 Use Artisan commands with process managers:

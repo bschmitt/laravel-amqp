@@ -35,15 +35,15 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - Consumer Prefetch (QoS) - Rate limiting and flow control
 - Queue Types - Classic, Quorum, and Stream queues
 - Dead Letter Exchanges - Message routing for failed messages
+- **Advanced retry & dead-letter abstractions** - Declarative `RetryPolicy` + `DeadLetterTopology` + `RetryHandler` with fixed/exponential backoff and auto-routing to DLQ when retries exhaust (see [Retry & DLQ Abstractions](#retry--dead-letter-abstractions))
 - Message Priority - Priority-based message processing
 - TTL Support - Message and queue expiration
 - Lazy Queues - Disk-based message storage
 - Alternate Exchange - Unroutable message handling
 - **Native Laravel Queue integration** - Use `amqp` as a `config/queue.php` driver with `queue:work`
-- **Artisan commands** - `amqp:work`, `amqp:consume`, `amqp:listen`, `amqp:publish`, and `amqp:purge`
+- **Artisan commands** - `amqp:work` (with `--retry`/`--retry-backoff`/`--dlq`/`--declare-topology`), `amqp:consume`, `amqp:listen`, `amqp:publish`, and `amqp:purge`
 
 ## Planned Features
-- Advanced retry & dead-letter abstractions
 - Delayed message and backoff support
 - Typed message contracts & DTO serialization
 - JSON schema validation for messages
@@ -227,6 +227,21 @@ php artisan amqp:publish order.created --file=./payload.json --headers='{"X-Sour
 ```bash
 php artisan amqp:purge my-queue --force
 ```
+
+### Retry options on `amqp:work`
+
+| Option | Description |
+|--------|-------------|
+| `--retry=N` | Wraps the handler in a `RetryHandler` and configures up to `N` retries (0 disables retries) |
+| `--retry-delay=ms` | Base delay between retries in milliseconds (default `1000`) |
+| `--retry-backoff=fixed\|exponential` | Backoff strategy (default `fixed`) |
+| `--retry-multiplier=2.0` | Growth factor for exponential backoff |
+| `--retry-max-delay=ms` | Cap for the computed retry delay (`0` = uncapped) |
+| `--retry-jitter=ms` | Random jitter added to each retry delay |
+| `--dlq=name` | Override the dead-letter queue name (default `{queue}.dlq`) |
+| `--declare-topology` | Pre-declare the work + DLQ + retry queues before consuming |
+
+See [Retry & Dead-Letter Abstractions](#retry--dead-letter-abstractions) for the full picture.
 
 ### Example handler
 
@@ -463,6 +478,105 @@ $amqp->createPolicy('my-policy', [
     'definition' => ['max-length' => 1000]
 ], '/');
 ```
+
+## Retry & Dead-Letter Abstractions
+
+Three small primitives let you build production-grade retry pipelines without
+hand-rolling DLX wiring:
+
+- **`Bschmitt\Amqp\Support\RetryPolicy`** — declarative `max attempts` +
+  backoff strategy (fixed, exponential, immediate, none) with optional cap
+  and jitter.
+- **`Bschmitt\Amqp\Support\DeadLetterTopology`** — describes the work queue,
+  the DLQ, and the per-delay retry queues. Produces ready-to-use property
+  arrays for `publish()` / `consume()`.
+- **`Bschmitt\Amqp\Support\RetryHandler`** — decorator that wraps your
+  handler. On exception it republishes the message to a TTL'd retry queue
+  (which dead-letters back to the work queue when the TTL expires) and
+  acknowledges the original delivery. When the retry budget is spent it
+  rejects without requeue so RabbitMQ routes the message to the DLQ via the
+  `x-dead-letter-exchange` configured on the work queue.
+
+### Declare the topology once
+
+```php
+use Bschmitt\Amqp\Support\DeadLetterTopology;
+use Bschmitt\Amqp\Support\RetryPolicy;
+
+$amqp = app('Amqp');
+
+// RetryPolicy::exponential($maxAttempts, $baseDelayMs, $multiplier, $maxDelayMs)
+$policy   = RetryPolicy::exponential(5, 1000, 2.0, 60000);
+$topology = DeadLetterTopology::for('orders.process', $policy)
+    ->on('app.events', 'topic')
+    ->withRoutingKey('orders.process');
+
+// Idempotently creates: orders.process, orders.process.dlq,
+// and orders.process.retry.{1000,2000,4000,8000,16000} (capped at 60000).
+$amqp->declareRetryTopology($topology);
+```
+
+### Consume with auto-retry / DLQ routing
+
+```php
+$amqp->consumeWithRetry($topology, function ($message, $resolver) {
+    processOrder(json_decode($message->body, true));
+    $resolver->acknowledge($message);
+});
+```
+
+When the handler throws:
+
+1. `RetryHandler` reads (and bumps) the `x-retry-attempt` application header.
+2. If the next attempt still fits the policy, the message is republished to
+   `orders.process.retry.{delayMs}` with the computed TTL. RabbitMQ's DLX on
+   that queue routes the message back to `orders.process` once the TTL
+   expires.
+3. When the retry budget is exhausted, the handler rejects the message
+   without requeue and RabbitMQ forwards it to `orders.process.dlq` via the
+   work queue's `x-dead-letter-exchange`.
+4. The `x-first-failed-at` and `x-last-error` headers carry diagnostics
+   forward across retries so DLQ inspection is meaningful.
+
+### Pick a policy
+
+```php
+use Bschmitt\Amqp\Support\RetryPolicy;
+
+RetryPolicy::fixed(3, 1000);                       // 3 retries, 1s apart
+RetryPolicy::exponential(5, 500, 2.0, 30000);      // 500ms doubling, capped at 30s
+RetryPolicy::immediate(2);                         // 2 retries with zero delay
+RetryPolicy::none();                               // failures go straight to the DLQ
+```
+
+### Wrap an existing handler manually
+
+```php
+use Bschmitt\Amqp\Support\RetryHandler;
+
+$wrapped = $amqp->retryHandler($yourHandler, $topology, function ($level, $message, $context) {
+    Log::log($level, $message, $context);
+});
+
+$amqp->consume('orders.process', $wrapped, $topology->toWorkProperties());
+```
+
+### Driving the worker from the CLI
+
+```bash
+php artisan amqp:work orders.process \
+    --handler="App\\Messaging\\ProcessOrderHandler" \
+    --retry=5 \
+    --retry-backoff=exponential \
+    --retry-delay=1000 \
+    --retry-multiplier=2.0 \
+    --retry-max-delay=60000 \
+    --dlq=orders.process.failed \
+    --declare-topology
+```
+
+See `docs/content/advanced.md` and the unit tests under `test/Unit/Retry*` /
+`test/Unit/DeadLetterTopologyTest.php` for more examples.
 
 ## Testing
 

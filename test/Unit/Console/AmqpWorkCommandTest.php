@@ -5,6 +5,9 @@ namespace Bschmitt\Amqp\Test\Unit\Console;
 use Bschmitt\Amqp\Console\Commands\AmqpWorkCommand;
 use Bschmitt\Amqp\Console\HandlerResolver;
 use Bschmitt\Amqp\Contracts\ConsumerInterface;
+use Bschmitt\Amqp\Support\DeadLetterTopology;
+use Bschmitt\Amqp\Support\RetryHandler;
+use Bschmitt\Amqp\Support\RetryPolicy;
 use Bschmitt\Amqp\Test\Support\CommandTestCase;
 use Bschmitt\Amqp\Test\Support\Fixtures\InvokableHandler;
 use Bschmitt\Amqp\Test\Support\Fixtures\RecordingHandler;
@@ -252,6 +255,174 @@ class AmqpWorkCommandTest extends CommandTestCase
         ]);
 
         $this->assertSame('order.created', $captured['routing']);
+    }
+
+    public function testRetryOptionWiresWorkPropertiesWithDeadLetterExchange(): void
+    {
+        $captured = null;
+        $this->amqp->shouldReceive('retryHandler')
+            ->once()
+            ->andReturnUsing(function ($handler, DeadLetterTopology $topology) {
+                $this->assertSame('test-queue', $topology->getQueue());
+                $this->assertSame(3, $topology->getRetryPolicy()->maxAttempts());
+                $this->assertSame(RetryPolicy::STRATEGY_FIXED, $topology->getRetryPolicy()->strategy());
+                $this->assertSame(250, $topology->getRetryPolicy()->baseDelayMs());
+
+                return new RetryHandler(
+                    $handler,
+                    $topology,
+                    Mockery::mock(\Bschmitt\Amqp\Contracts\PublisherFactoryInterface::class)
+                );
+            });
+
+        $this->amqp->shouldReceive('consume')
+            ->once()
+            ->andReturnUsing(function ($queue, $callback, $props) use (&$captured) {
+                $captured = $props;
+                return true;
+            });
+
+        $result = $this->runCommand($this->makeCommand(), [
+            'queue' => 'test-queue',
+            '--handler' => RecordingHandler::class,
+            '--retry' => 3,
+            '--retry-delay' => 250,
+        ]);
+
+        $this->assertSame(SymfonyCommand::SUCCESS, $result['status']);
+        $this->assertIsArray($captured);
+        $this->assertSame('test-queue', $captured['queue']);
+        $this->assertArrayHasKey('queue_properties', $captured);
+        $this->assertSame('test-queue.dlq', $captured['queue_properties']['x-dead-letter-routing-key']);
+    }
+
+    public function testRetryOptionSupportsExponentialBackoff(): void
+    {
+        $this->amqp->shouldReceive('retryHandler')
+            ->once()
+            ->andReturnUsing(function ($handler, DeadLetterTopology $topology) {
+                $policy = $topology->getRetryPolicy();
+                $this->assertSame(RetryPolicy::STRATEGY_EXPONENTIAL, $policy->strategy());
+                $this->assertSame(100, $policy->baseDelayMs());
+                $this->assertEqualsWithDelta(2.5, $policy->multiplier(), 0.0001);
+                $this->assertSame(5000, $policy->maxDelayMs());
+
+                return new RetryHandler(
+                    $handler,
+                    $topology,
+                    Mockery::mock(\Bschmitt\Amqp\Contracts\PublisherFactoryInterface::class)
+                );
+            });
+        $this->amqp->shouldReceive('consume')->once()->andReturn(true);
+
+        $result = $this->runCommand($this->makeCommand(), [
+            'queue' => 'test-queue',
+            '--handler' => RecordingHandler::class,
+            '--retry' => 4,
+            '--retry-backoff' => 'exponential',
+            '--retry-delay' => 100,
+            '--retry-multiplier' => 2.5,
+            '--retry-max-delay' => 5000,
+        ]);
+
+        $this->assertSame(SymfonyCommand::SUCCESS, $result['status']);
+    }
+
+    public function testDlqOptionOverridesDefaultDlqName(): void
+    {
+        $captured = null;
+        $this->amqp->shouldReceive('retryHandler')
+            ->once()
+            ->andReturnUsing(function ($handler, DeadLetterTopology $topology) {
+                return new RetryHandler(
+                    $handler,
+                    $topology,
+                    Mockery::mock(\Bschmitt\Amqp\Contracts\PublisherFactoryInterface::class)
+                );
+            });
+        $this->amqp->shouldReceive('consume')
+            ->once()
+            ->andReturnUsing(function ($queue, $callback, $props) use (&$captured) {
+                $captured = $props;
+                return true;
+            });
+
+        $this->runCommand($this->makeCommand(), [
+            'queue' => 'orders',
+            '--handler' => RecordingHandler::class,
+            '--retry' => 2,
+            '--dlq' => 'orders.failed',
+        ]);
+
+        $this->assertSame('orders.failed', $captured['queue_properties']['x-dead-letter-routing-key']);
+    }
+
+    public function testDeclareTopologyFlagCallsAmqpDeclareRetryTopology(): void
+    {
+        $this->amqp->shouldReceive('declareRetryTopology')
+            ->once()
+            ->with(Mockery::on(function ($t) {
+                return $t instanceof DeadLetterTopology && $t->getQueue() === 'orders';
+            }));
+
+        $this->amqp->shouldReceive('retryHandler')
+            ->once()
+            ->andReturnUsing(function ($handler, DeadLetterTopology $topology) {
+                return new RetryHandler(
+                    $handler,
+                    $topology,
+                    Mockery::mock(\Bschmitt\Amqp\Contracts\PublisherFactoryInterface::class)
+                );
+            });
+        $this->amqp->shouldReceive('consume')->once()->andReturn(true);
+
+        $result = $this->runCommand($this->makeCommand(), [
+            'queue' => 'orders',
+            '--handler' => RecordingHandler::class,
+            '--retry' => 2,
+            '--declare-topology' => true,
+        ]);
+
+        $this->assertSame(SymfonyCommand::SUCCESS, $result['status']);
+        $this->assertStringContainsString('Declared retry topology', $result['output']);
+    }
+
+    public function testInvalidRetryBackoffOptionReturnsInvalid(): void
+    {
+        $result = $this->runCommand($this->makeCommand(), [
+            'queue' => 'orders',
+            '--handler' => RecordingHandler::class,
+            '--retry' => 2,
+            '--retry-backoff' => 'parabolic',
+        ]);
+
+        $this->assertSame(SymfonyCommand::INVALID, $result['status']);
+        $this->assertStringContainsString('Invalid retry configuration', $result['output']);
+    }
+
+    public function testNegativeRetryOptionReturnsInvalid(): void
+    {
+        $result = $this->runCommand($this->makeCommand(), [
+            'queue' => 'orders',
+            '--handler' => RecordingHandler::class,
+            '--retry' => -1,
+        ]);
+
+        $this->assertSame(SymfonyCommand::INVALID, $result['status']);
+    }
+
+    public function testNoRetryOptionLeavesHandlerUnwrapped(): void
+    {
+        $this->amqp->shouldNotReceive('retryHandler');
+        $this->amqp->shouldNotReceive('declareRetryTopology');
+        $this->amqp->shouldReceive('consume')->once()->andReturn(true);
+
+        $result = $this->runCommand($this->makeCommand(), [
+            'queue' => 'test-queue',
+            '--handler' => RecordingHandler::class,
+        ]);
+
+        $this->assertSame(SymfonyCommand::SUCCESS, $result['status']);
     }
 
     public function testConsumerLevelExceptionIsReportedAsFailure(): void

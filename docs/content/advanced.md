@@ -84,6 +84,111 @@ $amqp->consume('queue', function ($message, $resolver) {
 ]);
 ```
 
+## Advanced Retry & Dead-Letter Abstractions
+
+The package ships three reusable building blocks that turn the above raw DLX
+wiring into a declarative pipeline:
+
+| Class | Responsibility |
+|-------|----------------|
+| `Bschmitt\Amqp\Support\RetryPolicy` | Value object describing the retry budget: max attempts, backoff strategy (`fixed`/`exponential`/`immediate`/`none`), optional cap and jitter. |
+| `Bschmitt\Amqp\Support\DeadLetterTopology` | Builds property arrays for the work queue (with DLX to the DLQ), the DLQ itself, and per-delay retry queues. |
+| `Bschmitt\Amqp\Support\RetryHandler` | Decorator that wraps any `($message, $resolver)` callable; on failure republishes to the per-delay retry queue and acks the original, or rejects to the DLQ once the budget is exhausted. |
+
+### Declarative topology
+
+```php
+use Bschmitt\Amqp\Support\DeadLetterTopology;
+use Bschmitt\Amqp\Support\RetryPolicy;
+
+$amqp = app('Amqp');
+
+// RetryPolicy::exponential($maxAttempts, $baseDelayMs, $multiplier, $maxDelayMs)
+$policy   = RetryPolicy::exponential(5, 1000, 2.0, 60000);
+$topology = DeadLetterTopology::for('orders.process', $policy)
+    ->on('app.events', 'topic')
+    ->withRoutingKey('orders.process')
+    ->withDlqQueue('orders.process.failed');
+
+$amqp->declareRetryTopology($topology);
+```
+
+This declares:
+
+- the work queue `orders.process` with `x-dead-letter-exchange` set to the
+  configured DLX and `x-dead-letter-routing-key` pointing at the DLQ;
+- the DLQ `orders.process.failed`;
+- one retry queue per unique backoff delay
+  (`orders.process.retry.1000`, `.retry.2000`, `.retry.4000`, …) with a
+  matching `x-message-ttl` and an `x-dead-letter-exchange` back to the work
+  queue's exchange.
+
+### Consume with auto-retry
+
+```php
+$amqp->consumeWithRetry($topology, function ($message, $resolver) {
+    $payload = json_decode($message->body, true);
+    processOrder($payload);
+    $resolver->acknowledge($message);
+});
+```
+
+`consumeWithRetry()` merges the topology's work properties into the consume
+call and wraps the handler with a `RetryHandler`. On exception:
+
+1. `x-retry-attempt` header is bumped (falling back to the broker's
+   `x-death` counter on first delivery if the header is missing).
+2. If the next attempt fits the policy → the message is republished to
+   `{queue}.retry.{delayMs}` with the computed TTL, and the original
+   delivery is acked.
+3. Otherwise → the message is rejected without requeue, and RabbitMQ routes
+   it to the DLQ via the work queue's DLX.
+
+Diagnostic headers (`x-first-failed-at`, `x-last-error`) are carried across
+retries so inspecting the DLQ reveals when the cascade started and what the
+last failure was.
+
+### Plain helpers
+
+```php
+use Bschmitt\Amqp\Support\RetryHandler;
+
+$wrapped = $amqp->retryHandler($yourHandler, $topology, function ($level, $message) {
+    Log::log($level, $message);
+});
+
+$amqp->consume('orders.process', $wrapped, $topology->toWorkProperties());
+```
+
+### CLI integration
+
+`amqp:work` exposes the abstractions directly so you don't need any glue
+code in your app:
+
+```bash
+php artisan amqp:work orders.process \
+    --handler="App\\Messaging\\ProcessOrderHandler" \
+    --retry=5 \
+    --retry-backoff=exponential \
+    --retry-delay=1000 \
+    --retry-multiplier=2.0 \
+    --retry-max-delay=60000 \
+    --dlq=orders.process.failed \
+    --declare-topology
+```
+
+Use `--retry=0` (or omit `--retry` entirely) to keep the old
+`--requeue-on-error` behaviour without the retry pipeline.
+
+### Choosing a policy
+
+| Factory | When to use |
+|---------|-------------|
+| `RetryPolicy::fixed($maxAttempts, $delayMs, $jitterMs = 0)` | Predictable retry cadence, e.g. a third-party API that recovers within seconds. |
+| `RetryPolicy::exponential($maxAttempts, $baseMs, $multiplier, $maxMs, $jitterMs)` | Most network and rate-limit failures; backs off to give downstream time to recover. |
+| `RetryPolicy::immediate($maxAttempts)` | Transient races where a retry without any wait fixes the problem. |
+| `RetryPolicy::none()` | Disable retries entirely — every failure goes straight to the DLQ. |
+
 ## Message Priority
 
 ```php

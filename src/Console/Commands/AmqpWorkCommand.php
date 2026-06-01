@@ -4,7 +4,10 @@ namespace Bschmitt\Amqp\Console\Commands;
 
 use Bschmitt\Amqp\Console\HandlerResolver;
 use Bschmitt\Amqp\Core\Amqp;
+use Bschmitt\Amqp\Support\DeadLetterTopology;
+use Bschmitt\Amqp\Support\RetryPolicy;
 use Illuminate\Console\Command;
+use InvalidArgumentException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Throwable;
 
@@ -37,6 +40,14 @@ class AmqpWorkCommand extends Command
                             {--timeout=0 : Per-message wait timeout passed to the broker (0 = block)}
                             {--stop-when-empty : Exit once the queue has no more messages instead of waiting}
                             {--requeue-on-error : Requeue messages whose handler throws an exception}
+                            {--retry= : Enable retry/DLQ abstraction with this many retries (0 disables)}
+                            {--retry-delay=1000 : Base delay between retries in milliseconds}
+                            {--retry-backoff=fixed : Backoff strategy: fixed|exponential}
+                            {--retry-multiplier=2.0 : Multiplier for exponential backoff}
+                            {--retry-max-delay=0 : Cap for the computed retry delay in ms (0 = uncapped)}
+                            {--retry-jitter=0 : Random jitter added to each retry delay (ms)}
+                            {--dlq= : Dead-letter queue name (defaults to {queue}.dlq)}
+                            {--declare-topology : Declare work + retry + DLQ queues before consuming}
                             {--quiet-iterations : Suppress per-message log output (only show errors and summary)}';
 
     /** @var string */
@@ -89,6 +100,40 @@ class AmqpWorkCommand extends Command
         }
 
         $properties = $this->buildProperties();
+
+        try {
+            $topology = $this->buildTopology($queue, $properties);
+        } catch (InvalidArgumentException $e) {
+            $this->error('Invalid retry configuration: '.$e->getMessage());
+            return self::INVALID;
+        }
+
+        if ($topology !== null) {
+            $properties = array_merge($properties, $topology->toWorkProperties());
+
+            if ((bool) $this->option('declare-topology')) {
+                try {
+                    $this->amqp->declareRetryTopology($topology);
+                    $this->info(sprintf(
+                        '  Declared retry topology (DLQ: %s, retry delays: %s)',
+                        $topology->getDlqQueue(),
+                        implode('ms, ', $topology->plannedRetryDelays()).'ms'
+                    ));
+                } catch (Throwable $e) {
+                    $this->error('Failed to declare retry topology: '.$e->getMessage());
+                    return self::FAILURE;
+                }
+            }
+
+            $callable = $this->amqp->retryHandler(
+                $callable,
+                $topology,
+                function ($level, $message, $context = []) {
+                    $this->logRetryEvent($level, $message, $context);
+                }
+            );
+        }
+
         $maxMessages = max(0, (int) $this->option('max-messages'));
         $maxTime = max(0, (int) $this->option('max-time'));
         $memoryLimitBytes = max(1, (int) $this->option('memory')) * 1024 * 1024;
@@ -264,5 +309,93 @@ class AmqpWorkCommand extends Command
         $props['persistent'] = !$this->option('stop-when-empty');
 
         return $props;
+    }
+
+    /**
+     * Build a {@see DeadLetterTopology} from `--retry-*`/`--dlq` options.
+     *
+     * Returns null when retries are disabled (no --retry option or --retry=0).
+     *
+     * @param string               $queue
+     * @param array<string, mixed> $properties
+     * @return DeadLetterTopology|null
+     */
+    protected function buildTopology(string $queue, array $properties): ?DeadLetterTopology
+    {
+        $retryOption = $this->option('retry');
+        if ($retryOption === null || $retryOption === '') {
+            return null;
+        }
+
+        $maxAttempts = (int) $retryOption;
+        if ($maxAttempts < 0) {
+            throw new InvalidArgumentException('--retry must be >= 0');
+        }
+
+        $strategy = (string) $this->option('retry-backoff');
+        $baseDelay = (int) $this->option('retry-delay');
+        $multiplier = (float) $this->option('retry-multiplier');
+        $maxDelay = (int) $this->option('retry-max-delay');
+        $jitter = (int) $this->option('retry-jitter');
+
+        switch ($strategy) {
+            case 'fixed':
+                $policy = RetryPolicy::fixed($maxAttempts, $baseDelay, $jitter);
+                break;
+            case 'exponential':
+                $policy = RetryPolicy::exponential($maxAttempts, $baseDelay, $multiplier, $maxDelay, $jitter);
+                break;
+            default:
+                throw new InvalidArgumentException(
+                    sprintf('Unsupported --retry-backoff "%s" (use fixed or exponential)', $strategy)
+                );
+        }
+
+        $topology = DeadLetterTopology::for($queue, $policy);
+
+        if (!empty($properties['exchange']) || isset($properties['exchange_type'])) {
+            $topology->on(
+                (string) ($properties['exchange'] ?? ''),
+                (string) ($properties['exchange_type'] ?? 'topic')
+            );
+        }
+
+        $routing = $properties['routing'] ?? null;
+        if (is_array($routing) && !empty($routing)) {
+            $topology->withRoutingKey((string) reset($routing));
+        } elseif (is_string($routing) && $routing !== '') {
+            $topology->withRoutingKey($routing);
+        }
+
+        $dlq = $this->option('dlq');
+        if (is_string($dlq) && $dlq !== '') {
+            $topology->withDlqQueue($dlq);
+        }
+
+        return $topology;
+    }
+
+    /**
+     * Surface log events emitted by {@see \Bschmitt\Amqp\Support\RetryHandler}.
+     *
+     * @param string               $level   psr/log style level
+     * @param string               $message
+     * @param array<string, mixed> $context
+     */
+    protected function logRetryEvent(string $level, string $message, array $context = []): void
+    {
+        $line = '  [retry] '.$message;
+
+        if (in_array($level, ['emergency', 'alert', 'critical', 'error'], true)) {
+            $this->error($line);
+            return;
+        }
+
+        if ($level === 'warning' || $level === 'notice') {
+            $this->warn($line);
+            return;
+        }
+
+        $this->line($line);
     }
 }
