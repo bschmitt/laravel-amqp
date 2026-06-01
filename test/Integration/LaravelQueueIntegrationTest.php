@@ -43,7 +43,7 @@ class LaravelQueueIntegrationTest extends LaravelQueueTestCase
         $queue->pushRaw($this->laravelJobPayload(), $queueName);
 
         // Allow the broker a moment to register the publishes before counting.
-        usleep(150_000);
+        usleep(150000);
 
         $this->assertSame(2, $queue->size($queueName));
     }
@@ -62,7 +62,7 @@ class LaravelQueueIntegrationTest extends LaravelQueueTestCase
         $queue = $this->makeQueue($queueName);
 
         $queue->pushRaw($this->laravelJobPayload(), $queueName);
-        usleep(100_000);
+        usleep(100000);
 
         /** @var AmqpJob $job */
         $job = $queue->pop($queueName);
@@ -82,14 +82,14 @@ class LaravelQueueIntegrationTest extends LaravelQueueTestCase
 
         $payload = $this->laravelJobPayload(['id' => 'requeue-me']);
         $queue->pushRaw($payload, $queueName);
-        usleep(100_000);
+        usleep(100000);
 
         /** @var AmqpJob $first */
         $first = $queue->pop($queueName);
         $this->assertInstanceOf(AmqpJob::class, $first);
         $first->release(0);
 
-        usleep(150_000);
+        usleep(150000);
 
         /** @var AmqpJob $second */
         $second = $queue->pop($queueName);

@@ -58,7 +58,7 @@ class LaravelQueueDelayIntegrationTest extends LaravelQueueTestCase
 
         $queue->laterRaw(0, $this->laravelJobPayload(['id' => 'immediate']), $queueName);
 
-        usleep(100_000);
+        usleep(100000);
 
         $job = $queue->pop($queueName);
         $this->assertInstanceOf(AmqpJob::class, $job);

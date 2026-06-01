@@ -5,7 +5,6 @@ namespace Bschmitt\Amqp\Test\Support;
 use Bschmitt\Amqp\Core\Amqp;
 use Illuminate\Config\Repository;
 use Illuminate\Console\Command;
-use Illuminate\Container\Container;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -19,7 +18,7 @@ use Symfony\Component\Console\Tester\CommandTester;
  */
 abstract class CommandTestCase extends TestCase
 {
-    /** @var Container */
+    /** @var ConsoleTestContainer */
     protected $container;
 
     /** @var \Mockery\MockInterface|Amqp */
@@ -29,8 +28,8 @@ abstract class CommandTestCase extends TestCase
     {
         parent::setUp();
 
-        $this->container = new Container();
-        Container::setInstance($this->container);
+        $this->container = new ConsoleTestContainer();
+        ConsoleTestContainer::setInstance($this->container);
 
         $this->container->instance('config', new Repository([
             'amqp' => include dirname(__DIR__, 2).'/config/amqp.php',
@@ -46,7 +45,7 @@ abstract class CommandTestCase extends TestCase
     protected function tearDown(): void
     {
         Mockery::close();
-        Container::setInstance(null);
+        ConsoleTestContainer::setInstance(null);
 
         parent::tearDown();
     }

@@ -18,7 +18,7 @@ class LaravelQueueReleaseIntegrationTest extends LaravelQueueTestCase
 
         $payload = $this->laravelJobPayload(['id' => 'release-no-delay']);
         $queue->pushRaw($payload, $queueName);
-        usleep(100_000);
+        usleep(100000);
 
         /** @var AmqpJob $first */
         $first = $queue->pop($queueName);
@@ -26,7 +26,7 @@ class LaravelQueueReleaseIntegrationTest extends LaravelQueueTestCase
         $this->assertSame(1, $first->attempts());
 
         $first->release(0);
-        usleep(150_000);
+        usleep(150000);
 
         /** @var AmqpJob $second */
         $second = $queue->pop($queueName);
@@ -47,7 +47,7 @@ class LaravelQueueReleaseIntegrationTest extends LaravelQueueTestCase
 
         $payload = $this->laravelJobPayload(['id' => 'release-delayed']);
         $queue->pushRaw($payload, $queueName);
-        usleep(100_000);
+        usleep(100000);
 
         /** @var AmqpJob $first */
         $first = $queue->pop($queueName);

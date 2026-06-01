@@ -52,7 +52,7 @@ class LaravelQueueWorkerIntegrationTest extends LaravelQueueTestCase
         ]);
 
         $queue->pushRaw($payload, $queueName);
-        usleep(150_000);
+        usleep(150000);
 
         $worker = $this->buildWorker($manager);
 
