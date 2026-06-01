@@ -61,11 +61,14 @@ class AmqpConnectorTest extends BaseTestCase
     }
 
     /**
+     * Build a connector against an in-memory AMQP config so the test does not
+     * depend on environment variables or the shipped config/amqp.php file.
+     *
      * @return array{0: AmqpConnector, 1: array}
      */
     private function buildConnector(): array
     {
-        $amqpConfig = include dirname(__DIR__, 2).'/config/amqp.php';
+        $amqpConfig = $this->fakeAmqpConfig();
 
         $container = new Container();
         $container->instance('config', new Repository(['amqp' => $amqpConfig]));
@@ -73,5 +76,62 @@ class AmqpConnectorTest extends BaseTestCase
         (new AmqpServiceProvider($container))->register();
 
         return [new AmqpConnector($container), $amqpConfig];
+    }
+
+    /**
+     * Minimal, deterministic AMQP config used by the connector tests.
+     *
+     * @return array
+     */
+    private function fakeAmqpConfig(): array
+    {
+        return [
+            'use' => 'testing',
+            'properties' => [
+                'testing' => [
+                    'host'                 => 'amqp-test-host',
+                    'port'                 => 5672,
+                    'username'             => 'test-user',
+                    'password'             => 'test-pass',
+                    'vhost'                => '/',
+                    'connect_options'      => [],
+                    'ssl_options'          => [],
+
+                    'exchange'             => 'test.topic',
+                    'exchange_type'        => 'topic',
+                    'exchange_passive'     => false,
+                    'exchange_durable'     => true,
+                    'exchange_auto_delete' => false,
+                    'exchange_internal'    => false,
+                    'exchange_nowait'      => false,
+                    'exchange_properties'  => [],
+
+                    'queue_force_declare'  => false,
+                    'queue_passive'        => false,
+                    'queue_durable'        => true,
+                    'queue_exclusive'      => false,
+                    'queue_auto_delete'    => false,
+                    'queue_nowait'         => false,
+                    'queue_properties'     => [],
+
+                    'consumer_tag'         => '',
+                    'consumer_no_local'    => false,
+                    'consumer_no_ack'      => false,
+                    'consumer_exclusive'   => false,
+                    'consumer_nowait'      => false,
+                    'consumer_properties'  => [],
+
+                    'timeout'              => 0,
+                    'persistent'           => false,
+                    'publish_timeout'      => 30,
+                    'publisher_confirms'   => false,
+                    'wait_for_confirms'    => true,
+                    'qos'                  => false,
+                    'qos_prefetch_size'    => 0,
+                    'qos_prefetch_count'   => 1,
+                    'qos_a_global'         => false,
+                ],
+            ],
+        ];
     }
 }

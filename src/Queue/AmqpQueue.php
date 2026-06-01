@@ -72,6 +72,7 @@ class AmqpQueue extends Queue implements QueueContract
     ) {
         $this->container = $container;
         $this->queueConnectionConfig = $config;
+        $this->syncParentQueueConfig($config);
         $this->publisherFactory = $publisherFactory;
         $this->messageFactory = $messageFactory;
         $this->amqpProperties = QueueConfigResolver::resolve(
@@ -94,6 +95,7 @@ class AmqpQueue extends Queue implements QueueContract
     public function setConfig(array $config)
     {
         $this->queueConnectionConfig = $config;
+        $this->syncParentQueueConfig($config);
 
         return $this;
     }
@@ -103,20 +105,46 @@ class AmqpQueue extends Queue implements QueueContract
      */
     public function size($queue = null)
     {
-        $queue = $this->getQueue($queue);
+        return $this->pendingSize($queue)
+            + $this->delayedSize($queue)
+            + $this->reservedSize($queue);
+    }
 
-        try {
-            $channel = $this->getConnectionManager($queue)->getChannel();
-            [, $size] = $channel->queue_declare($queue, true);
+    /**
+     * {@inheritdoc}
+     */
+    public function pendingSize($queue = null)
+    {
+        return $this->passiveQueueMessageCount($this->getQueue($queue));
+    }
 
-            return (int) $size;
-        } catch (AMQPProtocolChannelException $exception) {
-            if ($exception->getCode() === 404 || (isset($exception->amqp_reply_code) && $exception->amqp_reply_code === 404)) {
-                return 0;
-            }
+    /**
+     * {@inheritdoc}
+     *
+     * Delayed jobs use per-TTL queues ({@see laterRaw()}); without the
+     * management API we cannot enumerate those queues here.
+     */
+    public function delayedSize($queue = null)
+    {
+        return 0;
+    }
 
-            throw $exception;
-        }
+    /**
+     * {@inheritdoc}
+     *
+     * Unacknowledged (reserved) messages are not exposed via passive declare.
+     */
+    public function reservedSize($queue = null)
+    {
+        return 0;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function creationTimeOfOldestPendingJob($queue = null)
+    {
+        return null;
     }
 
     /**
@@ -417,5 +445,42 @@ class AmqpQueue extends Queue implements QueueContract
         $decoded = json_decode($payload, true);
 
         return is_array($decoded) ? ($decoded['id'] ?? null) : null;
+    }
+
+    /**
+     * Passive queue declare message count (ready messages).
+     *
+     * @param string $queue
+     * @return int
+     */
+    protected function passiveQueueMessageCount(string $queue): int
+    {
+        try {
+            $channel = $this->getConnectionManager($queue)->getChannel();
+            [, $size] = $channel->queue_declare($queue, true);
+
+            return (int) $size;
+        } catch (AMQPProtocolChannelException $exception) {
+            if ($exception->getCode() === 404 || (isset($exception->amqp_reply_code) && $exception->amqp_reply_code === 404)) {
+                return 0;
+            }
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * Mirror config into {@see Queue::$config} on Laravel 12+.
+     *
+     * @param array $config
+     * @return void
+     */
+    protected function syncParentQueueConfig(array $config): void
+    {
+        if (!property_exists(parent::class, 'config')) {
+            return;
+        }
+
+        $this->config = $config;
     }
 }
