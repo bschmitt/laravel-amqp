@@ -72,7 +72,107 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 
 
 ## Planned Features
-- RabbitMQ Dashboard 
+
+Status legend: **[x]** shipped · **[~]** partial / building blocks shipped (full feature still planned) · **[ ]** not started.
+
+> Many "partial" items already ship as a programmatic API or CLI; the
+> outstanding work is usually a UI, native integration, or codegen layer.
+> See the [Features](#features) section above for the full list of
+> already-shipped capabilities.
+
+### Observability
+
+* [ ] Laravel Pulse integration for AMQP metrics
+* [ ] Native OpenTelemetry exporter support (W3C `traceparent` propagation **is** shipped — bridge via `CallbackTracePropagator`)
+* [x] Queue throughput monitoring — `MetricsCollector`, `QueueMetrics`, `Amqp::metrics()` / `queueMetrics()`, `MonitoringDashboard`
+* [~] Consumer lag monitoring — queue depth / ready / unacked via `getQueueStatistics()`; no dedicated lag metric yet
+* [~] Dead-letter queue monitoring — `DeadLetterManager::count()` + DLQ surfaced in `amqp:monitor` / `MonitoringDashboard`
+* [~] RPC latency tracking — `RpcCallResult` + `MessageHandled::$durationMs`; no built-in histograms
+* [x] Distributed trace propagation — `TraceContext`, `W3cTracePropagator`, `propagate_trace` on publish/consume
+* [~] Correlation ID visualization — `CorrelationContext` + `x-causation-id` propagation; no UI yet
+
+---
+
+### Developer Experience
+
+* [ ] AMQP Explorer (Telescope-like message inspector)
+* [~] Message replay tooling — `DeadLetterManager::replayTo()` + `MessageStoreInterface` seed; no full replay CLI/UI
+* [~] Failed message browser — `DeadLetterManager::messages()` drains/inspects DLQ programmatically (no UI)
+* [~] Live queue inspector — Management API + `queueMetrics()` / `getQueueStatistics()` (no UI)
+* [ ] Message payload diff viewer
+* [~] Schema validation debugger — `SchemaValidator`, contract `schema()`, `amqp:work --validate-schema` (not interactive)
+* [ ] Interactive RPC testing console
+
+---
+
+### Kubernetes & Cloud Native
+
+* [~] Kubernetes-ready consumer lifecycle management — `ConsumerLifecycle` + `consumeWithLifecycle()` hooks
+* [x] Graceful shutdown support — `ConsumerLifecycle` signal handlers (`SIGTERM` / `SIGINT` via `pcntl`) + cooperative `requestStop()`
+* [ ] Readiness probe endpoint
+* [ ] Liveness probe endpoint
+* [x] Auto-recovery after broker failures — `ResilientConnectionManager` (reconnect + heartbeat staleness) and `ConnectionPool`
+* [ ] Consumer autoscaling recommendations
+* [ ] Laravel Cloud compatibility
+* [ ] Multi-region deployment support
+
+---
+
+### Enterprise Messaging
+
+* [~] Dead-letter queue management UI — `DeadLetterManager` API + `amqp:monitor` CLI; UI still planned
+* [ ] Scheduled message delivery (absolute time) — only **relative** delays today via `publishLater()` / `dispatchLater()`
+* [x] Delayed message support — `DelayedPublisher`, `Amqp::publishLater()` / `publishTypedLater()`, `TypedMessage::dispatchLater()`, `amqp:publish --delay-ms`
+* [x] Message priority queues — `QueueProfile::priority()` / `quorumWithPriority()`, `x-max-priority`, publish `priority`
+* [x] Bulk publish operations — `Amqp::batchBasicPublish()` / `batchPublish()` + `BatchManager`
+* [~] Consumer rate limiting — QoS / prefetch only (`basic_qos`, `--prefetch-count`, `WorkerOptions::throughput()` / `lowLatency()`); no app-level msgs/sec throttling
+* [ ] Circuit breaker support
+* [~] Retry policy dashboard — `RetryPolicy`, `#[Retry]`, `RetryHandler`, `consumeWithRetry()`; metrics via `amqp:monitor` (no dedicated retry UI)
+
+---
+
+### Polyglot Microservices
+
+* [ ] Contract generation for TypeScript
+* [ ] Contract generation for Go
+* [ ] Contract generation for Python
+* [~] JSON Schema export — contracts can declare `schema()` and validate in-process; no `export` CLI yet
+* [ ] AsyncAPI specification generation
+* [x] Service registry integration — `ServiceRegistry`, `Rpc::services()->register()` / `autodiscover()`, `Rpc::service('alias')->call(...)`
+* [~] Cross-language RPC contracts — `InteropEnvelope` standard headers (`x-message-type`, `x-schema-version`, `x-source-service`); no codegen for foreign languages
+
+---
+
+### Operations
+
+* [~] Horizon-style AMQP dashboard — `MonitoringDashboard` snapshot + `php artisan amqp:monitor [--json]`; full web UI still planned
+* [~] Queue health monitoring — Management API stats + `amqp:monitor` (no dedicated health view)
+* [~] Consumer health monitoring — consumer counts / rates via Management API; no consumer health UI
+* [ ] Queue topology visualizer (`ExchangeTopology` / `DeadLetterTopology` are **code** builders, not a visualizer)
+* [ ] Exchange / routing-key explorer
+* [~] Production diagnostics commands — `amqp:monitor`, `amqp:publish`, `amqp:consume`, `amqp:listen`, `amqp:purge`, `amqp:work`; no dedicated `amqp:diagnose`
+* [~] Broker connectivity diagnostics — `ResilientConnectionManager` handles reconnection; no standalone diagnostic command
+
+---
+
+### Security
+
+* [ ] Message encryption support
+* [ ] Message signing & verification
+* [ ] Sensitive payload masking
+* [~] Audit trail integration — `MessageStoreInterface` + `InMemoryMessageStore` (opt-in append log of every publish/consume)
+* [ ] Per-consumer access controls
+* [ ] Security scanning for message contracts
+
+---
+
+### AI & Modern Features
+
+* [ ] AI-powered message anomaly detection
+* [ ] AI-assisted queue optimization recommendations
+* [ ] Natural language queue diagnostics
+* [ ] Intelligent retry recommendations
+
 
 ## Requirements
 
