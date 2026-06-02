@@ -9,7 +9,7 @@ This page documents the building blocks that turn `laravel-amqp` into a full mic
 | Service Discovery | `Rpc::service('payments')->call(...)` |
 | Saga Facade | `Saga::make()->step()->compensate()` |
 | Message Contract Dispatch | `OrderCreated::dispatch([...])` |
-| Dead-Letter Management | `Amqp::deadLetters()->for($q)->replayTo($t)` |
+| Dead-Letter Management | `Amqp::deadLetters()->for($q)->peek()` / `summarize()` / `replayTo($t)` + `amqp:dlq` |
 | `#[Retry]` Attribute | `#[Retry(attempts: 5, strategy: RetryStrategy::EXPONENTIAL)]` |
 | Monitoring Dashboard | `Amqp::dashboard($queues)->snapshot()` + `amqp:monitor` |
 | Causation ID Propagation | `x-causation-id` header auto-inherited |
@@ -138,15 +138,35 @@ use Bschmitt\Amqp\Facades\Amqp;
 
 $dlq = Amqp::deadLetters()->for('orders.dlq');
 
-$dlq->count();                  // 17
-$dlq->messages(20);             // drain & return as arrays
-$dlq->replayTo('orders', 100);  // republish up to 100 to `orders`
-$dlq->purge();                  // drop all DLQ messages
+$dlq->count();                  // 17 (fires DeadLetterDetected when > 0)
+$dlq->peek(20);                 // non-destructive sample (basic_get + requeue)
+$dlq->summarize(100);           // categorize by x-death reason / x-last-error
+$dlq->messages(20);             // drain & return as arrays (destructive)
+$dlq->replayTo('orders', 100);  // republish up to 100 to `orders` (DeadLetterReplayed)
+$dlq->purge();                  // drop all DLQ messages (DeadLetterPurged)
 ```
+
+| Method | Destructive? | Purpose |
+|--------|--------------|---------|
+| `peek($limit)` | No | Sample messages without removing them from the DLQ |
+| `summarize($sampleSize)` | No | Aggregate `by_reason`, `by_origin`, `top_errors`, `oldest_failed_at` |
+| `messages($limit, $requeue)` | Yes | Drain messages (ack by default) |
+| `replayTo($target, $limit)` | Yes | Drain then republish to a work queue |
+| `purge()` | Yes | Drop every message on the DLQ |
 
 `messages()` returns an array of `['body', 'properties', 'headers']`. The default behaviour is to **acknowledge** each message after reading; pass `messages(20, true)` to requeue them instead.
 
 `replayTo()` preserves `application_headers` and `content_type` from the original message, so traces and correlations survive the replay.
+
+### CLI — `amqp:dlq`
+
+```bash
+php artisan amqp:dlq inspect orders.dlq
+php artisan amqp:dlq peek    orders.dlq --limit=20 --json
+php artisan amqp:dlq summary orders.dlq --limit=200
+php artisan amqp:dlq replay  orders.dlq --target=orders --limit=50
+php artisan amqp:dlq purge   orders.dlq --force
+```
 
 ---
 
@@ -185,24 +205,44 @@ $amqp->consumeWithRetry('orders', new CreateOrderHandler(), $policy);
 ## 6. Monitoring Dashboard
 
 ```php
-$snapshot = Amqp::dashboard(['orders', 'orders.dlq'])->snapshot();
+$snapshot = Amqp::dashboard(['orders', 'orders.dlq'])
+    ->deadLetters(['orders.dlq'])
+    ->lagThresholds(1000, 60.0, 300)
+    ->snapshot();
 
 [
     'process' => ['published' => 12, 'consumed' => 11, 'handled' => 10, 'failed' => 1],
     'queues' => [
-        'orders'     => ['messages' => 4, 'consumers' => 2, 'publish_rate' => 3.2, ...],
-        'orders.dlq' => ['messages' => 1, 'consumers' => 0, ...],
+        'orders' => [
+            'messages' => 4,
+            'lag' => 3,
+            'lag_seconds' => 1.5,
+            'lagging' => false,
+            'publish_rate' => 3.2,
+            ...
+        ],
     ],
+    'dead_letters' => [
+        'orders.dlq' => ['messages' => 1, 'summary' => ['by_reason' => ['rejected' => 1], ...]],
+    ],
+    'rpc' => [
+        'UserService::GetUserRequest' => ['count' => 10, 'p95_ms' => 8.0, 'error_rate' => 0.0],
+    ],
+    'lagging' => [], // names of queues breaching lagThresholds()
     'overview' => ['queues' => 17],
     'generated' => '2026-06-02T07:32:11+00:00',
 ]
 ```
 
+Each queue row from `QueueMetrics::toArray()` now includes `lag`, `lag_seconds`, and `oldest_message_age_seconds` (when the Management API exposes `head_message_timestamp`).
+
 CLI:
 
 ```bash
 php artisan amqp:monitor --queue=orders --queue=orders.dlq
-php artisan amqp:monitor --queue=orders --json --connection=primary
+php artisan amqp:monitor --queue=orders --dlq=orders.dlq --rpc --json
+php artisan amqp:monitor --queue=orders --lag-threshold=1000 --lag-seconds=60
+# exits with code 1 when any watched queue is lagging (use in cron / CI)
 ```
 
 Wire it into your HTTP layer for a Horizon-style JSON endpoint:
@@ -210,7 +250,7 @@ Wire it into your HTTP layer for a Horizon-style JSON endpoint:
 ```php
 Route::get('/admin/amqp', fn() => Amqp::dashboard([
     'orders', 'orders.dlq', 'invoices',
-])->snapshot());
+])->deadLetters(['orders.dlq'])->snapshot());
 ```
 
 ---

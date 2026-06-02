@@ -4,6 +4,10 @@ namespace Bschmitt\Amqp\Rpc;
 
 use Bschmitt\Amqp\Core\Amqp;
 use Bschmitt\Amqp\Core\Consumer;
+use Bschmitt\Amqp\Events\RpcCallCompleted;
+use Bschmitt\Amqp\Events\RpcCallFailed;
+use Bschmitt\Amqp\Events\RpcCallStarted;
+use Bschmitt\Amqp\Support\EventDispatcher;
 use Bschmitt\Amqp\Support\InteropEnvelope;
 use PhpAmqpLib\Message\AMQPMessage;
 
@@ -159,9 +163,45 @@ class RpcDispatcher
         $properties['content_type'] = 'application/json';
         $properties['type'] = $service::name().'.'.$this->shortClass($requestClass);
 
-        $response = $this->amqp->rpc($service::routingKey(), $payload, $properties, $timeout);
+        $correlationId = isset($properties['correlation_id'])
+            ? (string) $properties['correlation_id']
+            : null;
+        $metricKey = $this->metricKey($service, $requestClass);
+
+        EventDispatcher::instance()->dispatch(new RpcCallStarted($service, $requestClass, $correlationId));
+
+        $start = microtime(true);
+
+        try {
+            $response = $this->amqp->rpc($service::routingKey(), $payload, $properties, $timeout);
+        } catch (\Throwable $e) {
+            $durationMs = (microtime(true) - $start) * 1000.0;
+            $this->amqp->rpcMetrics()->record($metricKey, $durationMs, true);
+            EventDispatcher::instance()->dispatch(new RpcCallFailed(
+                $service,
+                $requestClass,
+                $durationMs,
+                false,
+                get_class($e),
+                $e->getMessage(),
+                $correlationId
+            ));
+            throw $e;
+        }
+
+        $durationMs = (microtime(true) - $start) * 1000.0;
 
         if ($response === null) {
+            $this->amqp->rpcMetrics()->record($metricKey, $durationMs, true);
+            EventDispatcher::instance()->dispatch(new RpcCallFailed(
+                $service,
+                $requestClass,
+                $durationMs,
+                true,
+                null,
+                sprintf('RPC call timed out after %ds', $timeout),
+                $correlationId
+            ));
             throw new RpcTimeoutException(sprintf(
                 'RPC call %s::%s timed out after %ds',
                 $service,
@@ -172,16 +212,40 @@ class RpcDispatcher
 
         $decoded = json_decode((string) $response, true);
         if (!is_array($decoded)) {
-            // Non-JSON reply — bubble up as a raw string.
+            // Non-JSON reply — bubble up as a raw string. Treat as success.
+            $this->amqp->rpcMetrics()->record($metricKey, $durationMs, false);
+            EventDispatcher::instance()->dispatch(new RpcCallCompleted(
+                $service,
+                $requestClass,
+                $durationMs,
+                $correlationId
+            ));
             return ['_rpc_raw' => $response];
         }
 
         if (isset($decoded['_rpc_error'])) {
-            throw new RpcException(
-                (string) $decoded['_rpc_error'],
-                isset($decoded['_rpc_class']) ? (string) $decoded['_rpc_class'] : null
-            );
+            $errClass = isset($decoded['_rpc_class']) ? (string) $decoded['_rpc_class'] : null;
+            $errMessage = (string) $decoded['_rpc_error'];
+            $this->amqp->rpcMetrics()->record($metricKey, $durationMs, true);
+            EventDispatcher::instance()->dispatch(new RpcCallFailed(
+                $service,
+                $requestClass,
+                $durationMs,
+                false,
+                $errClass,
+                $errMessage,
+                $correlationId
+            ));
+            throw new RpcException($errMessage, $errClass);
         }
+
+        $this->amqp->rpcMetrics()->record($metricKey, $durationMs, false);
+        EventDispatcher::instance()->dispatch(new RpcCallCompleted(
+            $service,
+            $requestClass,
+            $durationMs,
+            $correlationId
+        ));
 
         return $this->hydrateResponse($requestClass, $decoded);
     }
@@ -289,7 +353,17 @@ class RpcDispatcher
         /** @var RpcRequest $request */
         $request = $requestClass::fromPayload($decoded);
 
-        $result = $handler->{$method}($request);
+        $metricKey = $this->metricKey($service, $requestClass).':serve';
+        $start = microtime(true);
+
+        try {
+            $result = $handler->{$method}($request);
+        } catch (\Throwable $e) {
+            $this->amqp->rpcMetrics()->record($metricKey, (microtime(true) - $start) * 1000.0, true);
+            throw $e;
+        }
+
+        $this->amqp->rpcMetrics()->record($metricKey, (microtime(true) - $start) * 1000.0, false);
 
         if ($result instanceof RpcResponse) {
             return $result->toPayload();
@@ -406,6 +480,20 @@ class RpcDispatcher
                 RpcService::class
             ));
         }
+    }
+
+    /**
+     * Build the key used by {@see \Bschmitt\Amqp\Support\RpcLatencyRecorder}
+     * for a `(service, request)` pair. Stripping the namespace keeps
+     * dashboards human-readable while staying unique per service.
+     *
+     * @param class-string<RpcService> $service
+     * @param class-string<RpcRequest> $requestClass
+     * @return string
+     */
+    protected function metricKey(string $service, string $requestClass): string
+    {
+        return $this->shortClass($service).'::'.$this->shortClass($requestClass);
     }
 
     /**

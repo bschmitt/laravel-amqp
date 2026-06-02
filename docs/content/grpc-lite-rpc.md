@@ -153,6 +153,29 @@ Handler return values may be:
 
 Handler exceptions are caught and serialized as `{"_rpc_error": "...", "_rpc_class": "..."}` so the client raises `RpcException`. The original message is acknowledged either way to prevent retries spinning forever; pair with the existing retry/DLQ topology if you need redelivery semantics.
 
+### Latency tracking & events
+
+Every `Rpc::call()`:
+
+1. Records round-trip time in `Amqp::rpcMetrics()` under `ServiceName::RequestName`.
+2. Records server handler time under `ServiceName::RequestName:serve` when using `Rpc::serve()`.
+3. Dispatches Laravel events (also available via `EventDispatcher::listen()` outside Laravel):
+
+| Event | When |
+|-------|------|
+| `RpcCallStarted` | Before the AMQP RPC publish |
+| `RpcCallCompleted` | Successful reply (`durationMs` on the event) |
+| `RpcCallFailed` | Timeout or remote `_rpc_error` envelope |
+
+```php
+use Bschmitt\Amqp\Facades\Amqp;
+
+$stats = Amqp::rpcMetrics()->for('UserService::GetUserRequest');
+// ['count' => 12, 'p95_ms' => 9.0, 'error_rate' => 0.08, ...]
+```
+
+View in the dashboard: `php artisan amqp:monitor --rpc`.
+
 ## Routing & headers
 
 Each `Rpc::call()` adds these AMQP application headers for tracing and dispatch:

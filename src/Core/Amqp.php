@@ -42,6 +42,7 @@ use Bschmitt\Amqp\Support\QueueProfile;
 use Bschmitt\Amqp\Support\RetryHandler;
 use Bschmitt\Amqp\Support\RetryPolicy;
 use Bschmitt\Amqp\Support\RpcClient;
+use Bschmitt\Amqp\Support\RpcLatencyRecorder;
 use Bschmitt\Amqp\Support\RpcServer;
 use Bschmitt\Amqp\Support\Saga;
 use Bschmitt\Amqp\Support\SchemaValidator;
@@ -98,6 +99,11 @@ class Amqp
      * @var RpcDispatcher|null
      */
     protected $rpcDispatcher;
+
+    /**
+     * @var RpcLatencyRecorder|null
+     */
+    protected $rpcLatencyRecorder;
 
     /** @var \Bschmitt\Amqp\Contracts\MessageStoreInterface|null */
     protected $messageStore;
@@ -749,6 +755,87 @@ class Amqp
     public function deadLetters(): \Bschmitt\Amqp\Support\DeadLetterManager
     {
         return new \Bschmitt\Amqp\Support\DeadLetterManager($this);
+    }
+
+    /**
+     * Lazy accessor for the shared RPC latency recorder.
+     *
+     * Used by {@see RpcClient}, {@see RpcDispatcher}, and
+     * {@see MonitoringDashboard} to track per-service/method timings.
+     *
+     * @return RpcLatencyRecorder
+     */
+    public function rpcMetrics(): RpcLatencyRecorder
+    {
+        if ($this->rpcLatencyRecorder === null) {
+            $this->rpcLatencyRecorder = new RpcLatencyRecorder();
+        }
+
+        return $this->rpcLatencyRecorder;
+    }
+
+    /**
+     * Replace the active RPC latency recorder (primarily for tests).
+     *
+     * @param RpcLatencyRecorder|null $recorder
+     * @return $this
+     */
+    public function setRpcMetrics(?RpcLatencyRecorder $recorder): self
+    {
+        $this->rpcLatencyRecorder = $recorder;
+
+        return $this;
+    }
+
+    /**
+     * Non-destructively read up to `$limit` messages from a queue.
+     *
+     * Uses `basic_get` with `no_ack=false` followed by `basic_reject(requeue)`
+     * so messages stay on the broker. Useful for DLQ inspection,
+     * health-check sampling, and the `amqp:dlq peek` Artisan command.
+     *
+     * Each entry is `['body' => string, 'properties' => array, 'headers' => array]`.
+     *
+     * @param string               $queue
+     * @param int                  $limit
+     * @param array<string, mixed> $properties
+     * @return array<int, array<string, mixed>>
+     */
+    public function peekQueue(string $queue, int $limit = 10, array $properties = []): array
+    {
+        if ($queue === '') {
+            throw new \InvalidArgumentException('queue must be non-empty');
+        }
+        $limit = max(0, $limit);
+        if ($limit === 0) {
+            return [];
+        }
+
+        $management = $this->createManagementInstance($properties);
+        try {
+            $channel = $management->getConnectionManager()->getChannel();
+            $collected = [];
+
+            for ($i = 0; $i < $limit; $i++) {
+                $message = $channel->basic_get($queue, false);
+                if ($message === null) {
+                    break;
+                }
+
+                $collected[] = [
+                    'body' => (string) $message->body,
+                    'properties' => $message->get_properties(),
+                    'headers' => \Bschmitt\Amqp\Support\MessageHeaders::toArray($message),
+                ];
+
+                $deliveryTag = $message->getDeliveryTag();
+                $channel->basic_reject($deliveryTag, true);
+            }
+
+            return $collected;
+        } finally {
+            $this->disconnectManagement($management);
+        }
     }
 
     /**

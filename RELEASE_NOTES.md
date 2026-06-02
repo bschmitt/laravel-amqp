@@ -2,6 +2,57 @@
 
 ---
 
+## Version 3.4.2 - Patch Release
+
+Observability patch on top of `3.4.1`: consumer lag metrics, DLQ
+inspection/summarization, RPC latency histograms, and two new Artisan
+commands. Fully backwards-compatible — no migration required.
+
+### Compatibility
+
+- **PHP**: 7.3 through 8.5
+- **Laravel**: 8.x through 13.x (Lumen 8.x+)
+- Every new file under `src/` parses as PHP 7.3 (verified via
+  `scripts/check-php73-compat.php`).
+
+### Consumer lag monitoring
+
+- `QueueMetrics::lag()`, `lagSeconds()`, `oldestMessageAgeSeconds()`, `isLagging()`
+- `lag`, `lag_seconds`, `oldest_message_age_seconds` in `QueueMetrics::toArray()`
+- `MonitoringDashboard::lagThresholds()` + `lagging` key in snapshots
+- `php artisan amqp:monitor --lag-threshold` / `--lag-seconds` / `--lag-age` (exit `1` when breaching)
+
+### Dead-letter queue monitoring
+
+- `DeadLetterManager::peek()` — non-destructive `basic_get` + requeue
+- `DeadLetterManager::summarize()` — group by `x-death` reason, origin, `x-last-error`
+- `Amqp::peekQueue()` low-level helper
+- Events: `DeadLetterDetected`, `DeadLetterReplayed`, `DeadLetterPurged`
+- `php artisan amqp:dlq {inspect|peek|summary|replay|purge}`
+- `MonitoringDashboard::deadLetters()` + `dead_letters` block in snapshots
+
+### RPC latency tracking
+
+- `RpcLatencyRecorder` + `Amqp::rpcMetrics()` with p50/p95/p99 estimates
+- `RpcCallResult::durationMs()` / `failed()` / `errorClass()`
+- `RpcClient::call()` and `RpcDispatcher::call()` record timings automatically
+- Server handler timings under `{Service}::{Request}:serve`
+- Events: `RpcCallStarted`, `RpcCallCompleted`, `RpcCallFailed`
+- `php artisan amqp:monitor --rpc`
+
+### Tests
+
+- Extended: `QueueMetricsTest`, `DeadLetterManagerTest`, `MonitoringDashboardTest`,
+  `RpcClientTest`, `RpcDispatcherTest`
+- New: `RpcLatencyRecorderTest`
+- Unit suite additions: **49 tests / 113 assertions** in the touched files above
+
+### Migration
+
+No migration required. All features are opt-in.
+
+---
+
 ## Version 3.4.0 - Minor Release
 
 A consolidated release that lands the original twenty roadmap features plus

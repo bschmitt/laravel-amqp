@@ -92,6 +92,7 @@ class AmqpServiceProvider extends ServiceProvider
             \Bschmitt\Amqp\Console\Commands\AmqpPublishCommand::class,
             \Bschmitt\Amqp\Console\Commands\AmqpPurgeCommand::class,
             \Bschmitt\Amqp\Console\Commands\AmqpMonitorCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpDlqCommand::class,
         ]);
     }
 

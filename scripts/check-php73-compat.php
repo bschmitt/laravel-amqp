@@ -151,6 +151,16 @@ $files = [
     'test/Unit/RetryAttributeTest.php',
     'test/Unit/CausationContextTest.php',
     'test/Unit/AmqpEventListenerTest.php',
+    // Observability v3.4.2 — lag, DLQ inspection, RPC latency
+    'src/Support/RpcLatencyRecorder.php',
+    'src/Events/DeadLetterDetected.php',
+    'src/Events/DeadLetterReplayed.php',
+    'src/Events/DeadLetterPurged.php',
+    'src/Events/RpcCallStarted.php',
+    'src/Events/RpcCallCompleted.php',
+    'src/Events/RpcCallFailed.php',
+    'src/Console/Commands/AmqpDlqCommand.php',
+    'test/Unit/RpcLatencyRecorderTest.php',
 ];
 
 $factory = new ParserFactory();

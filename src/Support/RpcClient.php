@@ -84,7 +84,10 @@ class RpcClient
             $properties['content_type'] = 'application/json';
         }
 
+        $start = microtime(true);
         $response = $this->amqp->rpc($routingKey, $payload, $properties, $timeout);
+        $durationMs = (microtime(true) - $start) * 1000.0;
+
         $timedOut = $response === null;
 
         if ($this->json && !$timedOut && is_string($response)) {
@@ -94,6 +97,12 @@ class RpcClient
             }
         }
 
-        return new RpcCallResult($response, $timedOut, $correlationId);
+        $this->amqp->rpcMetrics()->record(
+            $routingKey !== '' ? $routingKey : '_anonymous',
+            $durationMs,
+            $timedOut
+        );
+
+        return new RpcCallResult($response, $timedOut, $correlationId, $durationMs);
     }
 }

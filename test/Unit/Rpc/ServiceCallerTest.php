@@ -4,6 +4,7 @@ namespace Bschmitt\Amqp\Test\Unit\Rpc;
 
 use Bschmitt\Amqp\Core\Amqp;
 use Bschmitt\Amqp\Rpc\RpcDispatcher;
+use Bschmitt\Amqp\Support\RpcLatencyRecorder;
 use Bschmitt\Amqp\Test\Support\BaseTestCase;
 use Bschmitt\Amqp\Test\Support\Fixtures\Rpc\GetUserRequest;
 use Bschmitt\Amqp\Test\Support\Fixtures\Rpc\GetUserResponse;
@@ -47,6 +48,7 @@ class ServiceCallerTest extends BaseTestCase
                 $this->assertSame(5, $timeout);
                 return json_encode(['id' => 7, 'name' => 'Grace']);
             });
+        $amqp->shouldReceive('rpcMetrics')->andReturn(new RpcLatencyRecorder());
 
         $dispatcher = new RpcDispatcher($amqp);
         $dispatcher->services()->register('users', UserService::class);

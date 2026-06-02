@@ -6,6 +6,7 @@ use Bschmitt\Amqp\Core\Amqp;
 use Bschmitt\Amqp\Rpc\RpcDispatcher;
 use Bschmitt\Amqp\Rpc\RpcException;
 use Bschmitt\Amqp\Rpc\RpcTimeoutException;
+use Bschmitt\Amqp\Support\RpcLatencyRecorder;
 use Bschmitt\Amqp\Test\Support\BaseTestCase;
 use Bschmitt\Amqp\Test\Support\Fixtures\Rpc\CreateUserRequest;
 use Bschmitt\Amqp\Test\Support\Fixtures\Rpc\GetUserRequest;
@@ -20,9 +21,24 @@ use RuntimeException;
 
 class RpcDispatcherTest extends BaseTestCase
 {
-    public function testCallSerializesRequestAndHydratesResponse(): void
+    /**
+     * Build a mocked Amqp with a real RpcLatencyRecorder so tests can assert
+     * call counts and durations without stubbing every recorder method.
+     *
+     * @return array{0: \Mockery\MockInterface, 1: RpcLatencyRecorder}
+     */
+    protected function makeAmqp(): array
     {
         $amqp = m::mock(Amqp::class);
+        $recorder = new RpcLatencyRecorder();
+        $amqp->shouldReceive('rpcMetrics')->andReturn($recorder);
+
+        return [$amqp, $recorder];
+    }
+
+    public function testCallSerializesRequestAndHydratesResponse(): void
+    {
+        [$amqp, $recorder] = $this->makeAmqp();
 
         $capturedRouting = null;
         $capturedBody = null;
@@ -53,21 +69,35 @@ class RpcDispatcherTest extends BaseTestCase
         $this->assertInstanceOf(GetUserResponse::class, $response);
         $this->assertSame(5, $response->id);
         $this->assertSame('Ada', $response->name);
+
+        $stats = $recorder->for('UserService::GetUserRequest');
+        $this->assertNotNull($stats);
+        $this->assertSame(1, $stats['count']);
+        $this->assertSame(0, $stats['failed']);
     }
 
-    public function testCallThrowsOnTimeout(): void
+    public function testCallThrowsOnTimeoutAndRecordsFailure(): void
     {
-        $amqp = m::mock(Amqp::class);
+        [$amqp, $recorder] = $this->makeAmqp();
         $amqp->shouldReceive('rpc')->once()->andReturn(null);
 
         $dispatcher = new RpcDispatcher($amqp);
-        $this->expectException(RpcTimeoutException::class);
-        $dispatcher->call(UserService::class, GetUserRequest::make(['id' => 1]));
+
+        try {
+            $dispatcher->call(UserService::class, GetUserRequest::make(['id' => 1]));
+            $this->fail('Expected RpcTimeoutException');
+        } catch (RpcTimeoutException $e) {
+            // expected
+        }
+
+        $stats = $recorder->for('UserService::GetUserRequest');
+        $this->assertNotNull($stats);
+        $this->assertSame(1, $stats['failed']);
     }
 
     public function testCallRaisesRemoteErrorAsRpcException(): void
     {
-        $amqp = m::mock(Amqp::class);
+        [$amqp, $recorder] = $this->makeAmqp();
         $amqp->shouldReceive('rpc')->once()->andReturn(json_encode([
             '_rpc_error' => 'user not found',
             '_rpc_class' => 'App\\Exceptions\\NotFound',
@@ -82,6 +112,9 @@ class RpcDispatcherTest extends BaseTestCase
             $this->assertSame('user not found', $e->getMessage());
             $this->assertSame('App\\Exceptions\\NotFound', $e->remoteClass());
         }
+
+        $stats = $recorder->for('UserService::GetUserRequest');
+        $this->assertSame(1, $stats['failed']);
     }
 
     public function testRegisterRejectsNonServiceClasses(): void
@@ -93,7 +126,8 @@ class RpcDispatcherTest extends BaseTestCase
 
     public function testHandleRequestDispatchesToCorrectMethod(): void
     {
-        $dispatcher = new RpcDispatcher(m::mock(Amqp::class));
+        [$amqp, $recorder] = $this->makeAmqp();
+        $dispatcher = new RpcDispatcher($amqp);
         $dispatcher->register(UserService::class, new UserServiceHandler());
 
         $message = new AMQPMessage(json_encode(['name' => 'Bob']), [
@@ -106,6 +140,10 @@ class RpcDispatcherTest extends BaseTestCase
 
         $response = $dispatcher->handleRequest(UserService::class, $message);
         $this->assertSame(['id' => 99, 'name' => 'Bob'], $response);
+
+        $stats = $recorder->for('UserService::CreateUserRequest:serve');
+        $this->assertNotNull($stats);
+        $this->assertSame(1, $stats['count']);
     }
 
     public function testServeWithoutHandlerThrows(): void

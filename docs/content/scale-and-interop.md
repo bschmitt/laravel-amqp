@@ -19,7 +19,9 @@ $result = Amqp::rpcClient(['exchange' => 'rpc'])
 | `timeout($seconds)` | Default RPC timeout |
 | `call($routing, $request, $properties, $timeout)` | Returns `RpcCallResult` |
 
-`RpcCallResult`: `succeeded()`, `timedOut()`, `body()`, `correlationId()`.
+`RpcCallResult`: `succeeded()`, `failed()`, `timedOut()`, `body()`, `correlationId()`, `durationMs()`, `errorClass()`.
+
+Each call is timed and recorded in `Amqp::rpcMetrics()` (see **RPC latency** below).
 
 Built on the existing `Amqp::rpc()` primitive (exclusive reply queue + correlation ID).
 
@@ -73,9 +75,27 @@ Export via `snapshot()` to logs, Prometheus, or StatsD.
 
 - `messageCount()`, `messagesReady()`, `messagesUnacknowledged()`
 - `consumerCount()`, `publishRate()`, `deliverRate()`
-- `toArray()` for structured logging
+- `lag()` — `messages_ready + messages_unacknowledged` (consumer backlog)
+- `lagSeconds()` — estimated time-to-drain at the current deliver rate
+- `oldestMessageAgeSeconds()` — head-of-queue age when `head_message_timestamp` is present
+- `isLagging($maxBacklog, $maxLagSeconds, $maxAgeSeconds)` — threshold helper for alerts
+- `toArray()` — includes `lag`, `lag_seconds`, and `oldest_message_age_seconds`
 
 `getQueueStats()` remains available as a raw-array alias.
+
+### RPC latency (`RpcLatencyRecorder`)
+
+`Amqp::rpcMetrics()` aggregates per-key latencies (routing keys for `RpcClient`, `Service::Request` for gRPC-lite):
+
+```php
+Amqp::rpcClient()->call('inventory.reserve', ['sku' => 'A']);
+Rpc::call(UserService::class, GetUserRequest::make(['id' => 1]));
+
+$stats = Amqp::rpcMetrics()->snapshot();
+// ['inventory.reserve' => ['count' => 10, 'p95_ms' => 4.0, 'error_rate' => 0.0, ...]]
+```
+
+Included automatically in `Amqp::dashboard(...)->snapshot()['rpc']` and via `php artisan amqp:monitor --rpc`.
 
 ## High-performance workers
 

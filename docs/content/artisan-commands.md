@@ -9,6 +9,8 @@ Laravel AMQP ships with **five artisan commands** so you can run workers, fire o
 | `amqp:listen` | Listen on one or more routing keys with an auto-generated queue |
 | `amqp:publish` | Publish a single message from the CLI (debugging / smoke tests) |
 | `amqp:purge` | Empty a queue, with an optional `--force` flag |
+| `amqp:monitor` | Snapshot of process metrics, queue lag, DLQ summaries, and RPC latencies |
+| `amqp:dlq` | Inspect, peek, summarize, replay, or purge a dead-letter queue |
 
 All consumer commands dispatch messages to a **handler class** you supply via `--handler`. The handler is resolved through the Laravel container, so constructor dependencies are auto-wired.
 
@@ -272,6 +274,58 @@ php artisan amqp:purge dead-letters --force
 | `--connection=` | Connection name |
 
 The command prints the number of messages that were removed.
+
+---
+
+## `amqp:monitor` — observability snapshot
+
+Prints a human-readable table or a JSON snapshot of everything the package can observe in-process and via the Management API.
+
+```bash
+php artisan amqp:monitor --queue=orders --queue=orders.dlq
+php artisan amqp:monitor --queue=orders --dlq=orders.dlq --rpc --json
+php artisan amqp:monitor --queue=orders --lag-threshold=1000 --lag-seconds=60
+```
+
+| Option | Description |
+|--------|-------------|
+| `--queue=*` | Queue(s) to include (repeatable) |
+| `--dlq=*` | Treat queue(s) as DLQs — adds a `dead_letters` block with `summarize()` output |
+| `--rpc` | Include `Amqp::rpcMetrics()->snapshot()` in the output |
+| `--lag-threshold=` | Mark queues lagging when `lag > N` |
+| `--lag-seconds=` | Mark queues lagging when estimated time-to-drain exceeds N seconds |
+| `--lag-age=` | Mark queues lagging when head-of-queue age exceeds N seconds |
+| `--json` | Emit the raw snapshot as JSON |
+| `--connection=` | Connection name from `config/amqp.php` |
+
+**Exit code:** `1` when any watched queue breaches a configured lag threshold (useful in cron / CI).
+
+---
+
+## `amqp:dlq` — dead-letter operations
+
+Wraps `Amqp::deadLetters()` for operators who prefer the CLI over PHP.
+
+```bash
+php artisan amqp:dlq inspect orders.dlq
+php artisan amqp:dlq peek    orders.dlq --limit=20
+php artisan amqp:dlq summary orders.dlq --limit=200 --json
+php artisan amqp:dlq replay  orders.dlq --target=orders --limit=50
+php artisan amqp:dlq purge   orders.dlq --force
+```
+
+| Argument / option | Description |
+|-------------------|-------------|
+| `action` | `inspect` (count), `peek`, `summary`, `replay`, or `purge` |
+| `queue` | DLQ name |
+| `--target=` | Required for `replay` — destination work queue |
+| `--limit=` | Sample / replay size (default `10`) |
+| `--exchange=` | Exchange used when replaying |
+| `--force` | Skip confirmation on `purge` |
+| `--json` | JSON output |
+| `--connection=` | Connection override |
+
+`peek` and `summary` are **non-destructive**. `replay` and `purge` mutate broker state.
 
 ---
 

@@ -63,9 +63,10 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - **Service discovery** - `Rpc::service('payments')->call(...)` resolves a short name to a registered `RpcService` class; opt-in via `static alias()` on the service (see [Messaging Platform](#laravel-messaging-platform))
 - **Saga facade** - `Saga::make()->step(...)->compensate(...)` fluent syntax with reverse-order compensation on failure (see [Messaging Platform](#laravel-messaging-platform))
 - **Message contracts dispatch** - `OrderCreated::dispatch(['orderId' => 'o-1'])` auto-serializes and publishes typed messages via the Laravel container (see [Messaging Platform](#laravel-messaging-platform))
-- **Dead-letter management** - `Amqp::deadLetters()->for('orders.dlq')->count()/messages()/replayTo()/purge()` fluent inspection and recovery (see [Messaging Platform](#laravel-messaging-platform))
+- **Dead-letter management** - `Amqp::deadLetters()->for('orders.dlq')->count()/peek()/summarize()/messages()/replayTo()/purge()` + `php artisan amqp:dlq` (see [Messaging Platform](#laravel-messaging-platform))
 - **Declarative retry attribute** - `#[Retry(attempts: 5, strategy: RetryStrategy::EXPONENTIAL)]` on handlers, hydrated via `RetryPolicy::fromAttribute()` (see [Messaging Platform](#laravel-messaging-platform))
-- **Monitoring dashboard** - `Amqp::dashboard($queues)->snapshot()` aggregates in-process metrics + Management API stats; `php artisan amqp:monitor` prints them (see [Messaging Platform](#laravel-messaging-platform))
+- **Monitoring dashboard** - `Amqp::dashboard($queues)->snapshot()` with lag, DLQ summaries, and RPC histograms; `php artisan amqp:monitor` / `amqp:dlq` (see [Messaging Platform](#laravel-messaging-platform))
+- **RPC latency tracking** - `RpcLatencyRecorder`, per-call `durationMs` on `RpcCallResult`, `RpcCallStarted` / `RpcCallCompleted` / `RpcCallFailed` events (see [gRPC-lite RPC](#grpc-lite-rpc))
 - **Causation ID propagation** - `CorrelationContext` now propagates both `correlation_id` and `x-causation-id` so consumers can chain "this happened because of that" (see [Messaging Platform](#laravel-messaging-platform))
 - **MessageStore** - `MessageStoreInterface` + `InMemoryMessageStore`; opt-in audit log of every publish/consume via `Amqp::setMessageStore()` (see [Messaging Platform](#laravel-messaging-platform))
 - **Async Laravel events** - mark events with `ShouldPublishToAmqpInterface` and enable `amqp.broadcast_laravel_events` to auto-publish `event(new OrderCreated())` to RabbitMQ (see [Messaging Platform](#laravel-messaging-platform))
@@ -85,9 +86,9 @@ Status legend: **[x]** shipped · **[~]** partial / building blocks shipped (ful
 * [ ] Laravel Pulse integration for AMQP metrics
 * [ ] Native OpenTelemetry exporter support (W3C `traceparent` propagation **is** shipped — bridge via `CallbackTracePropagator`)
 * [x] Queue throughput monitoring — `MetricsCollector`, `QueueMetrics`, `Amqp::metrics()` / `queueMetrics()`, `MonitoringDashboard`
-* [~] Consumer lag monitoring — queue depth / ready / unacked via `getQueueStatistics()`; no dedicated lag metric yet
-* [~] Dead-letter queue monitoring — `DeadLetterManager::count()` + DLQ surfaced in `amqp:monitor` / `MonitoringDashboard`
-* [~] RPC latency tracking — `RpcCallResult` + `MessageHandled::$durationMs`; no built-in histograms
+* [x] Consumer lag monitoring — `QueueMetrics::lag()`, `lagSeconds()`, `isLagging()`; `--lag-threshold` / `--lag-seconds` / `--lag-age` on `amqp:monitor`
+* [x] Dead-letter queue monitoring — `DeadLetterManager::peek()` / `summarize()`, `dead_letters` block in dashboard, `php artisan amqp:dlq`
+* [x] RPC latency tracking — `RpcLatencyRecorder`, `RpcCallResult::durationMs()`, `RpcCallCompleted` / `RpcCallFailed` events, `--rpc` on `amqp:monitor`
 * [x] Distributed trace propagation — `TraceContext`, `W3cTracePropagator`, `propagate_trace` on publish/consume
 * [~] Correlation ID visualization — `CorrelationContext` + `x-causation-id` propagation; no UI yet
 
@@ -120,7 +121,7 @@ Status legend: **[x]** shipped · **[~]** partial / building blocks shipped (ful
 
 ### Enterprise Messaging
 
-* [~] Dead-letter queue management UI — `DeadLetterManager` API + `amqp:monitor` CLI; UI still planned
+* [~] Dead-letter queue management UI — `DeadLetterManager` API + `amqp:dlq` / `amqp:monitor` CLI; web UI still planned
 * [ ] Scheduled message delivery (absolute time) — only **relative** delays today via `publishLater()` / `dispatchLater()`
 * [x] Delayed message support — `DelayedPublisher`, `Amqp::publishLater()` / `publishTypedLater()`, `TypedMessage::dispatchLater()`, `amqp:publish --delay-ms`
 * [x] Message priority queues — `QueueProfile::priority()` / `quorumWithPriority()`, `x-max-priority`, publish `priority`
@@ -1202,6 +1203,26 @@ Rpc::call(UserService::class, GetUserRequest::make(['id' => 1]), 5, [
 ]);
 ```
 
+### RPC latency & events
+
+Every `Rpc::call()` records timing in `Amqp::rpcMetrics()` and dispatches Laravel events you can wire to Pulse, logs, or APM:
+
+```php
+use Bschmitt\Amqp\Events\RpcCallCompleted;
+use Bschmitt\Amqp\Events\RpcCallFailed;
+
+Event::listen(RpcCallCompleted::class, fn ($e) => Log::info('rpc.ok', [
+    'service' => $e->service,
+    'request' => $e->request,
+    'ms'      => $e->durationMs,
+]));
+
+$stats = Amqp::rpcMetrics()->snapshot();
+// ['UserService::GetUserRequest' => ['count' => 42, 'p95_ms' => 12.5, 'error_rate' => 0.02, ...]]
+```
+
+Lower-level `RpcClient::call()` also returns `RpcCallResult::durationMs()`.
+
 See `docs/content/grpc-lite-rpc.md` for the full reference.
 
 ## Laravel Messaging Platform
@@ -1281,10 +1302,23 @@ OrderCreated::dispatchLater(['orderId' => 'o-1'], 2_000); // 2s delay
 use Bschmitt\Amqp\Facades\Amqp;
 
 Amqp::deadLetters()->for('orders.dlq')->count();           // 17
-Amqp::deadLetters()->for('orders.dlq')->messages(10);      // drain & inspect
+Amqp::deadLetters()->for('orders.dlq')->peek(20);         // non-destructive sample
+Amqp::deadLetters()->for('orders.dlq')->summarize(100);   // group by reason / error
+Amqp::deadLetters()->for('orders.dlq')->messages(10);      // drain & inspect (destructive)
 Amqp::deadLetters()->for('orders.dlq')->replayTo('orders', 50);
 Amqp::deadLetters()->for('orders.dlq')->purge();
 ```
+
+CLI:
+
+```bash
+php artisan amqp:dlq inspect orders.dlq
+php artisan amqp:dlq summary orders.dlq --limit=200 --json
+php artisan amqp:dlq replay  orders.dlq --target=orders --limit=50
+php artisan amqp:dlq purge   orders.dlq --force
+```
+
+Lifecycle events: `DeadLetterDetected`, `DeadLetterReplayed`, `DeadLetterPurged`.
 
 ### Declarative Retry (`#[Retry]`)
 
@@ -1308,17 +1342,20 @@ On PHP 7.x the attribute parses as a comment (the package still loads); call sit
 ### Monitoring Dashboard
 
 ```php
-$snapshot = Amqp::dashboard(['orders', 'orders.dlq'])->snapshot();
-// process: { published, consumed, handled, failed }
-// queues:  { 'orders' => { messages, consumers, publish_rate, ... } }
-// overview, generated
+$snapshot = Amqp::dashboard(['orders', 'orders.dlq'])
+    ->deadLetters(['orders.dlq'])
+    ->lagThresholds(1000, 60.0, 300)
+    ->snapshot();
+// process, queues (with lag / lag_seconds / lagging), dead_letters, rpc, lagging[], generated
 ```
 
 CLI:
 
 ```bash
-php artisan amqp:monitor --queue=orders --queue=orders.dlq
-php artisan amqp:monitor --queue=orders --json
+php artisan amqp:monitor --queue=orders --queue=orders.dlq --json
+php artisan amqp:monitor --queue=orders --dlq=orders.dlq --rpc
+php artisan amqp:monitor --queue=orders --lag-threshold=1000 --lag-seconds=60
+# exits 1 when any queue breaches a lag threshold (cron-friendly)
 ```
 
 Wire the snapshot into any HTTP route (Laravel, Symfony, Slim) to expose a JSON dashboard.
