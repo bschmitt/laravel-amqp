@@ -1,6 +1,6 @@
 # Artisan Commands
 
-Laravel AMQP ships with **five artisan commands** so you can run workers, fire off messages, and clean up queues without writing a single line of bootstrap code.
+Laravel AMQP ships with a broad set of artisan commands so you can run workers, inspect traffic, replay or diff messages, validate schemas, and test RPC flows without writing bootstrap code.
 
 | Command | What it does |
 |---------|--------------|
@@ -12,6 +12,12 @@ Laravel AMQP ships with **five artisan commands** so you can run workers, fire o
 | `amqp:monitor` | Snapshot of process metrics, queue lag, DLQ summaries, and RPC latencies |
 | `amqp:dlq` | Inspect, peek, summarize, replay, or purge a dead-letter queue |
 | `amqp:trace` | Render the causation tree of a correlation id from the `MessageStore` |
+| `amqp:explore` | Query and inspect stored messages (`MessageStore`) with filters and JSON output |
+| `amqp:replay` | Re-publish matching `MessageStore` entries back to AMQP |
+| `amqp:inspect` | Live queue inspector (watch mode) over `queueMetrics()` |
+| `amqp:diff` | Compare two stored messages (body, headers, properties) |
+| `amqp:schema:debug` | Validate a payload against a typed message contract schema |
+| `amqp:rpc:console` | Interactive / one-shot RPC testing from the CLI |
 
 All consumer commands dispatch messages to a **handler class** you supply via `--handler`. The handler is resolved through the Laravel container, so constructor dependencies are auto-wired.
 
@@ -385,6 +391,68 @@ class ProcessOrderHandler implements MessageHandlerInterface
     }
 }
 ```
+
+---
+
+## Developer-experience commands
+
+### `amqp:explore` — message inspector
+
+```bash
+php artisan amqp:explore --limit=50
+php artisan amqp:explore --routing=orders.created --json
+php artisan amqp:explore --id=msg_12_abc --body
+```
+
+Inspect entries captured by the configured `MessageStoreInterface` with filters (`--routing`, `--direction`, `--correlation`, `--since`) and optional full-body rendering.
+
+### `amqp:replay` — republish stored messages
+
+```bash
+php artisan amqp:replay --routing=orders.created --limit=10
+php artisan amqp:replay --id=msg_12_abc --target=orders.recovery --exchange=recovery-x
+php artisan amqp:replay --routing=orders.created --dry-run --json
+```
+
+Replays matching store entries back to AMQP. Supports dry-run mode, target override, and optional connection override.
+
+### `amqp:inspect` — live queue watch
+
+```bash
+php artisan amqp:inspect orders orders.dlq --interval=2 --iterations=10
+php artisan amqp:inspect orders --json --iterations=1
+```
+
+Continuously snapshots `queueMetrics()` for one or more queues in either human table or JSON output.
+
+### `amqp:diff` — compare two messages
+
+```bash
+php artisan amqp:diff msg_1 msg_2
+php artisan amqp:diff msg_1 msg_2 --json
+```
+
+Shows structural diffs across body, headers, and AMQP properties. JSON bodies are path-diffed; non-JSON bodies use a line diff fallback.
+
+### `amqp:schema:debug` — contract schema debugger
+
+```bash
+php artisan amqp:schema:debug App\\Messages\\OrderCreated --payload='{"orderId":"o-1","total":9.99}'
+php artisan amqp:schema:debug App\\Messages\\OrderCreated --payload=@./payload.json --show-schema
+php artisan amqp:schema:debug App\\Messages\\OrderCreated --message-id=msg_12_abc
+```
+
+Validates payloads against `schema()` from typed contracts with explicit error paths. Payload source can be inline JSON, file, or message-store entry.
+
+### `amqp:rpc:console` — RPC tester
+
+```bash
+php artisan amqp:rpc:console users.get '{"id":"u-1"}'
+php artisan amqp:rpc:console users.get --payload=@./request.json --json
+php artisan amqp:rpc:console users.get --raw --timeout=5
+```
+
+Executes one-shot RPC calls via `RpcClient` and prints latency, correlation id, timeout/failure state, and decoded response.
 
 ---
 

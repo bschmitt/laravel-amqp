@@ -21,7 +21,7 @@ return [
     |
     */
 
-    'pulse_integration' => env('AMQP_PULSE_INTEGRATION', true),
+    'pulse_integration' => env('AMQP_PULSE_INTEGRATION', false),
 
     /*
     |--------------------------------------------------------------------------

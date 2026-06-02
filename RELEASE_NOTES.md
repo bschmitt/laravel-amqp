@@ -2,6 +2,42 @@
 
 ---
 
+## Version 3.4.4 - Patch Release
+
+Developer-experience patch on top of `3.4.3`: a full CLI toolkit for message
+inspection, replay, queue watching, payload diffing, schema debugging, and RPC
+testing. Backwards-compatible and no migration required.
+
+### Highlights
+
+- New `amqp:explore` command for Telescope-like `MessageStore` inspection
+  (filters, single-id view, JSON mode, optional body rendering).
+- New `amqp:replay` command to re-publish messages from the store
+  (`--routing`, `--id`, `--target`, `--exchange`, `--dry-run`).
+- New `amqp:inspect` command for live queue watch snapshots using
+  `queueMetrics()` + Management API data.
+- New `amqp:diff` command and `Support\MessageDiff` for structural comparison
+  of message body, headers, and AMQP properties.
+- New `amqp:schema:debug` command for interactive/file/store payload
+  validation against typed contract `schema()` definitions.
+- New `amqp:rpc:console` command for one-shot interactive RPC probing via
+  `RpcClient`.
+
+### Tests
+
+- Added focused command/unit coverage for all new DX features:
+  `MessageDiffTest`, `AmqpExploreCommandTest`, `AmqpReplayCommandTest`,
+  `AmqpInspectCommandTest`, `AmqpDiffCommandTest`,
+  `AmqpSchemaCommandTest`, `AmqpRpcCommandTest`.
+- Unit suite now includes **536 tests / 1299 assertions**.
+
+### Compatibility
+
+- PHP 7.3 parsing coverage updated in `scripts/check-php73-compat.php` for all
+  new command + support + test files.
+
+---
+
 ## Version 3.4.3 - Patch Release
 
 Observability patch on top of `3.4.2`: Laravel Pulse integration, a native

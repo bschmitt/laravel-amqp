@@ -137,6 +137,12 @@ class AmqpServiceProvider extends ServiceProvider
             \Bschmitt\Amqp\Console\Commands\AmqpMonitorCommand::class,
             \Bschmitt\Amqp\Console\Commands\AmqpDlqCommand::class,
             \Bschmitt\Amqp\Console\Commands\AmqpTraceCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpExploreCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpReplayCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpInspectCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpDiffCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpSchemaCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpRpcCommand::class,
         ]);
     }
 

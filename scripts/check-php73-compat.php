@@ -170,6 +170,21 @@ $files = [
     'test/Unit/OpenTelemetryTracePropagatorTest.php',
     'test/Unit/CorrelationChainTest.php',
     'test/Unit/Console/AmqpTraceCommandTest.php',
+    // Developer experience v3.4.4 — explorer, replay, inspect, diff, schema, RPC console
+    'src/Support/MessageDiff.php',
+    'src/Console/Commands/AmqpExploreCommand.php',
+    'src/Console/Commands/AmqpReplayCommand.php',
+    'src/Console/Commands/AmqpInspectCommand.php',
+    'src/Console/Commands/AmqpDiffCommand.php',
+    'src/Console/Commands/AmqpSchemaCommand.php',
+    'src/Console/Commands/AmqpRpcCommand.php',
+    'test/Unit/Support/MessageDiffTest.php',
+    'test/Unit/Console/AmqpExploreCommandTest.php',
+    'test/Unit/Console/AmqpReplayCommandTest.php',
+    'test/Unit/Console/AmqpInspectCommandTest.php',
+    'test/Unit/Console/AmqpDiffCommandTest.php',
+    'test/Unit/Console/AmqpSchemaCommandTest.php',
+    'test/Unit/Console/AmqpRpcCommandTest.php',
 ];
 
 $factory = new ParserFactory();

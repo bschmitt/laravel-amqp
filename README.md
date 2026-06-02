@@ -99,13 +99,13 @@ Status legend: **[x]** shipped · **[~]** partial / building blocks shipped (ful
 
 ### Developer Experience
 
-* [ ] AMQP Explorer (Telescope-like message inspector)
-* [~] Message replay tooling — `DeadLetterManager::replayTo()` + `MessageStoreInterface` seed; no full replay CLI/UI
-* [~] Failed message browser — `DeadLetterManager::messages()` drains/inspects DLQ programmatically (no UI)
-* [~] Live queue inspector — Management API + `queueMetrics()` / `getQueueStatistics()` (no UI)
-* [ ] Message payload diff viewer
-* [~] Schema validation debugger — `SchemaValidator`, contract `schema()`, `amqp:work --validate-schema` (not interactive)
-* [ ] Interactive RPC testing console
+* [x] AMQP Explorer (Telescope-like message inspector) — `php artisan amqp:explore` (with `--id`, filters, JSON mode)
+* [x] Message replay tooling — `php artisan amqp:replay` + `MessageStoreInterface` source + target/exchange overrides
+* [x] Failed message browser — `php artisan amqp:explore` + `amqp:dlq` (`messages`, `peek`, `summarize`) for CLI inspection
+* [x] Live queue inspector — `php artisan amqp:inspect` watch loop over `queueMetrics()` / Management API
+* [x] Message payload diff viewer — `php artisan amqp:diff {left} {right}` + structural JSON/text diffing
+* [x] Schema validation debugger — `php artisan amqp:schema:debug` (interactive/file/store payload sources)
+* [x] Interactive RPC testing console — `php artisan amqp:rpc:console` with JSON/raw payload modes
 
 ---
 
