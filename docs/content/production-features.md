@@ -1,6 +1,6 @@
 # Production Infrastructure
 
-This page covers exchange topology builders, queue profiles, resilient connections, connection pooling, correlation/trace propagation, and consumer lifecycle hooks — the production-oriented building blocks added in v3.5.0.
+This page covers exchange topology builders, queue profiles, resilient connections, connection pooling, correlation/trace propagation, and consumer lifecycle hooks — the production-oriented building blocks added in v3.4.0.
 
 ## Exchange topology builder
 

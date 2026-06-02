@@ -371,16 +371,6 @@
                   </p>
                 </div>
 
-                <div class="feature-card">
-                  <div class="feature-icon">🔌</div>
-                  <h3>Queue Management &amp; Admin API</h3>
-                  <p>
-                    Programmatic purge/delete/unbind plus full
-                    RabbitMQ Management HTTP API integration: queue stats,
-                    connections, channels, nodes, policies, and feature
-                    flags.
-                  </p>
-                </div>
               </div>
             </div>
           </section>
@@ -661,6 +651,12 @@
                       @click.prevent="navigateTo('workflow-events-testing')"
                       :class="{active: currentPage === 'workflow-events-testing'}"
                       >SAGA, Events &amp; Testing</a
+                    >
+                    <a
+                      href="#scale-and-interop"
+                      @click.prevent="navigateTo('scale-and-interop')"
+                      :class="{active: currentPage === 'scale-and-interop'}"
+                      >Scale &amp; Interop</a
                     >
                     <a
                       href="#best-practices"

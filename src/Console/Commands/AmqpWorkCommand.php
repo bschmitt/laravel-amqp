@@ -10,6 +10,7 @@ use Bschmitt\Amqp\Support\DeadLetterTopology;
 use Bschmitt\Amqp\Support\JsonMessageSerializer;
 use Bschmitt\Amqp\Support\RetryPolicy;
 use Bschmitt\Amqp\Support\SchemaValidator;
+use Bschmitt\Amqp\Support\WorkerOptions;
 use Illuminate\Console\Command;
 use InvalidArgumentException;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -54,7 +55,8 @@ class AmqpWorkCommand extends Command
                             {--declare-topology : Declare work + retry + DLQ queues before consuming}
                             {--contract= : FQCN of a Bschmitt\\Amqp\\Contracts\\MessageContractInterface to deserialize incoming bodies into}
                             {--validate-schema : Validate inbound payloads against the contract::schema() (if any) and fail on mismatch}
-                            {--quiet-iterations : Suppress per-message log output (only show errors and summary)}';
+                            {--quiet-iterations : Suppress per-message log output (only show errors and summary)}
+                            {--optimized : Apply high-throughput worker QoS defaults (prefetch=50 unless --prefetch-count is set)}';
 
     /** @var string */
     protected $description = 'Run a long-running AMQP worker that dispatches messages to a handler class.';
@@ -315,6 +317,8 @@ class AmqpWorkCommand extends Command
         if ($prefetch !== null && $prefetch !== '') {
             $props['qos'] = true;
             $props['qos_prefetch_count'] = (int) $prefetch;
+        } elseif ((bool) $this->option('optimized')) {
+            $props = WorkerOptions::throughput(50)->mergeInto($props);
         }
 
         $timeout = $this->option('timeout');

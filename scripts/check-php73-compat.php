@@ -54,7 +54,7 @@ $files = [
     'test/Unit/PublishBackoffTest.php',
     'test/Unit/DelayedPublisherTest.php',
     'test/Unit/AmqpTypedMessagingTest.php',
-    // Production infrastructure (v3.5)
+    // Production infrastructure (v3.4)
     'src/Support/QueueProfile.php',
     'src/Support/ExchangeTopology.php',
     'src/Support/CorrelationContext.php',
@@ -74,7 +74,7 @@ $files = [
     'test/Unit/ConsumerLifecycleTest.php',
     'test/Unit/ResilientConnectionManagerTest.php',
     'test/Unit/AmqpProductionFeaturesTest.php',
-    // SAGA, events, middleware, testing, async publishing (v3.6)
+    // SAGA, events, middleware, testing, async publishing (v3.4)
     'src/Support/Saga.php',
     'src/Support/SagaResult.php',
     'src/Support/ConsumePipeline.php',
@@ -97,6 +97,22 @@ $files = [
     'test/Unit/FakeAmqpTest.php',
     'test/Unit/AsyncPublisherTest.php',
     'test/Unit/AmqpEventsAndPipelineTest.php',
+    // Scale & interop (v3.4)
+    'src/Support/RpcCallResult.php',
+    'src/Support/RpcClient.php',
+    'src/Support/RpcServer.php',
+    'src/Support/InteropMessage.php',
+    'src/Support/InteropEnvelope.php',
+    'src/Support/QueueMetrics.php',
+    'src/Support/MetricsCollector.php',
+    'src/Support/WorkerOptions.php',
+    'src/Support/HighPerformanceWorker.php',
+    'test/Unit/RpcClientTest.php',
+    'test/Unit/InteropEnvelopeTest.php',
+    'test/Unit/QueueMetricsTest.php',
+    'test/Unit/MetricsCollectorTest.php',
+    'test/Unit/WorkerOptionsTest.php',
+    'test/Unit/AmqpScaleFeaturesTest.php',
 ];
 
 $factory = new ParserFactory();

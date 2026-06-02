@@ -30,15 +30,22 @@ use Bschmitt\Amqp\Support\DeadLetterTopology;
 use Bschmitt\Amqp\Support\DelayedPublisher;
 use Bschmitt\Amqp\Support\EventDispatcher;
 use Bschmitt\Amqp\Support\ExchangeTopology;
+use Bschmitt\Amqp\Support\HighPerformanceWorker;
+use Bschmitt\Amqp\Support\InteropEnvelope;
 use Bschmitt\Amqp\Support\JsonMessageSerializer;
 use Bschmitt\Amqp\Support\MessageHeaders;
+use Bschmitt\Amqp\Support\MetricsCollector;
 use Bschmitt\Amqp\Support\PublishBackoff;
+use Bschmitt\Amqp\Support\QueueMetrics;
 use Bschmitt\Amqp\Support\QueueProfile;
 use Bschmitt\Amqp\Support\RetryHandler;
 use Bschmitt\Amqp\Support\RetryPolicy;
+use Bschmitt\Amqp\Support\RpcClient;
+use Bschmitt\Amqp\Support\RpcServer;
 use Bschmitt\Amqp\Support\Saga;
 use Bschmitt\Amqp\Support\SchemaValidator;
 use Bschmitt\Amqp\Support\W3cTracePropagator;
+use Bschmitt\Amqp\Support\WorkerOptions;
 use Bschmitt\Amqp\Testing\FakeAmqp;
 
 /**
@@ -80,6 +87,11 @@ class Amqp
      * @var TracePropagatorInterface|null
      */
     protected $tracePropagator;
+
+    /**
+     * @var MetricsCollector|null
+     */
+    protected $metricsCollector;
 
     /**
      * @param PublisherFactoryInterface $publisherFactory
@@ -188,6 +200,7 @@ class Amqp
             $result = $publisher->publish($routing, $message, $mandatory);
 
             $this->events()->dispatch(new MessagePublished($routing, $message, $properties, $result));
+            $this->metrics()->incrementPublished($routing);
 
             return $result;
         } finally {
@@ -569,10 +582,12 @@ class Amqp
     {
         $pipeline = (new ConsumePipeline())->pushMany($middlewares);
         $wrapped = $pipeline->wrap(function ($message, $resolver) use ($handler, $queue) {
+            $this->metrics()->incrementConsumed($queue);
             $this->events()->dispatch(new MessageReceived($queue, $message));
             $start = microtime(true);
             try {
                 $result = $handler($message, $resolver);
+                $this->metrics()->incrementHandled();
                 $this->events()->dispatch(new MessageHandled(
                     $queue,
                     $message,
@@ -581,6 +596,7 @@ class Amqp
 
                 return $result;
             } catch (\Throwable $e) {
+                $this->metrics()->incrementFailed($queue);
                 $this->events()->dispatch(new MessageFailed($queue, $message, $e));
                 throw $e;
             }
@@ -622,6 +638,155 @@ class Amqp
         }
 
         return $fake;
+    }
+
+    /**
+     * In-process publish/consume counters for observability.
+     *
+     * @return MetricsCollector
+     */
+    public function metrics(): MetricsCollector
+    {
+        if ($this->metricsCollector === null) {
+            $this->metricsCollector = new MetricsCollector();
+        }
+
+        return $this->metricsCollector;
+    }
+
+    /**
+     * Build an {@see RpcClient} with optional default properties.
+     *
+     * @param array<string, mixed> $properties
+     * @return RpcClient
+     */
+    public function rpcClient(array $properties = []): RpcClient
+    {
+        return new RpcClient($this, $properties);
+    }
+
+    /**
+     * Build an {@see RpcServer} for request/response consumers.
+     *
+     * @return RpcServer
+     */
+    public function rpcServer(): RpcServer
+    {
+        return new RpcServer($this);
+    }
+
+    /**
+     * Publish with cross-service interop headers for polyglot consumers.
+     *
+     * @param string               $routing
+     * @param mixed                $message
+     * @param string               $messageType   Logical type (e.g. orders.created).
+     * @param string               $sourceService Publishing service name.
+     * @param array<string, mixed> $properties
+     * @param string               $schemaVersion
+     * @return bool|null
+     */
+    public function publishInterop(
+        string $routing,
+        $message,
+        string $messageType,
+        string $sourceService,
+        array $properties = [],
+        string $schemaVersion = '1.0'
+    ) {
+        $contentType = (string) ($properties['content_type'] ?? 'application/json');
+        $properties = InteropEnvelope::applyToPublishProperties(
+            $properties,
+            $messageType,
+            $sourceService,
+            $schemaVersion,
+            $contentType
+        );
+
+        if ($contentType === 'application/json' && !is_string($message)) {
+            $message = json_encode($message);
+        }
+
+        return $this->publish($routing, $message, $properties);
+    }
+
+    /**
+     * Consume interop messages; handler receives {@see InteropMessage} as first arg.
+     *
+     * @param string   $queue
+     * @param Closure  $callback `fn(InteropMessage $interop, AMQPMessage $raw, $resolver): void`
+     * @param array<string, mixed> $properties
+     * @return bool
+     */
+    public function consumeInterop(string $queue, Closure $callback, array $properties = []): bool
+    {
+        return $this->consume($queue, function ($message, $resolver) use ($callback) {
+            $interop = InteropEnvelope::fromMessage($message);
+            $callback($interop, $message, $resolver);
+        }, $properties);
+    }
+
+    /**
+     * Fetch normalized queue metrics from the Management API.
+     *
+     * @param string               $queue
+     * @param string|null          $vhost
+     * @param array<string, mixed> $properties
+     * @return QueueMetrics
+     */
+    public function queueMetrics(string $queue, ?string $vhost = null, array $properties = []): QueueMetrics
+    {
+        $data = $this->getQueueStatistics($queue, $vhost, $properties);
+
+        return QueueMetrics::fromManagementApi($data);
+    }
+
+    /**
+     * Alias for {@see getQueueStatistics()} returning a single queue.
+     *
+     * @param string               $queue
+     * @param string|null          $vhost
+     * @param array<string, mixed> $properties
+     * @return array<string, mixed>
+     */
+    public function getQueueStats(string $queue, ?string $vhost = null, array $properties = []): array
+    {
+        return $this->getQueueStatistics($queue, $vhost, $properties);
+    }
+
+    /**
+     * @return WorkerOptions
+     */
+    public function workerOptions(): WorkerOptions
+    {
+        return WorkerOptions::throughput();
+    }
+
+    /**
+     * @param WorkerOptions|null $options
+     * @return HighPerformanceWorker
+     */
+    public function highPerformanceWorker(?WorkerOptions $options = null): HighPerformanceWorker
+    {
+        return new HighPerformanceWorker($this, $options);
+    }
+
+    /**
+     * Consume with throughput-oriented QoS defaults.
+     *
+     * @param string               $queue
+     * @param Closure              $handler
+     * @param array<string, mixed> $properties
+     * @param WorkerOptions|null   $options
+     * @return bool
+     */
+    public function consumeOptimized(
+        string $queue,
+        Closure $handler,
+        array $properties = [],
+        ?WorkerOptions $options = null
+    ): bool {
+        return $this->highPerformanceWorker($options)->run($queue, $handler, $properties);
     }
 
     /**

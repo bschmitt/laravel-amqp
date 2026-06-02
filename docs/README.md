@@ -76,7 +76,7 @@ Welcome to the Laravel AMQP package documentation. This directory contains compr
     - Coupling analysis
     - Scalability assessment
 
-### Feature Pages (Version 3.4.0+)
+### Feature Pages (Version 3.4.0)
 
 These pages live under [`docs/content/`](./content/) and are also served by
 the Vue.js documentation site (`docs/index.html`).

@@ -1,6 +1,6 @@
 # SAGA, Events, Middleware & Testing
 
-Added in v3.6.0. These helpers focus on application-level workflows, observability, and test ergonomics.
+Added in v3.4.0. These helpers focus on application-level workflows, observability, and test ergonomics.
 
 ## SAGA workflow helper
 
