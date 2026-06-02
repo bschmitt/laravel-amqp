@@ -161,6 +161,15 @@ $files = [
     'src/Events/RpcCallFailed.php',
     'src/Console/Commands/AmqpDlqCommand.php',
     'test/Unit/RpcLatencyRecorderTest.php',
+    // Observability v3.4.3 — Pulse / OpenTelemetry / Correlation visualisation
+    'src/Pulse/AmqpPulseRecorder.php',
+    'src/Support/OpenTelemetryTracePropagator.php',
+    'src/Support/CorrelationChain.php',
+    'src/Console/Commands/AmqpTraceCommand.php',
+    'test/Unit/Pulse/AmqpPulseRecorderTest.php',
+    'test/Unit/OpenTelemetryTracePropagatorTest.php',
+    'test/Unit/CorrelationChainTest.php',
+    'test/Unit/Console/AmqpTraceCommandTest.php',
 ];
 
 $factory = new ParserFactory();

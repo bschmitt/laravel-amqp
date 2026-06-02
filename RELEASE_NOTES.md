@@ -2,6 +2,67 @@
 
 ---
 
+## Version 3.4.3 - Patch Release
+
+Observability patch on top of `3.4.2`: Laravel Pulse integration, a native
+OpenTelemetry bridge, and a correlation-chain visualiser. Fully
+backwards-compatible — no migration required.
+
+### Compatibility
+
+- **PHP**: 7.3 through 8.5
+- **Laravel**: 8.x through 13.x (Lumen 8.x+)
+- **Optional**: `laravel/pulse` (auto-detected) and `open-telemetry/api`
+  (auto-detected). The package degrades gracefully when neither is installed.
+- Every new file under `src/` parses as PHP 7.3 (verified via
+  `scripts/check-php73-compat.php`).
+
+### Laravel Pulse integration
+
+- New namespace `Bschmitt\Amqp\Pulse` with `AmqpPulseRecorder`.
+- Auto-subscribed in `AmqpServiceProvider::registerPulseRecorder()` to:
+  `MessagePublished`, `MessageHandled`, `MessageFailed`,
+  `RpcCallCompleted`, `RpcCallFailed`, `DeadLetterDetected`.
+- Metric types: `amqp_publish`, `amqp_handle`, `amqp_fail`, `amqp_rpc`,
+  `amqp_rpc_fail`, `amqp_dlq` — readable from `Pulse::values($type)` or
+  any custom Pulse card.
+- Silent no-op when `laravel/pulse` is missing.
+- Opt out with `amqp.pulse_integration => false`.
+
+### Native OpenTelemetry exporter support
+
+- New `Bschmitt\Amqp\Support\OpenTelemetryTracePropagator` implements
+  `TracePropagatorInterface` and bridges to `open-telemetry/api`
+  (`Globals::propagator()` + `Context::getCurrent()`) when installed.
+- Falls back to `W3cTracePropagator` when the SDK is absent, so the same
+  binding works in stripped-down environments and CI.
+- `CallbackTracePropagator` is retained for custom APMs.
+
+### Correlation ID visualisation
+
+- New `Bschmitt\Amqp\Support\CorrelationChain`:
+  - `entriesFor($id)` — time-ordered entries for a correlation id
+  - `tree($id)` — causation forest built from `x-causation-id` headers
+  - `render($forest)` — ASCII tree renderer (├──, └──, │)
+  - `summarize($id)` — counts, routings, first/last timestamps, duration_ms
+- New Artisan command `php artisan amqp:trace {correlation_id}` with
+  `--summary`, `--json`, and `--limit` options. Exits `1` when the store has
+  no entries for the requested id (CI-friendly).
+
+### Tests
+
+- New: `AmqpPulseRecorderTest`, `OpenTelemetryTracePropagatorTest`,
+  `CorrelationChainTest`, `AmqpTraceCommandTest`.
+- Unit suite additions: **28 tests / 82 assertions**.
+- Full unit suite remains green at **497 tests / 1164 assertions**.
+
+### Migration
+
+No migration required. All features are opt-in (or auto-detected from
+already-installed packages).
+
+---
+
 ## Version 3.4.2 - Patch Release
 
 Observability patch on top of `3.4.1`: consumer lag metrics, DLQ

@@ -11,6 +11,7 @@ Laravel AMQP ships with **five artisan commands** so you can run workers, fire o
 | `amqp:purge` | Empty a queue, with an optional `--force` flag |
 | `amqp:monitor` | Snapshot of process metrics, queue lag, DLQ summaries, and RPC latencies |
 | `amqp:dlq` | Inspect, peek, summarize, replay, or purge a dead-letter queue |
+| `amqp:trace` | Render the causation tree of a correlation id from the `MessageStore` |
 
 All consumer commands dispatch messages to a **handler class** you supply via `--handler`. The handler is resolved through the Laravel container, so constructor dependencies are auto-wired.
 
@@ -326,6 +327,43 @@ php artisan amqp:dlq purge   orders.dlq --force
 | `--connection=` | Connection override |
 
 `peek` and `summary` are **non-destructive**. `replay` and `purge` mutate broker state.
+
+---
+
+## `amqp:trace` — correlation chain visualisation
+
+Reconstructs the causation tree of a single `correlation_id` from the bound `MessageStoreInterface`. Especially useful when paired with `Amqp::setMessageStore(...)` and `propagate_correlation => true` on publish/consume.
+
+```bash
+php artisan amqp:trace corr_abc123
+php artisan amqp:trace corr_abc123 --summary
+php artisan amqp:trace corr_abc123 --json --limit=50
+```
+
+Sample output:
+
+```
+correlation_id: corr_abc123
+messages: 4 (published=3, consumed=1)
+span: 18.42 ms
+routings: orders.created(1), orders.shipped(2), orders.invoiced(1)
+
+[published] >> orders.created (msg=msg_root)
+├── [published] >> orders.shipped (msg=msg_a)
+│   └── [published] >> orders.invoiced (msg=msg_grand)
+└── [consumed]  << orders.shipped (msg=msg_b)
+```
+
+| Argument / option | Description |
+|-------------------|-------------|
+| `correlation_id`  | The id to visualise (matches `correlation_id` property or `x-correlation-id` header) |
+| `--summary`       | Print counts + timings only, skip the tree |
+| `--json`          | Output `summary` + flat `entries` + nested `tree` as JSON |
+| `--limit=`        | Cap the rendered entries / root nodes (0 = unlimited) |
+
+**Exit code:** `1` when the store has no entries for the requested id — convenient for shell scripts and CI hooks.
+
+The renderer walks each entry's `x-causation-id` header to attach children to their parents. Orphans (children whose causation id references a message the store never recorded) are surfaced as additional roots so nothing is silently dropped.
 
 ---
 

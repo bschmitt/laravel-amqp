@@ -70,6 +70,9 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - **Causation ID propagation** - `CorrelationContext` now propagates both `correlation_id` and `x-causation-id` so consumers can chain "this happened because of that" (see [Messaging Platform](#laravel-messaging-platform))
 - **MessageStore** - `MessageStoreInterface` + `InMemoryMessageStore`; opt-in audit log of every publish/consume via `Amqp::setMessageStore()` (see [Messaging Platform](#laravel-messaging-platform))
 - **Async Laravel events** - mark events with `ShouldPublishToAmqpInterface` and enable `amqp.broadcast_laravel_events` to auto-publish `event(new OrderCreated())` to RabbitMQ (see [Messaging Platform](#laravel-messaging-platform))
+- **Laravel Pulse integration** - `AmqpPulseRecorder` auto-records publish/handle/fail/RPC/DLQ events to Pulse when `laravel/pulse` is installed; opt out with `amqp.pulse_integration => false` (see [Messaging Platform](#laravel-messaging-platform))
+- **OpenTelemetry bridge** - `OpenTelemetryTracePropagator` injects the active OTel span context into AMQP headers (with W3C fallback) when `open-telemetry/api` is installed (see [Production Infrastructure](#production-infrastructure))
+- **Correlation ID visualisation** - `CorrelationChain::tree()` / `render()` reconstruct causation graphs from the `MessageStore`; `php artisan amqp:trace <correlation_id>` prints an ASCII tree or JSON (see [Messaging Platform](#laravel-messaging-platform))
 
 
 ## Planned Features
@@ -83,14 +86,14 @@ Status legend: **[x]** shipped · **[~]** partial / building blocks shipped (ful
 
 ### Observability
 
-* [ ] Laravel Pulse integration for AMQP metrics
-* [ ] Native OpenTelemetry exporter support (W3C `traceparent` propagation **is** shipped — bridge via `CallbackTracePropagator`)
+* [x] Laravel Pulse integration for AMQP metrics — `AmqpPulseRecorder` auto-subscribes to publish/handle/fail/RPC/DLQ events when `laravel/pulse` is installed; disable via `amqp.pulse_integration => false`
+* [x] Native OpenTelemetry exporter support — `OpenTelemetryTracePropagator` bridges to `open-telemetry/api` when installed (active span context auto-injected); falls back to W3C generation otherwise. `CallbackTracePropagator` remains for custom APMs
+* [x] Correlation ID visualization — `CorrelationChain::tree()` / `render()` reconstruct causation graphs from the `MessageStore`; `php artisan amqp:trace <correlation_id>` prints an ASCII tree or JSON
 * [x] Queue throughput monitoring — `MetricsCollector`, `QueueMetrics`, `Amqp::metrics()` / `queueMetrics()`, `MonitoringDashboard`
 * [x] Consumer lag monitoring — `QueueMetrics::lag()`, `lagSeconds()`, `isLagging()`; `--lag-threshold` / `--lag-seconds` / `--lag-age` on `amqp:monitor`
 * [x] Dead-letter queue monitoring — `DeadLetterManager::peek()` / `summarize()`, `dead_letters` block in dashboard, `php artisan amqp:dlq`
 * [x] RPC latency tracking — `RpcLatencyRecorder`, `RpcCallResult::durationMs()`, `RpcCallCompleted` / `RpcCallFailed` events, `--rpc` on `amqp:monitor`
 * [x] Distributed trace propagation — `TraceContext`, `W3cTracePropagator`, `propagate_trace` on publish/consume
-* [~] Correlation ID visualization — `CorrelationContext` + `x-causation-id` propagation; no UI yet
 
 ---
 
@@ -1373,6 +1376,85 @@ Amqp::publish('orders.created', $body, [
 ]);
 // outbound has `correlation_id`, `x-correlation-id`, and `x-causation-id` set
 ```
+
+### Correlation Chain Visualisation
+
+`CorrelationChain` walks the `MessageStore`, groups entries by `correlation_id`, and rebuilds the causation tree using the `x-causation-id` header — no UI server required.
+
+```php
+use Bschmitt\Amqp\Support\CorrelationChain;
+
+$chain = new CorrelationChain($amqp->messageStore());
+
+$summary = $chain->summarize('corr_abc123');
+// total, published, consumed, routings, first_at, last_at, duration_ms
+
+$tree = $chain->tree('corr_abc123');         // nested ['entry' => ..., 'children' => [...]]
+echo $chain->render($tree);                  // ASCII tree, perfect for logs
+```
+
+CLI:
+
+```bash
+php artisan amqp:trace corr_abc123
+php artisan amqp:trace corr_abc123 --summary
+php artisan amqp:trace corr_abc123 --json --limit=50
+```
+
+Sample output:
+
+```
+correlation_id: corr_abc123
+messages: 4 (published=3, consumed=1)
+span: 18.42 ms
+routings: orders.created(1), orders.shipped(2), orders.invoiced(1)
+
+[published] >> orders.created (msg=msg_root)
+├── [published] >> orders.shipped (msg=msg_a)
+│   └── [published] >> orders.invoiced (msg=msg_grand)
+└── [consumed]  << orders.shipped (msg=msg_b)
+```
+
+### Laravel Pulse Integration
+
+When `laravel/pulse` is installed the package auto-registers `AmqpPulseRecorder` and records the following metric types so they show up under `Pulse::values($type)` and in custom cards:
+
+| Type             | Key                              | Value             |
+|------------------|----------------------------------|-------------------|
+| `amqp_publish`   | routing key                      | 1 (count)         |
+| `amqp_handle`    | queue                            | duration (ms)     |
+| `amqp_fail`      | queue                            | 1 (count)         |
+| `amqp_rpc`       | `Service::Request` (short name)  | duration (ms)     |
+| `amqp_rpc_fail`  | `Service::Request`               | 1 (count)         |
+| `amqp_dlq`       | dead-letter queue                | sampled msg count |
+
+Disable the auto-subscription in `config/amqp.php`:
+
+```php
+return [
+    // ...
+    'pulse_integration' => false,
+];
+```
+
+The recorder is a silent no-op when Pulse is not installed — no exceptions, no log spam.
+
+### OpenTelemetry Bridge
+
+`OpenTelemetryTracePropagator` plugs the `open-telemetry/api` SDK into the package's `TracePropagatorInterface` so that the active OTel span context is auto-injected into every AMQP `traceparent` / `tracestate` header.
+
+```php
+use Bschmitt\Amqp\Contracts\TracePropagatorInterface;
+use Bschmitt\Amqp\Support\OpenTelemetryTracePropagator;
+
+// In a service provider:
+$this->app->singleton(TracePropagatorInterface::class, function () {
+    return new OpenTelemetryTracePropagator();
+    // Or pass an explicit \OpenTelemetry\Context\Propagation\TextMapPropagatorInterface
+});
+```
+
+When the SDK is absent the propagator falls back to W3C generation (`W3cTracePropagator`), so the same wiring works on stripped-down environments and in CI.
 
 ### MessageStore (audit log / event-sourcing seed)
 

@@ -43,6 +43,49 @@ class AmqpServiceProvider extends ServiceProvider
         $this->registerQueueConnector();
         $this->registerCommands();
         $this->registerEventBridge();
+        $this->registerPulseRecorder();
+    }
+
+    /**
+     * Subscribe the {@see \Bschmitt\Amqp\Pulse\AmqpPulseRecorder} to package
+     * events so that Laravel Pulse cards can read AMQP metrics out of the box.
+     *
+     * Silently no-ops when:
+     *   - the events dispatcher isn't bound (bare-container tests), or
+     *   - `amqp.pulse_integration` is set to `false`.
+     *
+     * Pulse itself is *not* a hard requirement — the recorder dropouts to a
+     * no-op when `laravel/pulse` is missing.
+     *
+     * @return void
+     */
+    protected function registerPulseRecorder(): void
+    {
+        if (!$this->app->bound('events')) {
+            return;
+        }
+
+        if ($this->app->bound('config')) {
+            $enabled = $this->app->make('config')->get('amqp.pulse_integration', true);
+            if ($enabled === false) {
+                return;
+            }
+        }
+
+        $this->app->singleton(\Bschmitt\Amqp\Pulse\AmqpPulseRecorder::class);
+
+        $dispatcher = $this->app->make('events');
+        if (!method_exists($dispatcher, 'listen')) {
+            return;
+        }
+
+        $recorder = \Bschmitt\Amqp\Pulse\AmqpPulseRecorder::class;
+        $dispatcher->listen(\Bschmitt\Amqp\Events\MessagePublished::class, [$recorder, 'recordPublished']);
+        $dispatcher->listen(\Bschmitt\Amqp\Events\MessageHandled::class, [$recorder, 'recordHandled']);
+        $dispatcher->listen(\Bschmitt\Amqp\Events\MessageFailed::class, [$recorder, 'recordFailed']);
+        $dispatcher->listen(\Bschmitt\Amqp\Events\RpcCallCompleted::class, [$recorder, 'recordRpcCompleted']);
+        $dispatcher->listen(\Bschmitt\Amqp\Events\RpcCallFailed::class, [$recorder, 'recordRpcFailed']);
+        $dispatcher->listen(\Bschmitt\Amqp\Events\DeadLetterDetected::class, [$recorder, 'recordDeadLetter']);
     }
 
     /**
@@ -93,6 +136,7 @@ class AmqpServiceProvider extends ServiceProvider
             \Bschmitt\Amqp\Console\Commands\AmqpPurgeCommand::class,
             \Bschmitt\Amqp\Console\Commands\AmqpMonitorCommand::class,
             \Bschmitt\Amqp\Console\Commands\AmqpDlqCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpTraceCommand::class,
         ]);
     }
 

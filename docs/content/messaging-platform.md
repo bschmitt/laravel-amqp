@@ -304,6 +304,31 @@ Implementations must satisfy `Bschmitt\Amqp\Contracts\MessageStoreInterface`:
 
 For production, back the interface with Eloquent / Redis / object storage. The default in-memory implementation is suitable for tests and short-lived CLI scripts.
 
+### Visualising a correlation chain
+
+`CorrelationChain` rebuilds the causation forest of a single correlation id directly from the `MessageStore`. No UI server required — every helper is pure PHP.
+
+```php
+use Bschmitt\Amqp\Support\CorrelationChain;
+
+$chain = new CorrelationChain($amqp->messageStore());
+
+$chain->entriesFor('corr_abc123');     // time-ordered list of entries
+$chain->tree('corr_abc123');           // [{ entry, children: [...] }, ...]
+echo $chain->render($chain->tree('corr_abc123'));   // ASCII tree
+$chain->summarize('corr_abc123');      // counts, routings, duration_ms, etc.
+```
+
+Same data over Artisan, ideal for tailing logs or ad-hoc debugging:
+
+```bash
+php artisan amqp:trace corr_abc123
+php artisan amqp:trace corr_abc123 --summary
+php artisan amqp:trace corr_abc123 --json --limit=50
+```
+
+The renderer walks the `x-causation-id` header to draw the tree. Entries whose causation id points at a message the store never recorded are surfaced as additional roots so nothing is silently dropped. Returns exit code `1` when no entries match — handy in CI.
+
 ---
 
 ## 9. Async Laravel Events

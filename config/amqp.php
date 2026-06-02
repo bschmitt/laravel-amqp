@@ -12,6 +12,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Laravel Pulse integration
+    |--------------------------------------------------------------------------
+    |
+    | When true (default), Bschmitt\Amqp\Pulse\AmqpPulseRecorder auto-subscribes
+    | to package events and forwards them to Laravel Pulse. Has no effect when
+    | laravel/pulse is not installed — the recorder degrades to a no-op.
+    |
+    */
+
+    'pulse_integration' => env('AMQP_PULSE_INTEGRATION', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | AMQP properties separated by key
     |--------------------------------------------------------------------------
     */

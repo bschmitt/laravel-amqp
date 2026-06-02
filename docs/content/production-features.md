@@ -102,7 +102,18 @@ Amqp::publish('rk', $body, ['propagate_trace' => true]);
 
 ### OpenTelemetry bridge
 
-No OpenTelemetry dependency is required. Use `CallbackTracePropagator` to delegate to your SDK:
+No OpenTelemetry dependency is required. Two bridges ship out of the box:
+
+**`OpenTelemetryTracePropagator`** — native bridge to `open-telemetry/api`. When the SDK is installed it pulls the active span context from `OpenTelemetry\API\Globals::propagator()` and injects it into the AMQP carrier. When the SDK is absent it falls back to W3C generation, so the same wiring is portable.
+
+```php
+use Bschmitt\Amqp\Support\OpenTelemetryTracePropagator;
+
+Amqp::setTracePropagator(new OpenTelemetryTracePropagator());
+// Or pass an explicit \OpenTelemetry\Context\Propagation\TextMapPropagatorInterface
+```
+
+**`CallbackTracePropagator`** — delegate to any APM or custom propagator via inject/extract closures:
 
 ```php
 use Bschmitt\Amqp\Support\CallbackTracePropagator;
@@ -111,6 +122,30 @@ Amqp::setTracePropagator(new CallbackTracePropagator($injectFn, $extractFn));
 ```
 
 `NullTracePropagator` disables tracing entirely.
+
+### Laravel Pulse integration
+
+When `laravel/pulse` is installed, `AmqpPulseRecorder` auto-subscribes to package events and records them under these metric types:
+
+| Type             | Key                              | Value             |
+|------------------|----------------------------------|-------------------|
+| `amqp_publish`   | routing key                      | 1 (count)         |
+| `amqp_handle`    | queue                            | duration (ms)     |
+| `amqp_fail`      | queue                            | 1 (count)         |
+| `amqp_rpc`       | `Service::Request` short name    | duration (ms)     |
+| `amqp_rpc_fail`  | `Service::Request`               | 1 (count)         |
+| `amqp_dlq`       | dead-letter queue                | sampled msg count |
+
+Opt out (e.g. for tests or non-Pulse projects) in `config/amqp.php`:
+
+```php
+return [
+    // ...
+    'pulse_integration' => false,
+];
+```
+
+The recorder silently no-ops when Pulse is not installed, so the binding is safe to leave on.
 
 ## Consumer lifecycle
 
