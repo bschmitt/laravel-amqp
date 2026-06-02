@@ -361,6 +361,17 @@
                 </div>
 
                 <div class="feature-card">
+                  <div class="feature-icon">🧪</div>
+                  <h3>SAGA, Events &amp; Testing</h3>
+                  <p>
+                    <code>Saga</code> step/compensation workflows, Laravel
+                    publish/consume events, consume middleware pipeline,
+                    <code>AsyncPublisher</code> with confirms, and
+                    <code>Amqp::fake()</code> with Laravel-style assertions.
+                  </p>
+                </div>
+
+                <div class="feature-card">
                   <div class="feature-icon">🔌</div>
                   <h3>Queue Management &amp; Admin API</h3>
                   <p>
@@ -644,6 +655,12 @@
                       @click.prevent="navigateTo('production-features')"
                       :class="{active: currentPage === 'production-features'}"
                       >Production Infrastructure</a
+                    >
+                    <a
+                      href="#workflow-events-testing"
+                      @click.prevent="navigateTo('workflow-events-testing')"
+                      :class="{active: currentPage === 'workflow-events-testing'}"
+                      >SAGA, Events &amp; Testing</a
                     >
                     <a
                       href="#best-practices"

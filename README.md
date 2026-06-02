@@ -51,12 +51,12 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - **Distributed tracing** - W3C `traceparent` propagation via `TracePropagatorInterface` (OTel bridge via `CallbackTracePropagator`); enable with `propagate_trace` on publish/consume (see [Production Infrastructure](#production-infrastructure))
 - **Correlation ID propagation** - `CorrelationContext` with `propagate_correlation` on publish/consume (see [Production Infrastructure](#production-infrastructure))
 - **Consumer lifecycle hooks** - `ConsumerLifecycle` graceful shutdown, signal handlers, and `consumeWithLifecycle()` (see [Production Infrastructure](#production-infrastructure))
+- **SAGA workflow helpers** - `Saga` step/compensation orchestrator with `SagaResult` reporting (see [SAGA, Events, Middleware & Testing](#saga-events-middleware--testing))
+- **Laravel events & consume middleware** - `MessagePublishing`/`MessagePublished`/`MessageReceived`/`MessageHandled`/`MessageFailed` events plus `ConsumePipeline` / `ConsumeMiddlewareInterface` and `consumeWithMiddleware()` (see [SAGA, Events, Middleware & Testing](#saga-events-middleware--testing))
+- **Fake AMQP test driver** - `Amqp::fake()` / `FakeAmqp` with `assertPublished()`, `assertPublishedCount()`, `assertNothingPublished()` (see [SAGA, Events, Middleware & Testing](#saga-events-middleware--testing))
+- **Publisher confirms & async publishing** - persistent-channel `AsyncPublisher` with batched confirms via `Amqp::asyncPublisher()` (see [SAGA, Events, Middleware & Testing](#saga-events-middleware--testing))
 
 ## Planned Features
-- Native SAGA workflow helpers
-- Laravel event & middleware integration
-- Improved testing and fake AMQP drivers
-- Publisher confirms & async publishing
 - RPC abstraction helpers
 - Cross-service / polyglot messaging support
 - Enhanced observability and queue metrics
@@ -800,6 +800,112 @@ Amqp::consumeWithLifecycle('jobs', $handler, $lifecycle);
 ```
 
 See `docs/content/production-features.md` for the full reference.
+
+## SAGA, Events, Middleware & Testing
+
+### SAGA workflow
+
+```php
+use Bschmitt\Amqp\Facades\Amqp;
+
+$saga = Amqp::saga('checkout')
+    ->step('reserveStock', $reserveStock, $releaseStock)
+    ->step('chargeCard',  $chargeCard,  $refundCard)
+    ->step('shipOrder',   $shipOrder);
+
+$result = $saga->execute(['orderId' => 42]);
+if ($result->failed()) {
+    Log::error('Saga failed', [
+        'step' => $result->getFailedStep(),
+        'compensated' => $result->getCompensatedSteps(),
+        'error' => $result->getException()->getMessage(),
+    ]);
+}
+```
+
+Compensations only run for steps that completed before the failure, in reverse order.
+
+### Laravel events
+
+The package dispatches the following events through `\Illuminate\Support\Facades\Event` (and a local listener registry as a fallback for non-Laravel contexts):
+
+| Event | When |
+|------|------|
+| `Bschmitt\Amqp\Events\MessagePublishing` | Right before a publish is sent |
+| `Bschmitt\Amqp\Events\MessagePublished` | After a successful publish |
+| `Bschmitt\Amqp\Events\MessageReceived` | When a message is received by the consume pipeline |
+| `Bschmitt\Amqp\Events\MessageHandled` | After the handler completes |
+| `Bschmitt\Amqp\Events\MessageFailed` | When the handler throws |
+
+Listen in Laravel as usual:
+
+```php
+Event::listen(\Bschmitt\Amqp\Events\MessageFailed::class, function ($event) {
+    Log::warning('AMQP handler failed', ['error' => $event->exception->getMessage()]);
+});
+```
+
+### Consume middleware
+
+Wrap the consume handler with a pipeline:
+
+```php
+use Bschmitt\Amqp\Facades\Amqp;
+
+Amqp::consumeWithMiddleware('orders', function ($message, $resolver) {
+    // handle...
+}, [
+    function ($message, $next) {
+        $start = microtime(true);
+        $next($message);
+        Log::info('handled', ['duration_ms' => (microtime(true) - $start) * 1000]);
+    },
+    // ...or a ConsumeMiddlewareInterface instance
+]);
+```
+
+Each middleware receives `(AMQPMessage $message, callable $next)` and can short-circuit by not calling `$next`.
+
+### Fake AMQP driver
+
+In tests, replace the bound singleton with a recording fake:
+
+```php
+use Bschmitt\Amqp\Core\Amqp;
+
+public function test_publishes_order_created()
+{
+    $fake = Amqp::fake();
+
+    (new CreateOrder)->handle();
+
+    $fake->assertPublished('orders.created');
+    $fake->assertPublishedCount(1, 'orders.created');
+    $fake->assertNotPublished('orders.shipped');
+}
+```
+
+The fake records both `publish()` and `publishLater()` calls; never touches the broker.
+
+### Async publishing with publisher confirms
+
+```php
+$async = Amqp::asyncPublisher(['exchange' => 'events'])
+    ->onAck(function ($tag)  { /* metric: published */ })
+    ->onNack(function ($tag) { /* metric: failed */ });
+
+foreach ($messages as $m) {
+    $async->publish('events.created', json_encode($m));
+}
+
+if (!$async->flush(30)) {
+    Log::warning('Some publisher confirms timed out');
+}
+
+$async->close();
+```
+
+`AsyncPublisher` keeps a single channel open with `confirm_select` and only waits for confirmations on `flush()`, so high-throughput publishers don't block on the per-message round-trip.
 
 ## Testing
 

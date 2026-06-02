@@ -63,6 +63,18 @@ class AmqpServiceProvider extends ServiceProvider
     }
 
     /**
+     * Register the singleton package event dispatcher used by publish/consume.
+     *
+     * @return void
+     */
+    protected function registerEventDispatcher(): void
+    {
+        $this->app->singleton(\Bschmitt\Amqp\Support\EventDispatcher::class, function () {
+            return \Bschmitt\Amqp\Support\EventDispatcher::instance();
+        });
+    }
+
+    /**
      * `$this->app->runningInConsole()` exists in Laravel but not in the bare
      * Illuminate Container used by some package tests. Probe for it safely.
      *
@@ -107,6 +119,8 @@ class AmqpServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->registerEventDispatcher();
+
         // Register Configuration Provider
         $this->app->singleton(\Bschmitt\Amqp\Contracts\ConfigurationProviderInterface::class, function ($app) {
             return new \Bschmitt\Amqp\Support\ConfigurationProvider($app['config']);
@@ -185,6 +199,7 @@ class AmqpServiceProvider extends ServiceProvider
             \Bschmitt\Amqp\Contracts\BatchManagerInterface::class,
             'Bschmitt\Amqp\Core\Publisher',
             'Bschmitt\Amqp\Core\Consumer',
+            \Bschmitt\Amqp\Support\EventDispatcher::class,
         ];
     }
 }

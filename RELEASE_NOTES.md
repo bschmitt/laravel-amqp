@@ -2,6 +2,53 @@
 
 ---
 
+## Version 3.6.0 - Minor Release
+
+Application-level workflows, observability, and testing ergonomics — all
+backwards-compatible and verified on PHP 7.3 through 8.5.
+
+### Features
+
+1. **SAGA workflow helpers**
+   - New `Saga` builder with `step($name, $action, $compensation)`.
+   - `SagaResult` reports succeeded/failed status, per-step results, the
+     failing step, exception, and which steps were compensated.
+   - `Amqp::saga($name)` shortcut.
+
+2. **Laravel events**
+   - New events under `Bschmitt\Amqp\Events\`: `MessagePublishing`,
+     `MessagePublished`, `MessageReceived`, `MessageHandled`,
+     `MessageFailed`.
+   - Dispatched via `Illuminate\Support\Facades\Event` when available;
+     fallback singleton `EventDispatcher` for non-Laravel contexts.
+
+3. **Consume middleware pipeline**
+   - New `ConsumeMiddlewareInterface` and `ConsumePipeline`.
+   - `Amqp::consumeWithMiddleware($queue, $handler, $middlewares, $properties)`.
+
+4. **Fake AMQP test driver**
+   - New `Bschmitt\Amqp\Testing\FakeAmqp` extends `Amqp`.
+   - Null publisher/consumer/factory stubs.
+   - Laravel-style assertions: `assertPublished()`, `assertNotPublished()`,
+     `assertNothingPublished()`, `assertPublishedCount()`.
+   - `Amqp::fake()` swaps the bound singleton (or returns a standalone fake
+     when no Laravel app is active).
+
+5. **Publisher confirms & async publishing**
+   - New `AsyncPublisher` with persistent channel, `confirm_select`,
+     `onAck()` / `onNack()` callbacks, and `flush()`/`stats()`.
+   - `Amqp::asyncPublisher($properties)` shortcut.
+   - Leverages existing `Publisher` confirms (`publisher_confirms`,
+     `wait_for_confirms`, `waitForConfirms()`).
+
+### Documentation
+
+- README **SAGA, Events, Middleware & Testing** section and
+  `docs/content/workflow-events-testing.md`.
+- Docs site nav + new feature card.
+
+---
+
 ## Version 3.5.0 - Minor Release
 
 Production-oriented infrastructure from the roadmap — fully backwards-compatible

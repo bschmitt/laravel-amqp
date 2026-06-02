@@ -16,11 +16,19 @@ use Bschmitt\Amqp\Factories\MessageFactory;
 use Bschmitt\Amqp\Managers\ConnectionManager;
 use Bschmitt\Amqp\Managers\ConnectionPool;
 use Bschmitt\Amqp\Managers\ResilientConnectionManager;
+use Bschmitt\Amqp\Events\MessageFailed;
+use Bschmitt\Amqp\Events\MessageHandled;
+use Bschmitt\Amqp\Events\MessagePublished;
+use Bschmitt\Amqp\Events\MessagePublishing;
+use Bschmitt\Amqp\Events\MessageReceived;
 use Bschmitt\Amqp\Models\Message;
+use Bschmitt\Amqp\Support\AsyncPublisher;
+use Bschmitt\Amqp\Support\ConsumePipeline;
 use Bschmitt\Amqp\Support\ConsumerLifecycle;
 use Bschmitt\Amqp\Support\CorrelationContext;
 use Bschmitt\Amqp\Support\DeadLetterTopology;
 use Bschmitt\Amqp\Support\DelayedPublisher;
+use Bschmitt\Amqp\Support\EventDispatcher;
 use Bschmitt\Amqp\Support\ExchangeTopology;
 use Bschmitt\Amqp\Support\JsonMessageSerializer;
 use Bschmitt\Amqp\Support\MessageHeaders;
@@ -28,8 +36,10 @@ use Bschmitt\Amqp\Support\PublishBackoff;
 use Bschmitt\Amqp\Support\QueueProfile;
 use Bschmitt\Amqp\Support\RetryHandler;
 use Bschmitt\Amqp\Support\RetryPolicy;
+use Bschmitt\Amqp\Support\Saga;
 use Bschmitt\Amqp\Support\SchemaValidator;
 use Bschmitt\Amqp\Support\W3cTracePropagator;
+use Bschmitt\Amqp\Testing\FakeAmqp;
 
 /**
  * @author Björn Schmitt <code@bjoern.io>
@@ -144,7 +154,9 @@ class Amqp
         }
 
         $properties = $this->applyContextPropagation($properties);
-        
+
+        $this->events()->dispatch(new MessagePublishing($routing, $message, $properties));
+
         $properties['routing'] = $routing;
         $publisher = $this->publisherFactory->create($properties);
 
@@ -173,7 +185,11 @@ class Amqp
             $message = $this->messageFactory->create($message, $applicationHeaders, $messageProperties);
             $mandatory = (bool) ($properties['mandatory'] ?? false);
 
-            return $publisher->publish($routing, $message, $mandatory);
+            $result = $publisher->publish($routing, $message, $mandatory);
+
+            $this->events()->dispatch(new MessagePublished($routing, $message, $properties, $result));
+
+            return $result;
         } finally {
             $this->disconnectPublisher($publisher);
         }
@@ -510,6 +526,102 @@ class Amqp
     public function topology(string $queue, ?RetryPolicy $policy = null): DeadLetterTopology
     {
         return DeadLetterTopology::for($queue, $policy);
+    }
+
+    /* =================================================================
+     *  Events, middleware, sagas, async publishing, test helpers
+     * =================================================================
+     */
+
+    /**
+     * Package event dispatcher (falls back to a local-only singleton outside Laravel).
+     *
+     * @return EventDispatcher
+     */
+    public function events(): EventDispatcher
+    {
+        return EventDispatcher::instance();
+    }
+
+    /**
+     * Build an asynchronous publisher bound to this Amqp's factories.
+     *
+     * @param array<string, mixed> $properties Base properties (exchange, queue, ...).
+     * @return AsyncPublisher
+     */
+    public function asyncPublisher(array $properties = []): AsyncPublisher
+    {
+        return new AsyncPublisher($this->publisherFactory, $this->messageFactory, $properties);
+    }
+
+    /**
+     * Consume with a middleware pipeline. Each middleware receives
+     * `(AMQPMessage $message, callable $next)` and must call `$next($message)`
+     * to invoke the handler (or short-circuit to skip it).
+     *
+     * @param string                                                          $queue
+     * @param Closure                                                         $handler `fn($message, $resolver): void`
+     * @param array<int, callable|\Bschmitt\Amqp\Contracts\ConsumeMiddlewareInterface> $middlewares
+     * @param array<string, mixed>                                            $properties
+     * @return bool
+     */
+    public function consumeWithMiddleware(string $queue, Closure $handler, array $middlewares, array $properties = []): bool
+    {
+        $pipeline = (new ConsumePipeline())->pushMany($middlewares);
+        $wrapped = $pipeline->wrap(function ($message, $resolver) use ($handler, $queue) {
+            $this->events()->dispatch(new MessageReceived($queue, $message));
+            $start = microtime(true);
+            try {
+                $result = $handler($message, $resolver);
+                $this->events()->dispatch(new MessageHandled(
+                    $queue,
+                    $message,
+                    (microtime(true) - $start) * 1000.0
+                ));
+
+                return $result;
+            } catch (\Throwable $e) {
+                $this->events()->dispatch(new MessageFailed($queue, $message, $e));
+                throw $e;
+            }
+        });
+
+        return $this->consume($queue, $wrapped, $properties);
+    }
+
+    /**
+     * Build a {@see Saga} workflow.
+     *
+     * @param string $name
+     * @return Saga
+     */
+    public function saga(string $name = 'saga'): Saga
+    {
+        return new Saga($name);
+    }
+
+    /**
+     * Swap the Laravel-bound Amqp singleton for a {@see FakeAmqp} that records
+     * publishes instead of touching the broker. Returns the fake so tests can
+     * register assertions.
+     *
+     * @return FakeAmqp
+     */
+    public static function fake(): FakeAmqp
+    {
+        $fake = new FakeAmqp();
+
+        try {
+            $app = \Illuminate\Support\Facades\App::getFacadeApplication();
+            if ($app !== null) {
+                $app->instance('Amqp', $fake);
+                $app->instance(self::class, $fake);
+            }
+        } catch (\Throwable $e) {
+            // Outside Laravel — caller can still use the returned instance directly.
+        }
+
+        return $fake;
     }
 
     /**
