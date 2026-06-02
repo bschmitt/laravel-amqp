@@ -129,6 +129,28 @@ $files = [
     'test/Support/Fixtures/Rpc/CreateUserRequest.php',
     'test/Unit/Rpc/RpcDispatcherTest.php',
     'test/Unit/Rpc/RpcMessageTest.php',
+    // Messaging-platform additions (v3.4 phase 2)
+    'src/Rpc/ServiceRegistry.php',
+    'src/Rpc/ServiceCaller.php',
+    'src/Facades/Saga.php',
+    'src/Contracts/ShouldPublishToAmqpInterface.php',
+    'src/Contracts/MessageStoreInterface.php',
+    'src/Events/AmqpEventListener.php',
+    'src/Support/DeadLetterManager.php',
+    'src/Support/InMemoryMessageStore.php',
+    'src/Support/MonitoringDashboard.php',
+    'src/Support/RetryStrategy.php',
+    'src/Attributes/Retry.php',
+    'src/Console/Commands/AmqpMonitorCommand.php',
+    'test/Unit/Rpc/ServiceRegistryTest.php',
+    'test/Unit/Rpc/ServiceCallerTest.php',
+    'test/Unit/SagaFacadeTest.php',
+    'test/Unit/DeadLetterManagerTest.php',
+    'test/Unit/InMemoryMessageStoreTest.php',
+    'test/Unit/MonitoringDashboardTest.php',
+    'test/Unit/RetryAttributeTest.php',
+    'test/Unit/CausationContextTest.php',
+    'test/Unit/AmqpEventListenerTest.php',
 ];
 
 $factory = new ParserFactory();

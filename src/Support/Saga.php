@@ -42,6 +42,17 @@ class Saga
     }
 
     /**
+     * Fluent factory: `Saga::make('checkout')->step(...)->compensate(...);`
+     *
+     * @param string $name
+     * @return self
+     */
+    public static function make(string $name = 'saga'): self
+    {
+        return new self($name);
+    }
+
+    /**
      * @return string
      */
     public function getName(): string
@@ -51,6 +62,14 @@ class Saga
 
     /**
      * Register a step (and its optional compensation).
+     *
+     * Both legacy and fluent forms are supported:
+     *
+     *   // Legacy: pass both up front
+     *   $saga->step('reserve', $reserve, $releaseStock);
+     *
+     *   // Fluent: attach compensation right after
+     *   $saga->step('reserve', $reserve)->compensate($releaseStock);
      *
      * @param string        $name
      * @param callable      $action       function (array $context): mixed
@@ -68,6 +87,28 @@ class Saga
             'action' => $action,
             'compensation' => $compensation,
         ];
+
+        return $this;
+    }
+
+    /**
+     * Attach a compensation callable to the **last** registered step.
+     *
+     *   Saga::make('checkout')
+     *     ->step('reserveStock', $reserve)->compensate($releaseStock)
+     *     ->step('chargeCard',  $charge)->compensate($refundCard);
+     *
+     * @param callable $compensation function (array $context, mixed $stepResult): void
+     * @return $this
+     */
+    public function compensate(callable $compensation): self
+    {
+        if ($this->steps === []) {
+            throw new \LogicException('compensate() requires a preceding step() call');
+        }
+
+        $last = count($this->steps) - 1;
+        $this->steps[$last]['compensation'] = $compensation;
 
         return $this;
     }

@@ -99,6 +99,9 @@ class Amqp
      */
     protected $rpcDispatcher;
 
+    /** @var \Bschmitt\Amqp\Contracts\MessageStoreInterface|null */
+    protected $messageStore;
+
     /**
      * @param PublisherFactoryInterface $publisherFactory
      * @param ConsumerFactoryInterface $consumerFactory
@@ -207,6 +210,19 @@ class Amqp
 
             $this->events()->dispatch(new MessagePublished($routing, $message, $properties, $result));
             $this->metrics()->incrementPublished($routing);
+
+            if ($this->messageStore !== null) {
+                $bodyForStore = is_object($message) && method_exists($message, 'getBody')
+                    ? (string) $message->getBody()
+                    : (string) $message;
+                $this->messageStore->append(
+                    'published',
+                    $routing,
+                    $bodyForStore,
+                    $messageProperties,
+                    is_array($applicationHeaders) ? $applicationHeaders : []
+                );
+            }
 
             return $result;
         } finally {
@@ -590,6 +606,17 @@ class Amqp
         $wrapped = $pipeline->wrap(function ($message, $resolver) use ($handler, $queue) {
             $this->metrics()->incrementConsumed($queue);
             $this->events()->dispatch(new MessageReceived($queue, $message));
+
+            if ($this->messageStore !== null && $message instanceof \PhpAmqpLib\Message\AMQPMessage) {
+                $this->messageStore->append(
+                    'consumed',
+                    $queue,
+                    (string) $message->getBody(),
+                    $message->get_properties(),
+                    \Bschmitt\Amqp\Support\MessageHeaders::toArray($message)
+                );
+            }
+
             $start = microtime(true);
             try {
                 $result = $handler($message, $resolver);
@@ -707,6 +734,58 @@ class Amqp
     public function setRpcDispatcher(?RpcDispatcher $dispatcher): self
     {
         $this->rpcDispatcher = $dispatcher;
+
+        return $this;
+    }
+
+    /**
+     * Fluent dead-letter queue inspector / replayer.
+     *
+     *   $amqp->deadLetters()->for('orders.dlq')->count();
+     *   $amqp->deadLetters()->for('orders.dlq')->replayTo('orders', 50);
+     *
+     * @return \Bschmitt\Amqp\Support\DeadLetterManager
+     */
+    public function deadLetters(): \Bschmitt\Amqp\Support\DeadLetterManager
+    {
+        return new \Bschmitt\Amqp\Support\DeadLetterManager($this);
+    }
+
+    /**
+     * Snapshot of all observability data the package can collect
+     * (in-process metrics + per-queue stats from the Management API).
+     *
+     * @param array<int, string>   $queues     Queue names to include.
+     * @param array<string, mixed> $properties Connection overrides.
+     * @return \Bschmitt\Amqp\Support\MonitoringDashboard
+     */
+    public function dashboard(array $queues = [], array $properties = []): \Bschmitt\Amqp\Support\MonitoringDashboard
+    {
+        return new \Bschmitt\Amqp\Support\MonitoringDashboard($this, $queues, $properties);
+    }
+
+    /**
+     * Persistent {@see \Bschmitt\Amqp\Contracts\MessageStoreInterface}
+     * (in-memory by default; replaceable via {@see setMessageStore()}).
+     *
+     * @return \Bschmitt\Amqp\Contracts\MessageStoreInterface
+     */
+    public function messageStore(): \Bschmitt\Amqp\Contracts\MessageStoreInterface
+    {
+        if ($this->messageStore === null) {
+            $this->messageStore = new \Bschmitt\Amqp\Support\InMemoryMessageStore();
+        }
+
+        return $this->messageStore;
+    }
+
+    /**
+     * @param \Bschmitt\Amqp\Contracts\MessageStoreInterface|null $store
+     * @return $this
+     */
+    public function setMessageStore(?\Bschmitt\Amqp\Contracts\MessageStoreInterface $store): self
+    {
+        $this->messageStore = $store;
 
         return $this;
     }

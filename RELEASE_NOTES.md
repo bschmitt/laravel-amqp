@@ -4,10 +4,11 @@
 
 ## Version 3.4.0 - Minor Release
 
-A consolidated release that lands twenty features from the roadmap across
-retry/DLQ, delayed/typed/schema messaging, production infrastructure,
-workflows/testing, and scale/interop — all fully backwards-compatible and
-verified on PHP 7.3 through 8.5.
+A consolidated release that lands the original twenty roadmap features plus
+nine "messaging-platform" additions (service discovery, sagas-as-a-facade,
+typed-message dispatch, DLQ management, retry attribute, monitoring dashboard,
+causation IDs, MessageStore, async Laravel events) — all fully
+backwards-compatible and verified on PHP 7.3 through 8.5.
 
 No migration required. Every new feature is opt-in; existing publish/consume
 code, handler signatures, and config layouts continue to work unchanged.
@@ -199,6 +200,83 @@ code, handler signatures, and config layouts continue to work unchanged.
 - New sidebar entries and feature cards in `docs/index.html`; new
   "Typed Messages" quick-start tab on the home page.
 
+### Laravel Messaging Platform (phase 2)
+
+The package now ships the building blocks of a full Laravel-first
+microservice toolkit alongside the v3.4 core. Every item below is purely
+additive and ships with unit-test coverage.
+
+22. **Service Discovery (`Rpc::service('payments')`)**
+    - `Bschmitt\Amqp\Rpc\ServiceRegistry` — register short names → service
+      FQCNs (`Rpc::services()->register('payments', PaymentsService::class)`).
+    - `autodiscover()` honours an opt-in `static alias()` method on
+      `RpcService` subclasses.
+    - `Bschmitt\Amqp\Rpc\ServiceCaller` — fluent caller with `timeout()` and
+      `withProperties()` chaining; `Rpc::service($alias|$fqcn)->call($req)`.
+
+23. **Saga facade + `compensate()` syntax**
+    - `Saga::make()` static factory and a new top-level `Saga` facade.
+    - Fluent compensation: `->step('reserve', $reserve)->compensate($release)`.
+    - Backwards-compatible: the old 3-arg `step($name, $action, $comp)` form
+      still works.
+
+24. **Message contract dispatch**
+    - `TypedMessage::make(array $payload)` and `TypedMessage::dispatch(array
+      $payload, array $properties = [])` static helpers.
+    - `TypedMessage::dispatchLater(array $payload, int $delayMs)` mirrors the
+      delayed publisher.
+    - Resolves the `Amqp` singleton from the Laravel container; throws a
+      clear `RuntimeException` when called outside Laravel.
+
+25. **Dead-letter management** (`Amqp::deadLetters()`)
+    - `Bschmitt\Amqp\Support\DeadLetterManager` fluent API:
+      `for($queue)->count()/messages()/replayTo($target)/purge()`.
+    - Inspection uses the Management API; replay/purge use the AMQP channel
+      directly so they work even when the management plugin is disabled.
+
+26. **`#[Retry]` attribute + `RetryStrategy`**
+    - `Bschmitt\Amqp\Attributes\Retry(attempts, strategy, delayMs,
+      maxDelayMs, jitter)` with PHP 8+ attribute target.
+    - `Bschmitt\Amqp\Support\RetryStrategy::{FIXED|EXPONENTIAL|LINEAR|NONE}`
+      string constants (PHP 7.3-safe).
+    - `RetryPolicy::fromAttribute($class, $method = null)` reflection
+      helper builds an existing `RetryPolicy` from the attribute.
+    - PHP 7.x silently ignores the attribute marker (parsed as a comment),
+      so the package still loads on older runtimes.
+
+27. **Monitoring dashboard + `amqp:monitor`**
+    - `Bschmitt\Amqp\Support\MonitoringDashboard` aggregates
+      `MetricsCollector` (in-process) + Management API queue stats into a
+      single JSON-safe snapshot.
+    - `Amqp::dashboard($queues)->snapshot()` returns
+      `['process' => ..., 'queues' => ..., 'overview' => ..., 'generated' => ...]`.
+    - `php artisan amqp:monitor --queue=orders [--json] [--connection=]`
+      Artisan command for ops/CI.
+
+28. **Causation ID propagation**
+    - `CorrelationContext` now also tracks a causation id with
+      `setCausation()` / `getCausation()` and `CAUSATION_HEADER`.
+    - `inheritFromMessage()` captures the inbound `message_id` as the
+      causation id of anything published next.
+    - `applyToPublishProperties()` adds an `x-causation-id` header alongside
+      the existing correlation headers.
+
+29. **MessageStore (`Bschmitt\Amqp\Contracts\MessageStoreInterface`)**
+    - Append-only log API with `append() / find() / all() / count() / purge()`.
+    - `Bschmitt\Amqp\Support\InMemoryMessageStore` default implementation.
+    - `Amqp::setMessageStore()` / `messageStore()` accessors; publish and
+      consume both auto-record when a store is attached.
+    - Foundation for durable replay / event-sourcing-style audit trails.
+
+30. **Async Laravel events** (`ShouldPublishToAmqpInterface`)
+    - Marker interface for Laravel events that should auto-publish to
+      RabbitMQ.
+    - `Bschmitt\Amqp\Events\AmqpEventListener` wildcard listener handles
+      routing, payload, and exchange resolution (with overridable
+      `amqpRouting()` / `amqpPayload()` / `amqpExchange()` hooks).
+    - `Saga` facade alias auto-registered via `composer.json`.
+    - Disabled by default; opt-in with `amqp.broadcast_laravel_events => true`.
+
 ### Migration
 
 No migration required. All new features are opt-in:
@@ -211,6 +289,18 @@ No migration required. All new features are opt-in:
 - The default `MessageSerializerInterface` is lazily resolved as
   `JsonMessageSerializer` — existing publish/consume calls that send raw
   bodies are unaffected.
+- MessageStore is `null` by default — no recording happens unless you call
+  `Amqp::setMessageStore(...)`.
+- The async-Laravel-events bridge is **only** registered when
+  `amqp.broadcast_laravel_events` is set to `true`.
+
+### Test counts
+
+- Unit suite: **444 tests / 1004 assertions** (was 405 / 925 before phase 2).
+- New unit test files: `ServiceRegistryTest`, `ServiceCallerTest`,
+  `SagaFacadeTest`, `DeadLetterManagerTest`, `InMemoryMessageStoreTest`,
+  `MonitoringDashboardTest`, `RetryAttributeTest`, `CausationContextTest`,
+  `AmqpEventListenerTest`.
 ---
 
 ## Version 3.3.0 - Minor Release

@@ -626,6 +626,7 @@ createApp({
       await this.loadMarkdownPage('workflow-events-testing', "./content/workflow-events-testing.md");
       await this.loadMarkdownPage('scale-and-interop', "./content/scale-and-interop.md");
       await this.loadMarkdownPage('grpc-lite-rpc', "./content/grpc-lite-rpc.md");
+      await this.loadMarkdownPage('messaging-platform', "./content/messaging-platform.md");
       await this.loadMarkdownPage('best-practices', "./content/best-practices.md");
       await this.loadMarkdownPage('faq', "./content/faq.md");
       await this.loadMarkdownPage('troubleshooting', "./content/troubleshooting.md");

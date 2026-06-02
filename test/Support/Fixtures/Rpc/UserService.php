@@ -18,4 +18,9 @@ class UserService extends RpcService
             CreateUserRequest::class => 'createUser',
         ];
     }
+
+    public static function alias(): ?string
+    {
+        return 'users';
+    }
 }

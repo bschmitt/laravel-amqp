@@ -59,7 +59,8 @@
             ],
             "aliases": {
                 "Amqp": "Bschmitt\\Amqp\\Facades\\Amqp",
-                "Rpc": "Bschmitt\\Amqp\\Facades\\Rpc"
+                "Rpc": "Bschmitt\\Amqp\\Facades\\Rpc",
+                "Saga": "Bschmitt\\Amqp\\Facades\\Saga"
             }
         }
     },

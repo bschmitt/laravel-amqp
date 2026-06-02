@@ -126,6 +126,67 @@ class RetryPolicy
         return new self(0, 0, self::STRATEGY_FIXED, 0, 2.0, 0);
     }
 
+    /**
+     * Build a policy from a {@see \Bschmitt\Amqp\Attributes\Retry} attribute
+     * declared on a class or method.
+     *
+     *   #[Retry(attempts: 5, strategy: RetryStrategy::EXPONENTIAL)]
+     *   class CreateOrderHandler { public function __invoke(): void {} }
+     *
+     *   $policy = RetryPolicy::fromAttribute(CreateOrderHandler::class);
+     *
+     * Returns {@see RetryPolicy::none()} when the attribute isn't present
+     * or PHP < 8.0 is in use (attributes silently parse as comments there).
+     *
+     * @param class-string $class
+     * @param string|null  $method
+     * @return self
+     */
+    public static function fromAttribute(string $class, ?string $method = null): self
+    {
+        if (PHP_VERSION_ID < 80000) {
+            return self::none();
+        }
+
+        try {
+            $reflector = $method !== null
+                ? new \ReflectionMethod($class, $method)
+                : new \ReflectionClass($class);
+        } catch (\ReflectionException $e) {
+            return self::none();
+        }
+
+        $attributes = $reflector->getAttributes(\Bschmitt\Amqp\Attributes\Retry::class);
+        if ($attributes === []) {
+            return self::none();
+        }
+
+        /** @var \Bschmitt\Amqp\Attributes\Retry $retry */
+        $retry = $attributes[0]->newInstance();
+        $maxAttempts = max(0, $retry->attempts - 1);
+
+        switch ($retry->strategy) {
+            case \Bschmitt\Amqp\Support\RetryStrategy::EXPONENTIAL:
+                return self::exponential(
+                    $maxAttempts,
+                    $retry->delayMs,
+                    2.0,
+                    $retry->maxDelayMs,
+                    $retry->jitter ? max(1, (int) ($retry->delayMs / 4)) : 0
+                );
+            case \Bschmitt\Amqp\Support\RetryStrategy::LINEAR:
+            case \Bschmitt\Amqp\Support\RetryStrategy::FIXED:
+                return self::fixed(
+                    $maxAttempts,
+                    $retry->delayMs,
+                    $retry->jitter ? max(1, (int) ($retry->delayMs / 4)) : 0
+                );
+            case \Bschmitt\Amqp\Support\RetryStrategy::NONE:
+            default:
+                return self::none();
+        }
+    }
+
     public function maxAttempts(): int
     {
         return $this->maxAttempts;

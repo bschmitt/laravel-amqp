@@ -40,12 +40,48 @@ class RpcDispatcher
     /** @var int */
     protected $defaultTimeout = 30;
 
+    /** @var ServiceRegistry|null */
+    protected $registry;
+
     /**
      * @param Amqp $amqp
      */
     public function __construct(Amqp $amqp)
     {
         $this->amqp = $amqp;
+    }
+
+    /**
+     * Lazy {@see ServiceRegistry} accessor.
+     *
+     * @return ServiceRegistry
+     */
+    public function services(): ServiceRegistry
+    {
+        if ($this->registry === null) {
+            $this->registry = new ServiceRegistry();
+        }
+
+        return $this->registry;
+    }
+
+    /**
+     * Fluent caller for a discovered service.
+     *
+     * Accepts either a registered alias (`Rpc::service('payments')`) or a
+     * full service FQCN (`Rpc::service(PaymentsService::class)`).
+     *
+     * @param string $serviceNameOrClass
+     * @return ServiceCaller
+     */
+    public function service(string $serviceNameOrClass): ServiceCaller
+    {
+        if (class_exists($serviceNameOrClass)
+            && is_subclass_of($serviceNameOrClass, RpcService::class)) {
+            return new ServiceCaller($this, $serviceNameOrClass);
+        }
+
+        return new ServiceCaller($this, $this->services()->resolve($serviceNameOrClass));
     }
 
     /**

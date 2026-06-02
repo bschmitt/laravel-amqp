@@ -371,6 +371,32 @@
                   </p>
                 </div>
 
+                <div class="feature-card">
+                  <div class="feature-icon">🎯</div>
+                  <h3>gRPC Support</h3>
+                  <p>
+                    Typed service-oriented RPC over RabbitMQ. Define
+                    <code>RpcService</code> + <code>RpcRequest</code> /
+                    <code>RpcResponse</code> DTOs and call any service
+                    with <code>Rpc::call(UserService::class, GetUserRequest::make([...]))</code>.
+                    Symmetric <code>Rpc::serve()</code> on the server.
+                  </p>
+                </div>
+
+                <div class="feature-card">
+                  <div class="feature-icon">🧩</div>
+                  <h3>Messaging Platform</h3>
+                  <p>
+                    Service discovery <code>Rpc::service('payments')</code>,
+                    <code>Saga::make()->step()->compensate()</code>,
+                    <code>OrderCreated::dispatch([...])</code>,
+                    <code>Amqp::deadLetters()</code> management,
+                    <code>#[Retry]</code> attribute, monitoring dashboard,
+                    causation IDs, MessageStore, and an async-Laravel-events
+                    bridge.
+                  </p>
+                </div>
+
               </div>
             </div>
           </section>
@@ -663,6 +689,12 @@
                       @click.prevent="navigateTo('grpc-lite-rpc')"
                       :class="{active: currentPage === 'grpc-lite-rpc'}"
                       >gRPC-lite RPC</a
+                    >
+                    <a
+                      href="#messaging-platform"
+                      @click.prevent="navigateTo('messaging-platform')"
+                      :class="{active: currentPage === 'messaging-platform'}"
+                      >Messaging Platform</a
                     >
                     <a
                       href="#best-practices"
