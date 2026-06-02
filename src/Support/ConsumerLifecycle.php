@@ -31,6 +31,28 @@ class ConsumerLifecycle
     /** @var bool */
     protected $signalsRegistered = false;
 
+    /** @var HealthState|null */
+    protected $health;
+
+    /**
+     * Attach a {@see HealthState} that should mirror this consumer's state.
+     * When set, the lifecycle marks the worker ready on start, dead on
+     * shutdown, and stamps a heartbeat on every message — making the
+     * existing hooks Kubernetes-probe ready.
+     *
+     * @return $this
+     */
+    public function withHealth(HealthState $state): self
+    {
+        $this->health = $state;
+        return $this;
+    }
+
+    public function health(): ?HealthState
+    {
+        return $this->health;
+    }
+
     /**
      * @param callable $callback function (ConsumerLifecycle $lifecycle): void
      * @return $this
@@ -81,6 +103,9 @@ class ConsumerLifecycle
     public function requestStop(): void
     {
         $this->shouldStop = true;
+        if ($this->health !== null) {
+            $this->health->markNotReady('stop requested');
+        }
     }
 
     /**
@@ -132,8 +157,14 @@ class ConsumerLifecycle
      */
     public function fireStarting(): void
     {
+        if ($this->health !== null) {
+            $this->health->markStarting();
+        }
         foreach ($this->startingHooks as $hook) {
             call_user_func($hook, $this);
+        }
+        if ($this->health !== null) {
+            $this->health->markReady('consumer started');
         }
     }
 
@@ -144,6 +175,9 @@ class ConsumerLifecycle
      */
     public function fireStopping(): void
     {
+        if ($this->health !== null) {
+            $this->health->markDead('consumer stopped');
+        }
         foreach ($this->stoppingHooks as $hook) {
             call_user_func($hook, $this);
         }
@@ -155,6 +189,10 @@ class ConsumerLifecycle
      */
     public function fireMessage(AMQPMessage $message): void
     {
+        if ($this->health !== null) {
+            $this->health->heartbeat();
+            $this->health->recordProcessed();
+        }
         foreach ($this->messageHooks as $hook) {
             call_user_func($hook, $message, $this);
         }
@@ -167,6 +205,9 @@ class ConsumerLifecycle
      */
     public function fireError(\Throwable $exception, ?AMQPMessage $message = null): void
     {
+        if ($this->health !== null) {
+            $this->health->recordError();
+        }
         foreach ($this->errorHooks as $hook) {
             call_user_func($hook, $exception, $message, $this);
         }

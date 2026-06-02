@@ -25,6 +25,82 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Kubernetes liveness / readiness probes
+    |--------------------------------------------------------------------------
+    |
+    | When `enabled` is true the package registers three HTTP routes:
+    |   GET {prefix}/live  — liveness  (HTTP 200 / 503)
+    |   GET {prefix}/ready — readiness (HTTP 200 / 503)
+    |   GET {prefix}       — combined snapshot
+    |
+    | `state_file` is the on-disk JSON snapshot written by ConsumerLifecycle
+    | for cross-process exec probes (e.g. `php artisan amqp:health`).
+    |
+    */
+
+    'probes' => [
+        'enabled' => env('AMQP_PROBES_ENABLED', false),
+        'prefix' => env('AMQP_PROBES_PREFIX', 'amqp/health'),
+        'middleware' => [],
+        'state_file' => env('AMQP_PROBES_STATE_FILE'),
+        'heartbeat_age' => (float) env('AMQP_PROBES_HEARTBEAT_AGE', 60.0),
+        'queues' => array_filter(explode(',', (string) env('AMQP_PROBES_QUEUES', ''))),
+        'max_backlog' => env('AMQP_PROBES_MAX_BACKLOG'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Autoscaling defaults
+    |--------------------------------------------------------------------------
+    |
+    | Tuneable defaults consumed by `amqp:scale` and the
+    | {@see Bschmitt\Amqp\Support\AutoscalingAdvisor} when used programmatically.
+    |
+    */
+
+    'autoscaling' => [
+        'messages_per_consumer' => (int) env('AMQP_AUTOSCALE_PER_CONSUMER', 100),
+        'min_replicas' => (int) env('AMQP_AUTOSCALE_MIN', 1),
+        'max_replicas' => (int) env('AMQP_AUTOSCALE_MAX', 10),
+        'lag_seconds' => (float) env('AMQP_AUTOSCALE_LAG_SECONDS', 30.0),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Multi-region failover
+    |--------------------------------------------------------------------------
+    |
+    | A comma-separated list of connection keys (matching `properties.*`) and
+    | an optional primary region tag. When `primary` is null the package
+    | tries to match the local region (LARAVEL_CLOUD_REGION / AWS_REGION) to
+    | one of the connection keys.
+    |
+    */
+
+    'regions' => [
+        'enabled' => env('AMQP_MULTI_REGION', false),
+        'connections' => array_filter(explode(',', (string) env('AMQP_REGIONS', ''))),
+        'primary' => env('AMQP_REGION_PRIMARY'),
+        'cooldown_seconds' => (int) env('AMQP_REGION_COOLDOWN', 30),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Laravel Cloud / managed hosting integration
+    |--------------------------------------------------------------------------
+    |
+    | When `auto_hydrate` is true the service provider parses AMQP_URL /
+    | CLOUDAMQP_URL / RABBITMQ_URL on register() and merges the credentials
+    | into the active connection block, leaving explicit user config alone.
+    |
+    */
+
+    'cloud' => [
+        'auto_hydrate' => env('AMQP_CLOUD_AUTO_HYDRATE', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | AMQP properties separated by key
     |--------------------------------------------------------------------------
     */

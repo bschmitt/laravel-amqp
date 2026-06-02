@@ -73,6 +73,10 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - **Laravel Pulse integration** - `AmqpPulseRecorder` auto-records publish/handle/fail/RPC/DLQ events to Pulse when `laravel/pulse` is installed; opt out with `amqp.pulse_integration => false` (see [Messaging Platform](#laravel-messaging-platform))
 - **OpenTelemetry bridge** - `OpenTelemetryTracePropagator` injects the active OTel span context into AMQP headers (with W3C fallback) when `open-telemetry/api` is installed (see [Production Infrastructure](#production-infrastructure))
 - **Correlation ID visualisation** - `CorrelationChain::tree()` / `render()` reconstruct causation graphs from the `MessageStore`; `php artisan amqp:trace <correlation_id>` prints an ASCII tree or JSON (see [Messaging Platform](#laravel-messaging-platform))
+- **Kubernetes liveness / readiness probes** - `HealthState` + `HealthCheck` + `Http\Controllers\HealthController`; opt-in HTTP routes (`GET {prefix}/live|ready`) plus `php artisan amqp:health` for exec probes (see [Kubernetes & Cloud Native](#kubernetes--cloud-native))
+- **Consumer autoscaling recommendations** - `AutoscalingAdvisor` (depth + lag heuristics, KEDA trigger spec) and `php artisan amqp:scale` CLI (see [Kubernetes & Cloud Native](#kubernetes--cloud-native))
+- **Laravel Cloud compatibility** - `LaravelCloud` detector + `AMQP_URL` / `CLOUDAMQP_URL` / `RABBITMQ_URL` DSN auto-hydration on register (see [Kubernetes & Cloud Native](#kubernetes--cloud-native))
+- **Multi-region deployment support** - `MultiRegionConnection` resolver with locality preference, cool-down blacklist, and `withFailover()` retry loop across region-scoped connection keys (see [Kubernetes & Cloud Native](#kubernetes--cloud-native))
 
 
 ## Planned Features
@@ -111,14 +115,14 @@ Status legend: **[x]** shipped · **[~]** partial / building blocks shipped (ful
 
 ### Kubernetes & Cloud Native
 
-* [~] Kubernetes-ready consumer lifecycle management — `ConsumerLifecycle` + `consumeWithLifecycle()` hooks
+* [x] Kubernetes-ready consumer lifecycle management — `ConsumerLifecycle::withHealth()` stamps `HealthState` on every start/stop/message/error
 * [x] Graceful shutdown support — `ConsumerLifecycle` signal handlers (`SIGTERM` / `SIGINT` via `pcntl`) + cooperative `requestStop()`
-* [ ] Readiness probe endpoint
-* [ ] Liveness probe endpoint
+* [x] Readiness probe endpoint — `GET {prefix}/ready` HTTP route + `php artisan amqp:health --probe=ready` for exec probes
+* [x] Liveness probe endpoint — `GET {prefix}/live` HTTP route + `php artisan amqp:health --probe=live`
 * [x] Auto-recovery after broker failures — `ResilientConnectionManager` (reconnect + heartbeat staleness) and `ConnectionPool`
-* [ ] Consumer autoscaling recommendations
-* [ ] Laravel Cloud compatibility
-* [ ] Multi-region deployment support
+* [x] Consumer autoscaling recommendations — `AutoscalingAdvisor` + `php artisan amqp:scale` (depth/lag heuristics, KEDA-ready trigger output)
+* [x] Laravel Cloud compatibility — `LaravelCloud` detector + `AMQP_URL` / `CLOUDAMQP_URL` / `RABBITMQ_URL` auto-hydration
+* [x] Multi-region deployment support — `MultiRegionConnection` resolver with locality preference, cool-down blacklist, and `withFailover()` retry loop
 
 ---
 
@@ -1545,6 +1549,156 @@ See [Testing Guide](docs/laravel-amqp.wiki/Testing.md) for more information.
 - `$amqp->getConnectionConfig($connectionName)` - Get connection config (use `$amqp = app('Amqp')`)
 
 **Note:** For `consume()`, `listen()`, `rpc()`, and all management methods, you must resolve the Amqp instance from the container using `$amqp = app('Amqp')` or `$amqp = resolve('Amqp')`. The static facade `Amqp::` works for `publish()` but not for `consume()` and other instance methods.
+
+## Kubernetes & Cloud Native
+
+### Liveness / readiness probes
+
+Two complementary surfaces — HTTP routes for sidecars and a CLI for exec probes — both backed by the same `HealthState` + `HealthCheck` pair.
+
+#### 1. HTTP routes
+
+Enable in `config/amqp.php` (or via `AMQP_PROBES_ENABLED=true`):
+
+```php
+'probes' => [
+    'enabled' => true,
+    'prefix' => 'amqp/health',     // GET /amqp/health/live, /ready, /
+    'middleware' => [],             // optional middleware (e.g. ['api'])
+    'state_file' => storage_path('framework/amqp-health.json'),
+    'heartbeat_age' => 60,          // seconds before liveness flips to 503
+    'queues' => ['orders', 'orders.dlq'],
+    'max_backlog' => 5000,
+],
+```
+
+The service provider registers:
+
+| Method | Path                  | Response                                 |
+|--------|-----------------------|------------------------------------------|
+| GET    | `/amqp/health/live`   | 200 alive / 503 dead                     |
+| GET    | `/amqp/health/ready`  | 200 ready / 503 not ready                |
+| GET    | `/amqp/health/`       | combined snapshot                         |
+
+Wire it from your consumer:
+
+```php
+use Bschmitt\Amqp\Support\ConsumerLifecycle;
+use Bschmitt\Amqp\Support\HealthState;
+
+$lifecycle = (new ConsumerLifecycle())
+    ->withHealth(HealthState::instance(storage_path('framework/amqp-health.json')))
+    ->registerSignalHandlers();
+
+Amqp::consumeWithLifecycle('orders', $handler, $lifecycle);
+```
+
+#### 2. CLI exec probe (sidecar / `livenessProbe.exec.command`)
+
+```bash
+# Readiness (default)
+php artisan amqp:health
+php artisan amqp:health --queue=orders --backlog=1000
+
+# Liveness
+php artisan amqp:health --probe=live --heartbeat-age=30
+
+# Combined snapshot
+php artisan amqp:health --all --state-file=/var/run/amqp-health.json
+```
+
+Exit codes: `0` = healthy, `1` = unhealthy — exactly what `livenessProbe.exec` / `readinessProbe.exec` expect.
+
+### Consumer autoscaling recommendations
+
+`AutoscalingAdvisor` is a pure function that turns a `QueueMetrics` snapshot into a recommended replica count and a ready-to-paste KEDA trigger:
+
+```php
+use Bschmitt\Amqp\Support\AutoscalingAdvisor;
+
+$metrics = Amqp::queueMetrics('orders');
+
+$advice = (new AutoscalingAdvisor())
+    ->messagesPerConsumer(100)
+    ->maxLagSeconds(15.0)
+    ->minReplicas(1)
+    ->maxReplicas(20)
+    ->advise($metrics);
+
+// $advice['desired_consumers'] => 4
+// $advice['action']            => 'scale_up'
+// $advice['reasons']           => ['depth 350 / 100 ...', 'lag 20s > 15s -> +1 ...']
+// $advice['keda']              => KEDA RabbitMQ trigger spec
+```
+
+CLI form:
+
+```bash
+php artisan amqp:scale orders orders.priority \
+    --per-consumer=100 --max=20 --lag-seconds=15
+
+php artisan amqp:scale orders --keda     # emit only the KEDA trigger
+php artisan amqp:scale orders --json --fail-on-scale-up  # CI-friendly
+```
+
+The `--keda` output drops straight into a `ScaledObject` manifest under `spec.triggers`.
+
+### Laravel Cloud / managed hosting compatibility
+
+`LaravelCloud` detects managed environments (Laravel Cloud, Forge, Vapor, Render, Fly.io) and, when `amqp.cloud.auto_hydrate` is true (default), parses an `AMQP_URL` / `CLOUDAMQP_URL` / `RABBITMQ_URL` DSN into the active connection block on `register()` — without overwriting explicit config:
+
+```env
+AMQP_URL=amqps://app:secret@rabbit.cloudamqp.com/%2Fprod
+```
+
+Explicit `AMQP_HOST` / `AMQP_USER` / etc. still win. You can also call the detector directly:
+
+```php
+use Bschmitt\Amqp\Support\LaravelCloud;
+
+if (LaravelCloud::isHosted()) {
+    logger()->info('amqp hosted env', LaravelCloud::summary());
+}
+
+$props = LaravelCloud::parseDsn(env('AMQP_URL'));
+```
+
+### Multi-region deployment support
+
+Configure region-scoped connection keys, then resolve / fail over with locality preference:
+
+```php
+// config/amqp.php
+'regions' => [
+    'enabled' => true,
+    'connections' => ['production-us', 'production-eu', 'production-apac'],
+    'primary' => null,           // null = match LARAVEL_CLOUD_REGION/AWS_REGION
+    'cooldown_seconds' => 30,
+],
+```
+
+```php
+use Bschmitt\Amqp\Support\MultiRegionConnection;
+
+$resolver = app(MultiRegionConnection::class);
+
+// Single attempt with locality preference
+$connectionKey = $resolver->pick();              // 'production-us'
+
+// Run a publish across regions until one succeeds
+$resolver->withFailover(function ($region) {
+    Amqp::publish('orders.created', $payload, ['use' => $region]);
+});
+
+// Fan-out to every region (e.g. announcements)
+foreach ($resolver->each() as $region) {
+    Amqp::publish('events.maintenance', $payload, ['use' => $region]);
+}
+```
+
+Failed regions cool down for the configured window before re-entering rotation.
+
+---
 
 ## Backward Compatibility
 

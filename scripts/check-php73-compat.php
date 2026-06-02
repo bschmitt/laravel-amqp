@@ -185,6 +185,24 @@ $files = [
     'test/Unit/Console/AmqpDiffCommandTest.php',
     'test/Unit/Console/AmqpSchemaCommandTest.php',
     'test/Unit/Console/AmqpRpcCommandTest.php',
+    // Kubernetes & cloud-native v3.4.5 — probes, autoscaling, multi-region, Laravel Cloud
+    'src/Support/HealthState.php',
+    'src/Support/HealthCheck.php',
+    'src/Support/AutoscalingAdvisor.php',
+    'src/Support/LaravelCloud.php',
+    'src/Support/MultiRegionConnection.php',
+    'src/Http/Controllers/HealthController.php',
+    'src/Console/Commands/AmqpHealthCommand.php',
+    'src/Console/Commands/AmqpScaleCommand.php',
+    'test/Unit/HealthStateTest.php',
+    'test/Unit/HealthCheckTest.php',
+    'test/Unit/AutoscalingAdvisorTest.php',
+    'test/Unit/LaravelCloudTest.php',
+    'test/Unit/MultiRegionConnectionTest.php',
+    'test/Unit/ConsumerLifecycleHealthTest.php',
+    'test/Unit/Http/HealthControllerTest.php',
+    'test/Unit/Console/AmqpHealthCommandTest.php',
+    'test/Unit/Console/AmqpScaleCommandTest.php',
 ];
 
 $factory = new ParserFactory();

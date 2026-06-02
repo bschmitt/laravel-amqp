@@ -2,6 +2,95 @@
 
 ---
 
+## Version 3.4.5 - Patch Release
+
+Kubernetes & cloud-native patch on top of `3.4.4`: liveness / readiness
+probes (HTTP + CLI), consumer autoscaling recommendations, Laravel Cloud
+DSN auto-hydration, and a multi-region connection resolver with cool-down
+failover. Backwards-compatible; new behaviour is opt-in via config.
+
+### Compatibility
+
+- **PHP**: 7.3 through 8.5
+- **Laravel**: 8.x through 13.x (Lumen 8.x+)
+- Every new file under `src/` parses as PHP 7.3 (verified via
+  `scripts/check-php73-compat.php`).
+- `require-dev` now lists `illuminate/http` and `illuminate/routing` so the
+  package can register HTTP probe routes in CI.
+
+### Kubernetes-ready consumer lifecycle
+
+- New `HealthState` (singleton + on-disk JSON snapshot).
+- `ConsumerLifecycle::withHealth($state)` stamps the state on start, ready,
+  every message (heartbeat + processed counter), errors, requestStop, and
+  shutdown — making the existing hooks K8s-probe ready out of the box.
+
+### Liveness / readiness probe endpoints
+
+- New `Bschmitt\Amqp\Http\Controllers\HealthController` with:
+  - `GET {prefix}/live`  → 200 / 503 liveness
+  - `GET {prefix}/ready` → 200 / 503 readiness
+  - `GET {prefix}/`      → combined snapshot
+- Service provider auto-registers the routes when `amqp.probes.enabled` is
+  true; supports a custom prefix, middleware stack, state file, queue
+  watch list, and max-backlog threshold.
+
+### CLI probe for exec sidecars
+
+- New `php artisan amqp:health` Artisan command with `--probe=live|ready`,
+  `--all`, `--queue=`, `--backlog=`, `--heartbeat-age=`, and `--state-file=`.
+- Exits 0/1 — compatible with `livenessProbe.exec.command` /
+  `readinessProbe.exec.command`.
+
+### Consumer autoscaling recommendations
+
+- New `AutoscalingAdvisor`: depth-per-consumer heuristic + lag threshold,
+  `min`/`max` clamps, scale-down grace, KEDA RabbitMQ trigger emitter.
+- New `php artisan amqp:scale` CLI: human table by default, `--json` and
+  `--keda` modes, `--fail-on-scale-up` for CI gating.
+
+### Laravel Cloud / managed hosting
+
+- New `LaravelCloud` detector recognises Laravel Cloud, Forge, Vapor,
+  Render, Fly.io.
+- Auto-hydrates the configured connection from `AMQP_URL` /
+  `CLOUDAMQP_URL` / `RABBITMQ_URL` on `register()` (opt out via
+  `amqp.cloud.auto_hydrate => false`).
+- DSN parser handles `amqp(s)://`, URL-encoded credentials, and the
+  `%2F` vhost convention used by CloudAMQP.
+
+### Multi-region deployment support
+
+- New `MultiRegionConnection`: ordered region keys with locality
+  preference (`LARAVEL_CLOUD_REGION` / `AWS_REGION` matching), cool-down
+  blacklist, `pick()`, `each()`, and `withFailover($callback)` retry loop.
+
+### Configuration
+
+`config/amqp.php` gains four opt-in blocks:
+
+- `probes` — enabled, prefix, middleware, state_file, heartbeat_age, queues, max_backlog
+- `autoscaling` — messages_per_consumer, min_replicas, max_replicas, lag_seconds
+- `regions` — enabled, connections, primary, cooldown_seconds
+- `cloud` — auto_hydrate
+
+### Tests
+
+- New: `HealthStateTest`, `HealthCheckTest`, `AutoscalingAdvisorTest`,
+  `LaravelCloudTest`, `MultiRegionConnectionTest`,
+  `ConsumerLifecycleHealthTest`, `Http\HealthControllerTest`,
+  `Console\AmqpHealthCommandTest`, `Console\AmqpScaleCommandTest`.
+- Unit suite additions: **58 tests / 152 assertions**.
+- Full unit suite remains green at **594 tests / 1451 assertions**.
+
+### Migration
+
+No migration required. Probes, autoscaling, multi-region, and cloud
+hydration are all opt-in (or auto-detected from already-installed
+hosting environments).
+
+---
+
 ## Version 3.4.4 - Patch Release
 
 Developer-experience patch on top of `3.4.3`: a full CLI toolkit for message

@@ -18,6 +18,8 @@ Laravel AMQP ships with a broad set of artisan commands so you can run workers, 
 | `amqp:diff` | Compare two stored messages (body, headers, properties) |
 | `amqp:schema:debug` | Validate a payload against a typed message contract schema |
 | `amqp:rpc:console` | Interactive / one-shot RPC testing from the CLI |
+| `amqp:health` | Liveness / readiness probe (HTTP-equivalent, exits 0/1) |
+| `amqp:scale` | Consumer autoscaling recommendations (with KEDA trigger output) |
 
 All consumer commands dispatch messages to a **handler class** you supply via `--handler`. The handler is resolved through the Laravel container, so constructor dependencies are auto-wired.
 
@@ -453,6 +455,27 @@ php artisan amqp:rpc:console users.get --raw --timeout=5
 ```
 
 Executes one-shot RPC calls via `RpcClient` and prints latency, correlation id, timeout/failure state, and decoded response.
+
+### `amqp:health` — Kubernetes probe
+
+```bash
+php artisan amqp:health                         # readiness probe (exits 0/1)
+php artisan amqp:health --probe=live --heartbeat-age=30
+php artisan amqp:health --queue=orders --backlog=1000
+php artisan amqp:health --all --state-file=/var/run/amqp.json
+```
+
+Drop into `livenessProbe.exec.command` / `readinessProbe.exec.command` for sidecar-less probes. Always emits a JSON body and uses exit codes the kubelet understands.
+
+### `amqp:scale` — autoscaling advisor
+
+```bash
+php artisan amqp:scale orders orders.priority --per-consumer=100
+php artisan amqp:scale orders --keda            # emit KEDA RabbitMQ trigger
+php artisan amqp:scale orders --json --fail-on-scale-up   # CI gate
+```
+
+Pulls `Amqp::queueMetrics()` for each queue and runs the snapshot through `AutoscalingAdvisor` to suggest a replica count (with reasons + a ready-to-paste KEDA trigger spec).
 
 ---
 
