@@ -1,0 +1,57 @@
+Amqp Event Listener (Bschmitt\Amqp\Test\Unit\AmqpEventListener)
+ [x] Listener skips events without marker
+ [x] Listener publishes marker events
+ [x] Listener honours override methods
+
+Causation Context (Bschmitt\Amqp\Test\Unit\CausationContext)
+ [x] Apply to publish properties includes causation id when set
+ [x] Inherit from message captures message id as causation
+ [x] Inherit falls back to causation header
+ [x] Clear resets both fields
+
+Dead Letter Manager (Bschmitt\Amqp\Test\Unit\DeadLetterManager)
+ [x] Count uses management api stats
+ [x] For rejects empty name
+ [x] Missing for throws
+ [x] Purge forwards to amqp
+ [x] Replay consumes dlq and publishes to target
+
+In Memory Message Store (Bschmitt\Amqp\Test\Unit\InMemoryMessageStore)
+ [x] Append returns unique ids
+ [x] Find returns appended entry
+ [x] All applies filter and limit
+ [x] Purge clears state
+ [x] Count with filter
+
+Monitoring Dashboard (Bschmitt\Amqp\Test\Unit\MonitoringDashboard)
+ [x] Snapshot combines metrics and per queue stats
+ [x] Watch adds queue if missing
+
+Retry Attribute (Bschmitt\Amqp\Test\Unit\RetryAttribute)
+ [x] Attribute stores fields
+ [x] Attribute rejects invalid strategy
+ [x] Attribute rejects zero attempts
+ [x] Retry strategy values and validation
+ [x] From attribute returns none when absent
+ [x] From attribute builds policy on php 8 plus
+
+Saga Facade (Bschmitt\Amqp\Test\Unit\SagaFacade)
+ [x] Fluent make and compensate runs successfully
+ [x] Compensation runs in reverse on failure
+ [x] Compensate without step throws
+ [x] Make factory accepts custom name
+
+Service Caller (Bschmitt\Amqp\Test\Unit\Rpc\ServiceCaller)
+ [x] Service by alias returns caller for registered service
+ [x] Service accepts fqcn directly
+ [x] Service unknown alias throws
+ [x] Call forwards to dispatcher and hydrates response
+
+Service Registry (Bschmitt\Amqp\Test\Unit\Rpc\ServiceRegistry)
+ [x] Register and resolve by name
+ [x] Register rejects missing class
+ [x] Register rejects non service class
+ [x] Resolve unknown throws
+ [x] Autodiscover uses alias method
+ [x] Clear empties registry
+

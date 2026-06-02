@@ -16,9 +16,13 @@ use PhpAmqpLib\Wire\AMQPTable;
 class CorrelationContext
 {
     public const HEADER = 'x-correlation-id';
+    public const CAUSATION_HEADER = 'x-causation-id';
 
     /** @var string|null */
     protected static $correlationId;
+
+    /** @var string|null */
+    protected static $causationId;
 
     /**
      * @return string|null
@@ -45,6 +49,24 @@ class CorrelationContext
     public static function clear(): void
     {
         self::$correlationId = null;
+        self::$causationId = null;
+    }
+
+    /**
+     * @return string|null
+     */
+    public static function getCausation(): ?string
+    {
+        return self::$causationId;
+    }
+
+    /**
+     * @param string|null $causationId
+     * @return void
+     */
+    public static function setCausation(?string $causationId): void
+    {
+        self::$causationId = $causationId;
     }
 
     /**
@@ -82,12 +104,23 @@ class CorrelationContext
         $props = $message->get_properties();
         if (!empty($props['correlation_id'])) {
             self::$correlationId = (string) $props['correlation_id'];
-            return;
+        } else {
+            $header = self::readHeader($message, self::HEADER);
+            if ($header !== null && $header !== '') {
+                self::$correlationId = (string) $header;
+            }
         }
 
-        $header = self::readHeader($message, self::HEADER);
-        if ($header !== null && $header !== '') {
-            self::$correlationId = (string) $header;
+        // The inbound message_id becomes the causation_id of anything we
+        // publish next — that's the canonical way to chain "this happened
+        // because of that" across services.
+        if (!empty($props['message_id'])) {
+            self::$causationId = (string) $props['message_id'];
+        } else {
+            $causation = self::readHeader($message, self::CAUSATION_HEADER);
+            if ($causation !== null && $causation !== '') {
+                self::$causationId = (string) $causation;
+            }
         }
     }
 
@@ -105,6 +138,11 @@ class CorrelationContext
 
         $headers = (array) ($properties['application_headers'] ?? []);
         $headers[self::HEADER] = $id;
+
+        if (self::$causationId !== null && self::$causationId !== '') {
+            $headers[self::CAUSATION_HEADER] = self::$causationId;
+        }
+
         $properties['application_headers'] = $headers;
 
         return $properties;

@@ -58,7 +58,9 @@
                 "Bschmitt\\Amqp\\Providers\\AmqpServiceProvider"
             ],
             "aliases": {
-                "Amqp": "Bschmitt\\Amqp\\Facades\\Amqp"
+                "Amqp": "Bschmitt\\Amqp\\Facades\\Amqp",
+                "Rpc": "Bschmitt\\Amqp\\Facades\\Rpc",
+                "Saga": "Bschmitt\\Amqp\\Facades\\Saga"
             }
         }
     },

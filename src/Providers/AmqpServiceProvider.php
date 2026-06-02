@@ -28,6 +28,12 @@ class AmqpServiceProvider extends ServiceProvider
         if (!class_exists('Amqp')) {
             class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
         }
+        if (!class_exists('Rpc')) {
+            class_alias('Bschmitt\Amqp\Facades\Rpc', 'Rpc');
+        }
+        if (!class_exists('Saga')) {
+            class_alias('Bschmitt\Amqp\Facades\Saga', 'Saga');
+        }
 
         $this->publishes([
             __DIR__.'/../../config/amqp.php' => config_path('amqp.php'),
@@ -36,6 +42,32 @@ class AmqpServiceProvider extends ServiceProvider
 
         $this->registerQueueConnector();
         $this->registerCommands();
+        $this->registerEventBridge();
+    }
+
+    /**
+     * Auto-publish Laravel events that implement
+     * {@see \Bschmitt\Amqp\Contracts\ShouldPublishToAmqpInterface} to AMQP.
+     *
+     * Disabled by default; enable with `amqp.broadcast_laravel_events => true`.
+     *
+     * @return void
+     */
+    protected function registerEventBridge(): void
+    {
+        if (!$this->app->bound('events') || !$this->app->bound('config')) {
+            return;
+        }
+
+        $enabled = (bool) $this->app->make('config')->get('amqp.broadcast_laravel_events', false);
+        if (!$enabled) {
+            return;
+        }
+
+        $this->app->make('events')->listen('*', function ($eventName, array $payload) {
+            $listener = $this->app->make(\Bschmitt\Amqp\Events\AmqpEventListener::class);
+            $listener->dispatch((string) $eventName, $payload);
+        });
     }
 
     /**
@@ -59,6 +91,7 @@ class AmqpServiceProvider extends ServiceProvider
             \Bschmitt\Amqp\Console\Commands\AmqpListenCommand::class,
             \Bschmitt\Amqp\Console\Commands\AmqpPublishCommand::class,
             \Bschmitt\Amqp\Console\Commands\AmqpPurgeCommand::class,
+            \Bschmitt\Amqp\Console\Commands\AmqpMonitorCommand::class,
         ]);
     }
 
@@ -180,6 +213,19 @@ class AmqpServiceProvider extends ServiceProvider
                 $app->make(\Bschmitt\Amqp\Contracts\BatchManagerInterface::class)
             );
         });
+
+        // gRPC-lite dispatcher singleton (resolves through Amqp so handlers
+        // registered via Rpc::register() survive across requests within a
+        // worker process).
+        $this->app->singleton(\Bschmitt\Amqp\Rpc\RpcDispatcher::class, function ($app) {
+            return $app->make(Amqp::class)->rpcDispatcher();
+        });
+
+        // Pluggable MessageStore. Defaults to the in-memory store; consumers
+        // can rebind to a durable implementation in their own provider.
+        $this->app->singleton(\Bschmitt\Amqp\Contracts\MessageStoreInterface::class, function () {
+            return new \Bschmitt\Amqp\Support\InMemoryMessageStore();
+        });
     }
 
     /**
@@ -200,6 +246,8 @@ class AmqpServiceProvider extends ServiceProvider
             'Bschmitt\Amqp\Core\Publisher',
             'Bschmitt\Amqp\Core\Consumer',
             \Bschmitt\Amqp\Support\EventDispatcher::class,
+            \Bschmitt\Amqp\Rpc\RpcDispatcher::class,
+            \Bschmitt\Amqp\Contracts\MessageStoreInterface::class,
         ];
     }
 }

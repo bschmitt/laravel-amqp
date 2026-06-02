@@ -59,8 +59,20 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - **Cross-service / polyglot messaging** - `InteropEnvelope` standard headers (`x-message-type`, `x-schema-version`, `x-source-service`) via `publishInterop()` / `consumeInterop()` (see [Scale & Interop](#scale--interop))
 - **Observability & queue metrics** - `MetricsCollector`, `QueueMetrics`, `Amqp::metrics()`, `queueMetrics()` / `getQueueStats()` (see [Scale & Interop](#scale--interop))
 - **High-performance workers** - `WorkerOptions`, `HighPerformanceWorker`, `consumeOptimized()`, and `amqp:work --optimized` (see [Scale & Interop](#scale--interop))
+- **gRPC-lite typed RPC** - `Rpc::call(UserService::class, GetUserRequest::make([...]))` with typed request/response DTOs, service registries, and `Rpc::serve()` on the server (see [gRPC-lite RPC](#grpc-lite-rpc))
+- **Service discovery** - `Rpc::service('payments')->call(...)` resolves a short name to a registered `RpcService` class; opt-in via `static alias()` on the service (see [Messaging Platform](#laravel-messaging-platform))
+- **Saga facade** - `Saga::make()->step(...)->compensate(...)` fluent syntax with reverse-order compensation on failure (see [Messaging Platform](#laravel-messaging-platform))
+- **Message contracts dispatch** - `OrderCreated::dispatch(['orderId' => 'o-1'])` auto-serializes and publishes typed messages via the Laravel container (see [Messaging Platform](#laravel-messaging-platform))
+- **Dead-letter management** - `Amqp::deadLetters()->for('orders.dlq')->count()/messages()/replayTo()/purge()` fluent inspection and recovery (see [Messaging Platform](#laravel-messaging-platform))
+- **Declarative retry attribute** - `#[Retry(attempts: 5, strategy: RetryStrategy::EXPONENTIAL)]` on handlers, hydrated via `RetryPolicy::fromAttribute()` (see [Messaging Platform](#laravel-messaging-platform))
+- **Monitoring dashboard** - `Amqp::dashboard($queues)->snapshot()` aggregates in-process metrics + Management API stats; `php artisan amqp:monitor` prints them (see [Messaging Platform](#laravel-messaging-platform))
+- **Causation ID propagation** - `CorrelationContext` now propagates both `correlation_id` and `x-causation-id` so consumers can chain "this happened because of that" (see [Messaging Platform](#laravel-messaging-platform))
+- **MessageStore** - `MessageStoreInterface` + `InMemoryMessageStore`; opt-in audit log of every publish/consume via `Amqp::setMessageStore()` (see [Messaging Platform](#laravel-messaging-platform))
+- **Async Laravel events** - mark events with `ShouldPublishToAmqpInterface` and enable `amqp.broadcast_laravel_events` to auto-publish `event(new OrderCreated())` to RabbitMQ (see [Messaging Platform](#laravel-messaging-platform))
+
 
 ## Planned Features
+- RabbitMQ Dashboard 
 
 ## Requirements
 
@@ -975,6 +987,291 @@ Amqp::highPerformanceWorker(
 CLI: `php artisan amqp:work jobs --handler=App\\Handlers\\JobHandler --optimized`
 
 See `docs/content/scale-and-interop.md` for the full reference.
+
+## gRPC-lite RPC
+
+A typed, service-oriented RPC layer that feels like gRPC but rides on RabbitMQ. Define a service once, then call it from any process with typed DTOs.
+
+### Define the service contract
+
+```php
+use Bschmitt\Amqp\Rpc\RpcService;
+use Bschmitt\Amqp\Rpc\RpcRequest;
+use Bschmitt\Amqp\Rpc\RpcResponse;
+
+class UserService extends RpcService
+{
+    public static function queue(): string
+    {
+        return 'rpc.user-service';
+    }
+
+    public static function methods(): array
+    {
+        return [
+            GetUserRequest::class    => 'getUser',
+            CreateUserRequest::class => 'createUser',
+        ];
+    }
+}
+
+class GetUserRequest extends RpcRequest
+{
+    public $id;
+
+    public function __construct($id = null) { $this->id = $id; }
+
+    public static function responseClass()
+    {
+        return GetUserResponse::class;
+    }
+}
+
+class GetUserResponse extends RpcResponse
+{
+    public $id;
+    public $name;
+
+    public function __construct($id = null, $name = null)
+    {
+        $this->id = $id;
+        $this->name = $name;
+    }
+}
+```
+
+### Call from any client
+
+```php
+use Rpc; // facade alias auto-registered
+
+$response = Rpc::call(
+    UserService::class,
+    GetUserRequest::make(['id' => 5])
+);
+
+echo $response->name; // GetUserResponse instance, hydrated for you
+```
+
+`Rpc::call()` automatically:
+- Resolves the queue from the service contract.
+- JSON-encodes the request DTO.
+- Issues a synchronous AMQP RPC round-trip via the existing primitive.
+- Hydrates the reply into the request's `responseClass()` (or returns the raw decoded array).
+
+Throws `RpcTimeoutException` if no reply arrives, or `RpcException` if the server returned an error envelope.
+
+### Serve on the server side
+
+```php
+use Rpc;
+
+class UserServiceHandler
+{
+    public function getUser(GetUserRequest $request): GetUserResponse
+    {
+        $user = User::findOrFail($request->id);
+        return GetUserResponse::make([
+            'id'   => $user->id,
+            'name' => $user->name,
+        ]);
+    }
+
+    public function createUser(CreateUserRequest $request): GetUserResponse
+    {
+        $user = User::create(['name' => $request->name]);
+        return GetUserResponse::make(['id' => $user->id, 'name' => $user->name]);
+    }
+}
+
+Rpc::register(UserService::class, UserServiceHandler::class)
+   ->serve(UserService::class);
+```
+
+The handler may be an instance or a container-resolvable FQCN (Laravel only). Handler exceptions are wrapped into an `_rpc_error` envelope so the client raises a typed `RpcException` with the original message and class name.
+
+### Configurable
+
+```php
+// Global default timeout
+Rpc::defaultTimeout(10);
+
+// Per-call timeout + extra publish properties
+Rpc::call(UserService::class, GetUserRequest::make(['id' => 1]), 5, [
+    'exchange' => 'rpc.svc',
+]);
+```
+
+See `docs/content/grpc-lite-rpc.md` for the full reference.
+
+## Laravel Messaging Platform
+
+A set of higher-level building blocks that turn the package from "an AMQP client" into a full microservice toolkit: service discovery, sagas, message contracts, dead-letter management, declarative retry, monitoring, automatic context propagation, an audit log, and an event bridge.
+
+### Service Discovery (`Rpc::service(...)`)
+
+Skip exchange/routing-key/queue gymnastics — register a short name and call by that name.
+
+```php
+use Bschmitt\Amqp\Facades\Rpc;
+
+// Either: explicit registration
+Rpc::services()->register('payments', PaymentsService::class);
+
+// Or: opt-in auto-discovery (service exposes `public static function alias()`)
+class PaymentsService extends RpcService {
+    public static function queue(): string   { return 'rpc.payments'; }
+    public static function methods(): array  { return [GetPayment::class => 'find']; }
+    public static function alias(): ?string  { return 'payments'; }
+}
+
+Rpc::services()->autodiscover([PaymentsService::class]);
+
+$response = Rpc::service('payments')
+    ->timeout(5)
+    ->call(GetPayment::make(['id' => 123]));
+```
+
+`Rpc::service()` accepts an alias **or** a service FQCN.
+
+### Saga Facade
+
+`Saga::make()->step()->compensate()` with reverse-order compensation when a step throws.
+
+```php
+use Bschmitt\Amqp\Facades\Saga;
+
+$result = Saga::make('checkout')
+    ->step('reserve', fn($ctx) => $stock->reserve($ctx['orderId']))
+        ->compensate(fn($ctx) => $stock->release($ctx['orderId']))
+    ->step('charge',  fn($ctx) => $payments->charge($ctx['amount']))
+        ->compensate(fn($ctx, $tx) => $payments->refund($tx))
+    ->execute(['orderId' => 1, 'amount' => 49.99]);
+
+if (!$result->succeeded()) {
+    Log::error('Saga failed at ' . $result->getFailedStep(), [
+        'compensated' => $result->getCompensatedSteps(),
+    ]);
+}
+```
+
+### Message Contracts (`OrderCreated::dispatch(...)`)
+
+`TypedMessage` now exposes `make()` and `dispatch()` (and `dispatchLater()` for the delayed-queue variant).
+
+```php
+use Bschmitt\Amqp\Support\TypedMessage;
+
+class OrderCreated extends TypedMessage
+{
+    public $orderId;
+    public $total;
+
+    public static function name(): string { return 'orders.created'; }
+}
+
+OrderCreated::dispatch(['orderId' => 'o-1', 'total' => 9.99]);
+
+OrderCreated::dispatchLater(['orderId' => 'o-1'], 2_000); // 2s delay
+```
+
+### Dead-Letter Management
+
+```php
+use Bschmitt\Amqp\Facades\Amqp;
+
+Amqp::deadLetters()->for('orders.dlq')->count();           // 17
+Amqp::deadLetters()->for('orders.dlq')->messages(10);      // drain & inspect
+Amqp::deadLetters()->for('orders.dlq')->replayTo('orders', 50);
+Amqp::deadLetters()->for('orders.dlq')->purge();
+```
+
+### Declarative Retry (`#[Retry]`)
+
+```php
+use Bschmitt\Amqp\Attributes\Retry;
+use Bschmitt\Amqp\Support\RetryStrategy;
+use Bschmitt\Amqp\Support\RetryPolicy;
+
+class CreateOrderHandler
+{
+    #[Retry(attempts: 5, strategy: RetryStrategy::EXPONENTIAL, delayMs: 500)]
+    public function handle($message): void { /* ... */ }
+}
+
+$policy = RetryPolicy::fromAttribute(CreateOrderHandler::class, 'handle');
+$amqp->consumeWithRetry('orders', $handler, $policy);
+```
+
+On PHP 7.x the attribute parses as a comment (the package still loads); call sites that want the attribute need PHP 8+.
+
+### Monitoring Dashboard
+
+```php
+$snapshot = Amqp::dashboard(['orders', 'orders.dlq'])->snapshot();
+// process: { published, consumed, handled, failed }
+// queues:  { 'orders' => { messages, consumers, publish_rate, ... } }
+// overview, generated
+```
+
+CLI:
+
+```bash
+php artisan amqp:monitor --queue=orders --queue=orders.dlq
+php artisan amqp:monitor --queue=orders --json
+```
+
+Wire the snapshot into any HTTP route (Laravel, Symfony, Slim) to expose a JSON dashboard.
+
+### Causation ID Propagation
+
+`CorrelationContext::inheritFromMessage()` now picks up the inbound `message_id` as the **causation_id** for everything published afterwards, so downstream services can trace "this happened because of that" through a chain.
+
+```php
+CorrelationContext::inheritFromMessage($incoming);
+
+Amqp::publish('orders.created', $body, [
+    'propagate_correlation' => true,
+    'message_id' => uniqid('msg_', true),
+]);
+// outbound has `correlation_id`, `x-correlation-id`, and `x-causation-id` set
+```
+
+### MessageStore (audit log / event-sourcing seed)
+
+```php
+use Bschmitt\Amqp\Support\InMemoryMessageStore;
+
+$amqp->setMessageStore(new InMemoryMessageStore());
+
+Amqp::publish('orders.created', '{}');
+
+$entries = $amqp->messageStore()->all(['direction' => 'published']);
+```
+
+Implement `MessageStoreInterface` to back it with Eloquent / Redis / files for durable replay.
+
+### Async Laravel Events
+
+```php
+use Bschmitt\Amqp\Contracts\ShouldPublishToAmqpInterface;
+
+class OrderCreated implements ShouldPublishToAmqpInterface
+{
+    public function __construct(public string $orderId) {}
+}
+
+// config/amqp.php
+return [
+    // ...
+    'broadcast_laravel_events' => true,
+];
+
+event(new OrderCreated('o-1'));
+// auto-published to RabbitMQ with routing key `order_created`
+```
+
+Override `amqpRouting()`, `amqpExchange()`, or `amqpPayload()` on the event to customise routing.
 
 ## Testing
 

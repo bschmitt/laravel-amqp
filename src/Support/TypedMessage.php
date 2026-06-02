@@ -49,6 +49,75 @@ use Bschmitt\Amqp\Contracts\MessageContractInterface;
 abstract class TypedMessage implements MessageContractInterface
 {
     /**
+     * Fluent factory: hydrate a new instance from an associative array.
+     *
+     *   OrderCreated::make(['orderId' => 'o-1', 'total' => 9.99])
+     *
+     * @param array<string, mixed> $payload
+     * @return static
+     */
+    public static function make(array $payload = [])
+    {
+        return static::fromPayload($payload);
+    }
+
+    /**
+     * Publish this contract through the package's Amqp instance.
+     *
+     *   OrderCreated::dispatch(['orderId' => 'o-1', 'total' => 9.99]);
+     *   OrderCreated::dispatch(['orderId' => 'o-1'], ['exchange' => 'app.events']);
+     *
+     * Requires a Laravel container so the `Amqp` singleton can be resolved.
+     * Outside Laravel, use `Amqp::publishTyped(OrderCreated::make($payload))`.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $properties
+     * @return bool|null
+     */
+    public static function dispatch(array $payload = [], array $properties = [])
+    {
+        $instance = static::make($payload);
+
+        try {
+            $amqp = \Illuminate\Support\Facades\App::make('Amqp');
+        } catch (\Throwable $e) {
+            throw new \RuntimeException(
+                'OrderCreated::dispatch() requires a Laravel container; '.
+                'use $amqp->publishTyped() directly outside Laravel.',
+                0,
+                $e
+            );
+        }
+
+        return $amqp->publishTyped($instance, $properties);
+    }
+
+    /**
+     * Delayed counterpart to {@see dispatch()}.
+     *
+     * @param array<string, mixed> $payload
+     * @param int                  $delayMs
+     * @param array<string, mixed> $properties
+     * @return bool|null
+     */
+    public static function dispatchLater(array $payload, int $delayMs, array $properties = [])
+    {
+        $instance = static::make($payload);
+
+        try {
+            $amqp = \Illuminate\Support\Facades\App::make('Amqp');
+        } catch (\Throwable $e) {
+            throw new \RuntimeException(
+                'TypedMessage::dispatchLater() requires a Laravel container.',
+                0,
+                $e
+            );
+        }
+
+        return $amqp->publishTypedLater($instance, $delayMs, $properties);
+    }
+
+    /**
      * Default payload shape: every public property keyed by name.
      *
      * Override when you need different field names, computed fields, or
