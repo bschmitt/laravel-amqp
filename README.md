@@ -55,12 +55,12 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - **Laravel events & consume middleware** - `MessagePublishing`/`MessagePublished`/`MessageReceived`/`MessageHandled`/`MessageFailed` events plus `ConsumePipeline` / `ConsumeMiddlewareInterface` and `consumeWithMiddleware()` (see [SAGA, Events, Middleware & Testing](#saga-events-middleware--testing))
 - **Fake AMQP test driver** - `Amqp::fake()` / `FakeAmqp` with `assertPublished()`, `assertPublishedCount()`, `assertNothingPublished()` (see [SAGA, Events, Middleware & Testing](#saga-events-middleware--testing))
 - **Publisher confirms & async publishing** - persistent-channel `AsyncPublisher` with batched confirms via `Amqp::asyncPublisher()` (see [SAGA, Events, Middleware & Testing](#saga-events-middleware--testing))
+- **RPC abstraction helpers** - `RpcClient` / `RpcServer` with `RpcCallResult`, JSON mode, and `Amqp::rpcClient()` / `rpcServer()` (see [Scale & Interop](#scale--interop))
+- **Cross-service / polyglot messaging** - `InteropEnvelope` standard headers (`x-message-type`, `x-schema-version`, `x-source-service`) via `publishInterop()` / `consumeInterop()` (see [Scale & Interop](#scale--interop))
+- **Observability & queue metrics** - `MetricsCollector`, `QueueMetrics`, `Amqp::metrics()`, `queueMetrics()` / `getQueueStats()` (see [Scale & Interop](#scale--interop))
+- **High-performance workers** - `WorkerOptions`, `HighPerformanceWorker`, `consumeOptimized()`, and `amqp:work --optimized` (see [Scale & Interop](#scale--interop))
 
 ## Planned Features
-- RPC abstraction helpers
-- Cross-service / polyglot messaging support
-- Enhanced observability and queue metrics
-- High-performance worker optimizations
 
 ## Requirements
 
@@ -395,7 +395,7 @@ return [
 ### Comprehensive Guides
 
 - **[User Manual](docs/USER_MANUAL.md)** - Complete usage guide
-- **[Release Notes](RELEASE_NOTES.md)** - Version 3.3.0 changelog (latest: 3.3.0 minor release)
+- **[Release Notes](RELEASE_NOTES.md)** - Version 3.4.0 changelog (latest: 3.4.0 minor release)
 - **[FAQ](docs/laravel-amqp.wiki/FAQ.md)** - Common questions and answers
 
 ### Wiki Documentation
@@ -907,6 +907,75 @@ $async->close();
 
 `AsyncPublisher` keeps a single channel open with `confirm_select` and only waits for confirmations on `flush()`, so high-throughput publishers don't block on the per-message round-trip.
 
+## Scale & Interop
+
+### RPC abstraction
+
+```php
+// Client
+$result = Amqp::rpcClient(['exchange' => 'rpc'])->asJson()->timeout(10)
+    ->call('users.lookup', ['id' => 42]);
+
+if ($result->succeeded()) {
+    $user = $result->body();
+}
+
+// Server
+Amqp::rpcServer()->asJson()->serve('rpc.users', function ($request, $consumer) {
+    return ['id' => $request['id'], 'name' => 'Ada'];
+});
+```
+
+`RpcCallResult` exposes `succeeded()`, `timedOut()`, and `body()`.
+
+### Cross-service / polyglot messaging
+
+```php
+Amqp::publishInterop(
+    'orders.created',
+    ['orderId' => 99, 'total' => 12.50],
+    'orders.created',
+    'billing-service',
+    ['exchange' => 'events'],
+    '2.0'
+);
+
+Amqp::consumeInterop('events.orders', function ($interop, $raw, $resolver) {
+    $payload = \Bschmitt\Amqp\Support\InteropEnvelope::decodePayload($interop);
+    // $interop->messageType, $interop->sourceService, $interop->schemaVersion
+});
+```
+
+Standard headers (`x-message-type`, `x-schema-version`, `x-source-service`) let Node, Go, or Java consumers route messages without PHP DTOs.
+
+### Observability & queue metrics
+
+```php
+// In-process counters (per worker / request)
+$stats = Amqp::metrics()->snapshot();
+
+// Broker-side queue depth + rates (Management API)
+$metrics = Amqp::queueMetrics('orders', '/');
+Log::info('queue depth', $metrics->toArray());
+```
+
+Publish/consume paths increment `MetricsCollector` automatically when using `publish()`, `consumeWithMiddleware()`, or `HighPerformanceWorker`.
+
+### High-performance workers
+
+```php
+Amqp::consumeOptimized('jobs', $handler, ['exchange' => 'work']);
+
+// Or explicitly:
+Amqp::highPerformanceWorker(
+    \Bschmitt\Amqp\Support\WorkerOptions::throughput(100)
+)->run('jobs', $handler);
+```
+
+CLI: `php artisan amqp:work jobs --handler=App\\Handlers\\JobHandler --optimized`
+
+See `docs/content/scale-and-interop.md` for the full reference.
+
 ## Testing
 
 The package includes comprehensive test coverage:
@@ -963,7 +1032,7 @@ See [Testing Guide](docs/laravel-amqp.wiki/Testing.md) for more information.
 
 ## Backward Compatibility
 
-Version 3.3.0 is fully backward compatible with previous versions. All existing code will continue to work without modifications.
+Version 3.4.0 is fully backward compatible with previous versions. All existing code will continue to work without modifications.
 
 ## Contributing
 
@@ -987,5 +1056,5 @@ For issues, questions, or contributions:
 
 ---
 
-**Version:** 3.3.0  
+**Version:** 3.4.0  
 **Status:** Ready
