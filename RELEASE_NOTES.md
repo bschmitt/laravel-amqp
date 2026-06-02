@@ -162,9 +162,24 @@ code, handler signatures, and config layouts continue to work unchanged.
     - `HighPerformanceWorker`, `Amqp::consumeOptimized()`.
     - `amqp:work --optimized` (prefetch=50 when not overridden).
 
+### gRPC-lite RPC
+
+21. **Typed service-oriented RPC layer**
+    - `RpcService` contract (`queue()`, `methods()`, optional
+      `name()` / `exchange()` / `routingKey()`).
+    - `RpcRequest` / `RpcResponse` DTOs with `make()` factory built on
+      `TypedMessage` reflection.
+    - `RpcDispatcher` coordinates symmetric `call()` / `serve()` /
+      `register()` flow with `x-rpc-service` and `x-rpc-request`
+      headers for routing and tracing.
+    - `Rpc` facade auto-registered (`Rpc::call(UserService::class, GetUserRequest::make([...]))`).
+    - `RpcException` (remote handler errors carry original class name) and
+      `RpcTimeoutException`.
+    - `Amqp::rpcDispatcher()` accessor; container-resolvable handler FQCNs.
+
 ### Tests
 
-- ~130 new unit tests; total **395 unit tests** (906 assertions).
+- ~140 new unit tests; total **405 unit tests** (925 assertions).
 - Full suite passes on PHP 8.3 and 8.4; deprecation warnings on 8.4 come
   exclusively from the vendored Mockery library and predate this release.
 
@@ -177,6 +192,7 @@ code, handler signatures, and config layouts continue to work unchanged.
   - `docs/content/production-features.md`
   - `docs/content/workflow-events-testing.md`
   - `docs/content/scale-and-interop.md`
+  - `docs/content/grpc-lite-rpc.md`
 - Updated `docs/content/advanced.md`, `publishing.md`, `consuming.md`,
   `artisan-commands.md`, `best-practices.md`, `faq.md`,
   `getting-started.md`, `guide.md`, `USER_MANUAL.md`, `README.md`.

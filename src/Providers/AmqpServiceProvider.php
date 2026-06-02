@@ -28,6 +28,9 @@ class AmqpServiceProvider extends ServiceProvider
         if (!class_exists('Amqp')) {
             class_alias('Bschmitt\Amqp\Facades\Amqp', 'Amqp');
         }
+        if (!class_exists('Rpc')) {
+            class_alias('Bschmitt\Amqp\Facades\Rpc', 'Rpc');
+        }
 
         $this->publishes([
             __DIR__.'/../../config/amqp.php' => config_path('amqp.php'),
@@ -180,6 +183,13 @@ class AmqpServiceProvider extends ServiceProvider
                 $app->make(\Bschmitt\Amqp\Contracts\BatchManagerInterface::class)
             );
         });
+
+        // gRPC-lite dispatcher singleton (resolves through Amqp so handlers
+        // registered via Rpc::register() survive across requests within a
+        // worker process).
+        $this->app->singleton(\Bschmitt\Amqp\Rpc\RpcDispatcher::class, function ($app) {
+            return $app->make(Amqp::class)->rpcDispatcher();
+        });
     }
 
     /**
@@ -200,6 +210,7 @@ class AmqpServiceProvider extends ServiceProvider
             'Bschmitt\Amqp\Core\Publisher',
             'Bschmitt\Amqp\Core\Consumer',
             \Bschmitt\Amqp\Support\EventDispatcher::class,
+            \Bschmitt\Amqp\Rpc\RpcDispatcher::class,
         ];
     }
 }

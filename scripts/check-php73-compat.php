@@ -113,6 +113,22 @@ $files = [
     'test/Unit/MetricsCollectorTest.php',
     'test/Unit/WorkerOptionsTest.php',
     'test/Unit/AmqpScaleFeaturesTest.php',
+    // gRPC-lite layer (v3.4)
+    'src/Rpc/RpcMessage.php',
+    'src/Rpc/RpcRequest.php',
+    'src/Rpc/RpcResponse.php',
+    'src/Rpc/RpcService.php',
+    'src/Rpc/RpcDispatcher.php',
+    'src/Rpc/RpcException.php',
+    'src/Rpc/RpcTimeoutException.php',
+    'src/Facades/Rpc.php',
+    'test/Support/Fixtures/Rpc/UserService.php',
+    'test/Support/Fixtures/Rpc/UserServiceHandler.php',
+    'test/Support/Fixtures/Rpc/GetUserRequest.php',
+    'test/Support/Fixtures/Rpc/GetUserResponse.php',
+    'test/Support/Fixtures/Rpc/CreateUserRequest.php',
+    'test/Unit/Rpc/RpcDispatcherTest.php',
+    'test/Unit/Rpc/RpcMessageTest.php',
 ];
 
 $factory = new ParserFactory();

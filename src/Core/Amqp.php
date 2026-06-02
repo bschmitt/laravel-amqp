@@ -22,6 +22,7 @@ use Bschmitt\Amqp\Events\MessagePublished;
 use Bschmitt\Amqp\Events\MessagePublishing;
 use Bschmitt\Amqp\Events\MessageReceived;
 use Bschmitt\Amqp\Models\Message;
+use Bschmitt\Amqp\Rpc\RpcDispatcher;
 use Bschmitt\Amqp\Support\AsyncPublisher;
 use Bschmitt\Amqp\Support\ConsumePipeline;
 use Bschmitt\Amqp\Support\ConsumerLifecycle;
@@ -92,6 +93,11 @@ class Amqp
      * @var MetricsCollector|null
      */
     protected $metricsCollector;
+
+    /**
+     * @var RpcDispatcher|null
+     */
+    protected $rpcDispatcher;
 
     /**
      * @param PublisherFactoryInterface $publisherFactory
@@ -673,6 +679,36 @@ class Amqp
     public function rpcServer(): RpcServer
     {
         return new RpcServer($this);
+    }
+
+    /**
+     * gRPC-lite dispatcher (typed `Rpc::call()` / `Rpc::serve()`).
+     *
+     * Distinct from the lower-level {@see rpc()} method, which performs a
+     * single synchronous request/reply with a raw payload.
+     *
+     * @return RpcDispatcher
+     */
+    public function rpcDispatcher(): RpcDispatcher
+    {
+        if ($this->rpcDispatcher === null) {
+            $this->rpcDispatcher = new RpcDispatcher($this);
+        }
+
+        return $this->rpcDispatcher;
+    }
+
+    /**
+     * Override the active gRPC-lite dispatcher (primarily for tests).
+     *
+     * @param RpcDispatcher|null $dispatcher
+     * @return $this
+     */
+    public function setRpcDispatcher(?RpcDispatcher $dispatcher): self
+    {
+        $this->rpcDispatcher = $dispatcher;
+
+        return $this;
     }
 
     /**

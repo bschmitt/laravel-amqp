@@ -59,8 +59,8 @@ A detailed AMQP wrapper for Laravel and Lumen to publish and consume messages, e
 - **Cross-service / polyglot messaging** - `InteropEnvelope` standard headers (`x-message-type`, `x-schema-version`, `x-source-service`) via `publishInterop()` / `consumeInterop()` (see [Scale & Interop](#scale--interop))
 - **Observability & queue metrics** - `MetricsCollector`, `QueueMetrics`, `Amqp::metrics()`, `queueMetrics()` / `getQueueStats()` (see [Scale & Interop](#scale--interop))
 - **High-performance workers** - `WorkerOptions`, `HighPerformanceWorker`, `consumeOptimized()`, and `amqp:work --optimized` (see [Scale & Interop](#scale--interop))
+- **gRPC-lite typed RPC** - `Rpc::call(UserService::class, GetUserRequest::make([...]))` with typed request/response DTOs, service registries, and `Rpc::serve()` on the server (see [gRPC-lite RPC](#grpc-lite-rpc))
 
-## Planned Features
 
 ## Requirements
 
@@ -975,6 +975,122 @@ Amqp::highPerformanceWorker(
 CLI: `php artisan amqp:work jobs --handler=App\\Handlers\\JobHandler --optimized`
 
 See `docs/content/scale-and-interop.md` for the full reference.
+
+## gRPC-lite RPC
+
+A typed, service-oriented RPC layer that feels like gRPC but rides on RabbitMQ. Define a service once, then call it from any process with typed DTOs.
+
+### Define the service contract
+
+```php
+use Bschmitt\Amqp\Rpc\RpcService;
+use Bschmitt\Amqp\Rpc\RpcRequest;
+use Bschmitt\Amqp\Rpc\RpcResponse;
+
+class UserService extends RpcService
+{
+    public static function queue(): string
+    {
+        return 'rpc.user-service';
+    }
+
+    public static function methods(): array
+    {
+        return [
+            GetUserRequest::class    => 'getUser',
+            CreateUserRequest::class => 'createUser',
+        ];
+    }
+}
+
+class GetUserRequest extends RpcRequest
+{
+    public $id;
+
+    public function __construct($id = null) { $this->id = $id; }
+
+    public static function responseClass()
+    {
+        return GetUserResponse::class;
+    }
+}
+
+class GetUserResponse extends RpcResponse
+{
+    public $id;
+    public $name;
+
+    public function __construct($id = null, $name = null)
+    {
+        $this->id = $id;
+        $this->name = $name;
+    }
+}
+```
+
+### Call from any client
+
+```php
+use Rpc; // facade alias auto-registered
+
+$response = Rpc::call(
+    UserService::class,
+    GetUserRequest::make(['id' => 5])
+);
+
+echo $response->name; // GetUserResponse instance, hydrated for you
+```
+
+`Rpc::call()` automatically:
+- Resolves the queue from the service contract.
+- JSON-encodes the request DTO.
+- Issues a synchronous AMQP RPC round-trip via the existing primitive.
+- Hydrates the reply into the request's `responseClass()` (or returns the raw decoded array).
+
+Throws `RpcTimeoutException` if no reply arrives, or `RpcException` if the server returned an error envelope.
+
+### Serve on the server side
+
+```php
+use Rpc;
+
+class UserServiceHandler
+{
+    public function getUser(GetUserRequest $request): GetUserResponse
+    {
+        $user = User::findOrFail($request->id);
+        return GetUserResponse::make([
+            'id'   => $user->id,
+            'name' => $user->name,
+        ]);
+    }
+
+    public function createUser(CreateUserRequest $request): GetUserResponse
+    {
+        $user = User::create(['name' => $request->name]);
+        return GetUserResponse::make(['id' => $user->id, 'name' => $user->name]);
+    }
+}
+
+Rpc::register(UserService::class, UserServiceHandler::class)
+   ->serve(UserService::class);
+```
+
+The handler may be an instance or a container-resolvable FQCN (Laravel only). Handler exceptions are wrapped into an `_rpc_error` envelope so the client raises a typed `RpcException` with the original message and class name.
+
+### Configurable
+
+```php
+// Global default timeout
+Rpc::defaultTimeout(10);
+
+// Per-call timeout + extra publish properties
+Rpc::call(UserService::class, GetUserRequest::make(['id' => 1]), 5, [
+    'exchange' => 'rpc.svc',
+]);
+```
+
+See `docs/content/grpc-lite-rpc.md` for the full reference.
 
 ## Testing
 
