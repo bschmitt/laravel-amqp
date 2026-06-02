@@ -633,6 +633,8 @@ createApp({
       await this.loadMarkdownPage('queue-driver', "./content/queue-driver.md");
       await this.loadMarkdownPage('artisan-commands', "./content/artisan-commands.md");
       await this.loadMarkdownPage('guide', "./content/guide.md");
+      await this.loadMarkdownPage('kubernetes-cloud-native', './content/kubernetes-cloud-native.md');
+
     },
   },
 }).mount("#app");

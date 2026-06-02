@@ -397,6 +397,19 @@
                   </p>
                 </div>
 
+                <div class="feature-card">
+                  <div class="feature-icon">☸️</div>
+                  <h3>Kubernetes &amp; Cloud Native</h3>
+                  <p>
+                    Liveness / readiness <code>HealthCheck</code> with HTTP
+                    routes and <code>php artisan amqp:health</code> exec probes,
+                    autoscaling recommendations via
+                    <code>php artisan amqp:scale</code> (KEDA-ready),
+                    Laravel Cloud / <code>AMQP_URL</code> DSN auto-hydration,
+                    and <code>MultiRegionConnection</code> failover.
+                  </p>
+                </div>
+
               </div>
             </div>
           </section>
@@ -697,6 +710,12 @@
                       >Messaging Platform</a
                     >
                     <a
+                      href="#kubernetes-cloud-native"
+                      @click.prevent="navigateTo('kubernetes-cloud-native')"
+                      :class="{active: currentPage === 'kubernetes-cloud-native'}"
+                      >Kubernetes &amp; Cloud Native</a
+                    >
+                    <a
                       href="#best-practices"
                       @click.prevent="navigateTo('best-practices')"
                       :class="{active: currentPage === 'best-practices'}"
@@ -750,6 +769,9 @@
               >
               <a href="#queue-driver" @click.prevent="navigateTo('queue-driver')"
                 >Laravel Queue Driver</a
+              >
+              <a href="#kubernetes-cloud-native" @click.prevent="navigateTo('kubernetes-cloud-native')"
+                >Kubernetes &amp; Cloud Native</a
               >
               <a href="#guide" @click.prevent="navigateTo('guide')">Guide</a>
               <a href="#faq" @click.prevent="navigateTo('faq')">FAQ</a>

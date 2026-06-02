@@ -79,7 +79,7 @@ class AmqpInspectCommand extends Command
                 return self::SUCCESS;
             }
 
-            usleep((int) ($interval * 1_000_000));
+            usleep((int) ($interval * 1000000));
         }
     }
 
